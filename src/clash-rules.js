@@ -152,6 +152,7 @@ const proxyKeywords = [
   // 规则源默认直接使用 GitHub Raw，避免额外维护多套 CDN 入口。
   const RAW_BASE = "https://raw.githubusercontent.com";
   const SELF_RULES_REPO = "yuanv4/clash-rules";
+  const BOOTSTRAP_ICON_BASE = "https://icons.getbootstrap.com/assets/icons";
   
   // 规则集通用配置
   const ruleProviderCommon = {
@@ -514,6 +515,17 @@ const proxyKeywords = [
       lazy: true,
       "max-failed-times": 3,
     };
+
+    const groupIcons = {
+      manual: `${BOOTSTRAP_ICON_BASE}/sliders.svg`,
+      proxy: `${BOOTSTRAP_ICON_BASE}/send-arrow-up.svg`,
+      latency: `${BOOTSTRAP_ICON_BASE}/speedometer.svg`,
+      claude: `${BOOTSTRAP_ICON_BASE}/claude.svg`,
+      ai: `${BOOTSTRAP_ICON_BASE}/openai.svg`,
+      direct: `${BOOTSTRAP_ICON_BASE}/plug.svg`,
+      reject: `${BOOTSTRAP_ICON_BASE}/shield-slash.svg`,
+      fallback: `${BOOTSTRAP_ICON_BASE}/question-circle.svg`,
+    };
   
     // 覆盖代理组配置
     config["proxy-groups"] = [
@@ -523,14 +535,14 @@ const proxyKeywords = [
         type: "select",
         "include-all": true,
         filter: stableNodeFilters.all,
-        icon: "https://cdn.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/rocket.svg",
+        icon: groupIcons.manual,
       },
       {
         ...selectGroupBaseOption,
         name: "节点选择",
         type: "select",
         proxies: ["手动选择", "延迟选优", "DIRECT"],
-        icon: "https://cdn.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/adjust.svg",
+        icon: groupIcons.proxy,
       },
       {
         ...probeGroupBaseOption,
@@ -539,7 +551,7 @@ const proxyKeywords = [
         tolerance: 150,
         "include-all": true,
         filter: stableNodeFilters.all,
-        icon: "https://cdn.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/speed.svg",
+        icon: groupIcons.latency,
       },
       {
         ...selectGroupBaseOption,
@@ -547,7 +559,7 @@ const proxyKeywords = [
         type: "select",
         "include-all": true,
         filter: stableNodeFilters.claude,
-        icon: "https://cdn.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/adjust.svg",
+        icon: groupIcons.claude,
       },
       {
         ...selectGroupBaseOption,
@@ -555,28 +567,28 @@ const proxyKeywords = [
         type: "select",
         "include-all": true,
         filter: stableNodeFilters.ai,
-        icon: "https://cdn.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/flags/jp.svg",
+        icon: groupIcons.ai,
       },
       {
         ...selectGroupBaseOption,
         name: "全局直连",
         type: "select",
         proxies: ["DIRECT", "手动选择", "节点选择", "延迟选优"],
-        icon: "https://cdn.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/link.svg",
+        icon: groupIcons.direct,
       },
       {
         ...selectGroupBaseOption,
         name: "全局拦截",
         type: "select",
         proxies: ["REJECT"],
-        icon: "https://cdn.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/block.svg",
+        icon: groupIcons.reject,
       },
       {
         ...selectGroupBaseOption,
         name: "漏网之鱼",
         type: "select",
         proxies: ["手动选择", "节点选择", "延迟选优", "DIRECT"],
-        icon: "https://cdn.jsdelivr.net/gh/clash-verge-rev/clash-verge-rev.github.io@main/docs/assets/icons/fish.svg",
+        icon: groupIcons.fallback,
       },
     ];
   
