@@ -10,23 +10,6 @@
 - 覆写脚本：[src/clash-rules.js](src/clash-rules.js)
 - 自维护规则集：`claude.txt`、`openai.txt`、`gemini.txt`、`cursor.txt`、`openrouter.txt`、`google-extra.txt`
 
-## 目录
-
-- [src/clash-rules.js](src/clash-rules.js)：覆写脚本源码
-- [scripts/publish.ps1](scripts/publish.ps1)：构建脚本
-- [rules/claude/manual.txt](rules/claude/manual.txt)
-- [rules/claude/exclude.txt](rules/claude/exclude.txt)
-- [rules/openai/manual.txt](rules/openai/manual.txt)
-- [rules/openai/exclude.txt](rules/openai/exclude.txt)
-- [rules/gemini/manual.txt](rules/gemini/manual.txt)
-- [rules/gemini/exclude.txt](rules/gemini/exclude.txt)
-- [rules/cursor/manual.txt](rules/cursor/manual.txt)
-- [rules/cursor/exclude.txt](rules/cursor/exclude.txt)
-- [rules/openrouter/manual.txt](rules/openrouter/manual.txt)
-- [rules/openrouter/exclude.txt](rules/openrouter/exclude.txt)
-- [rules/google-extra/manual.txt](rules/google-extra/manual.txt)
-- [rules/google-extra/exclude.txt](rules/google-extra/exclude.txt)
-
 ## 数据源
 
 基础规则：
@@ -41,68 +24,36 @@
 自维护规则：
 
 - `claude.txt`
+  - 上游：<https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/refs/heads/master/rule/Clash/Claude/Claude.yaml>
   - 本地：[rules/claude/manual.txt](rules/claude/manual.txt)
-  - 上游：<https://github.com/blackmatrix7/ios_rule_script>
-  - 文件：`rule/Clash/Claude/Claude.yaml`
   - 排除：[rules/claude/exclude.txt](rules/claude/exclude.txt)
 - `openai.txt`
+  - 上游：<https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/refs/heads/master/rule/Clash/OpenAI/OpenAI.yaml>
   - 本地：[rules/openai/manual.txt](rules/openai/manual.txt)
-  - 上游：<https://github.com/blackmatrix7/ios_rule_script>
-  - 文件：`rule/Clash/OpenAI/OpenAI.yaml`
   - 排除：[rules/openai/exclude.txt](rules/openai/exclude.txt)
 - `gemini.txt`
+  - 上游：<https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/refs/heads/master/rule/Clash/Gemini/Gemini.yaml>
   - 本地：[rules/gemini/manual.txt](rules/gemini/manual.txt)
-  - 上游：<https://github.com/blackmatrix7/ios_rule_script>
-  - 文件：`rule/Clash/Gemini/Gemini.yaml`
   - 排除：[rules/gemini/exclude.txt](rules/gemini/exclude.txt)
 - `cursor.txt`
-  - 本地：[rules/cursor/manual.txt](rules/cursor/manual.txt)
   - 上游：无
+  - 本地：[rules/cursor/manual.txt](rules/cursor/manual.txt)
   - 排除：[rules/cursor/exclude.txt](rules/cursor/exclude.txt)
 - `openrouter.txt`
-  - 本地：[rules/openrouter/manual.txt](rules/openrouter/manual.txt)
   - 上游：无
+  - 本地：[rules/openrouter/manual.txt](rules/openrouter/manual.txt)
   - 排除：[rules/openrouter/exclude.txt](rules/openrouter/exclude.txt)
 - `google-extra.txt`
-  - 本地：[rules/google-extra/manual.txt](rules/google-extra/manual.txt)
   - 上游：无
+  - 本地：[rules/google-extra/manual.txt](rules/google-extra/manual.txt)
   - 排除：[rules/google-extra/exclude.txt](rules/google-extra/exclude.txt)
-
-## 发布产物
-
-工作流会构建并推送以下文件到 `release` 分支：
-
-- `clash-rules.js`
-- `claude.txt`
-- `openai.txt`
-- `gemini.txt`
-- `cursor.txt`
-- `openrouter.txt`
-- `google-extra.txt`
-- `metadata.json`
-- `rules-metadata.json`
 
 ## 访问地址
 
 脚本：
 
-- Raw: `https://raw.githubusercontent.com/yuanv4/clash-rules/release/clash-rules.js`
-- CDN: `https://cdn.jsdelivr.net/gh/yuanv4/clash-rules@release/clash-rules.js`
-
-规则：
-
-- Raw: `https://raw.githubusercontent.com/yuanv4/clash-rules/release/claude.txt`
-- CDN: `https://cdn.jsdelivr.net/gh/yuanv4/clash-rules@release/claude.txt`
-- Raw: `https://raw.githubusercontent.com/yuanv4/clash-rules/release/openai.txt`
-- CDN: `https://cdn.jsdelivr.net/gh/yuanv4/clash-rules@release/openai.txt`
-- Raw: `https://raw.githubusercontent.com/yuanv4/clash-rules/release/gemini.txt`
-- CDN: `https://cdn.jsdelivr.net/gh/yuanv4/clash-rules@release/gemini.txt`
-- Raw: `https://raw.githubusercontent.com/yuanv4/clash-rules/release/cursor.txt`
-- CDN: `https://cdn.jsdelivr.net/gh/yuanv4/clash-rules@release/cursor.txt`
-- Raw: `https://raw.githubusercontent.com/yuanv4/clash-rules/release/openrouter.txt`
-- CDN: `https://cdn.jsdelivr.net/gh/yuanv4/clash-rules@release/openrouter.txt`
-- Raw: `https://raw.githubusercontent.com/yuanv4/clash-rules/release/google-extra.txt`
-- CDN: `https://cdn.jsdelivr.net/gh/yuanv4/clash-rules@release/google-extra.txt`
+- Raw: [https://raw.githubusercontent.com/yuanv4/clash-rules/release/clash-rules.js](https://raw.githubusercontent.com/yuanv4/clash-rules/release/clash-rules.js)
+- CDN: [https://cdn.jsdelivr.net/gh/yuanv4/clash-rules@release/clash-rules.js](https://cdn.jsdelivr.net/gh/yuanv4/clash-rules@release/clash-rules.js)
 
 ## 使用说明
 
