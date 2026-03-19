@@ -232,7 +232,8 @@ const proxyKeywords = [
 
     // AI服务规则
     "RULE-SET,claude,Claude",
-    "RULE-SET,ai,AI",
+    "RULE-SET,openai,AI",
+    "RULE-SET,gemini,AI",
   
     // 国内直连
     "RULE-SET,ChinaMedia,全局直连",
@@ -327,12 +328,19 @@ const proxyKeywords = [
       url: `${CDN_BASE}/${SELF_RULES_REPO}@release/claude.txt`,
       path: "./ruleset/local/claude.yaml",
     },
-    ai: {
+    openai: {
       ...ruleProviderCommon,
       behavior: "classical",
       format: "yaml",
-      url: `${CDN_BASE}/${SELF_RULES_REPO}@release/ai.txt`,
-      path: "./ruleset/local/ai.yaml",
+      url: `${CDN_BASE}/${SELF_RULES_REPO}@release/openai.txt`,
+      path: "./ruleset/local/openai.yaml",
+    },
+    gemini: {
+      ...ruleProviderCommon,
+      behavior: "classical",
+      format: "yaml",
+      url: `${CDN_BASE}/${SELF_RULES_REPO}@release/gemini.txt`,
+      path: "./ruleset/local/gemini.yaml",
     },
   
     // 通用服务代理规则集

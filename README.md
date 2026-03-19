@@ -5,7 +5,7 @@
 - `main` / `master` 分支保存源码和 GitHub Actions。
 - `release` 分支保存可直接被 Mihomo / Clash Meta 订阅的原始规则文件。
 
-与上游仓库不同的是，这里除了发布覆写脚本 `clash-rules.js`，还额外维护了 `Claude` 与通用 `AI` 两套自定义规则集，并在脚本里直接作为 `rule-providers` 引用。
+与上游仓库不同的是，这里除了发布覆写脚本 `clash-rules.js`，还额外维护了 `Claude`、`OpenAI`、`Gemini` 三套自定义规则集，并在脚本里直接作为 `rule-providers` 引用。
 
 ## 仓库内容
 
@@ -13,8 +13,10 @@
 - [scripts/publish.ps1](/D:/yuanv4/clash-rules/scripts/publish.ps1)：构建入口，负责复制脚本、拉取远程规则、合并本地规则、生成 `dist/*`。
 - [rules/claude/manual.txt](/D:/yuanv4/clash-rules/rules/claude/manual.txt)：Claude / Anthropic 手工补充规则。
 - [rules/claude/exclude.txt](/D:/yuanv4/clash-rules/rules/claude/exclude.txt)：Claude 规则排除项。
-- [rules/ai/manual.txt](/D:/yuanv4/clash-rules/rules/ai/manual.txt)：通用 AI 手工补充规则。
-- [rules/ai/exclude.txt](/D:/yuanv4/clash-rules/rules/ai/exclude.txt)：AI 规则排除项。
+- [rules/openai/manual.txt](/D:/yuanv4/clash-rules/rules/openai/manual.txt)：OpenAI 手工补充规则。
+- [rules/openai/exclude.txt](/D:/yuanv4/clash-rules/rules/openai/exclude.txt)：OpenAI 规则排除项。
+- [rules/gemini/manual.txt](/D:/yuanv4/clash-rules/rules/gemini/manual.txt)：Gemini 手工补充规则。
+- [rules/gemini/exclude.txt](/D:/yuanv4/clash-rules/rules/gemini/exclude.txt)：Gemini 规则排除项。
 - [dist/clash-rules.js](/D:/yuanv4/clash-rules/dist/clash-rules.js)：当前构建产物中的覆写脚本。
 
 ## 数据源
@@ -59,18 +61,23 @@
 `dist/clash-rules.js` 还会从当前仓库自己的 `release` 分支加载：
 
 - `claude.txt`
-- `ai.txt`
+- `openai.txt`
+- `gemini.txt`
 
-这两个文件由 [scripts/publish.ps1](/D:/yuanv4/clash-rules/scripts/publish.ps1) 生成，规则来源如下：
+这三个文件由 [scripts/publish.ps1](/D:/yuanv4/clash-rules/scripts/publish.ps1) 生成，规则来源如下：
 
 - `claude.txt`
   - 本地手工补充：[rules/claude/manual.txt](/D:/yuanv4/clash-rules/rules/claude/manual.txt)
   - 远程上游：`SkywalkerJi/Clash-Rules` 的 `AI/Anthropic.yaml`
   - 本地排除：[rules/claude/exclude.txt](/D:/yuanv4/clash-rules/rules/claude/exclude.txt)
-- `ai.txt`
-  - 本地手工补充：[rules/ai/manual.txt](/D:/yuanv4/clash-rules/rules/ai/manual.txt)
-  - 远程上游：`blackmatrix7/ios_rule_script` 的 `OpenAI.yaml` 与 `Gemini.yaml`
-  - 本地排除：[rules/ai/exclude.txt](/D:/yuanv4/clash-rules/rules/ai/exclude.txt)
+- `openai.txt`
+  - 本地手工补充：[rules/openai/manual.txt](/D:/yuanv4/clash-rules/rules/openai/manual.txt)
+  - 远程上游：`blackmatrix7/ios_rule_script` 的 `OpenAI.yaml`
+  - 本地排除：[rules/openai/exclude.txt](/D:/yuanv4/clash-rules/rules/openai/exclude.txt)
+- `gemini.txt`
+  - 本地手工补充：[rules/gemini/manual.txt](/D:/yuanv4/clash-rules/rules/gemini/manual.txt)
+  - 远程上游：`blackmatrix7/ios_rule_script` 的 `Gemini.yaml`
+  - 本地排除：[rules/gemini/exclude.txt](/D:/yuanv4/clash-rules/rules/gemini/exclude.txt)
 
 脚本会先规范化规则行，再去重、应用排除项，最后输出为 Clash `payload:` YAML 格式。
 
@@ -86,7 +93,8 @@
 
 - `clash-rules.js`
 - `claude.txt`
-- `ai.txt`
+- `openai.txt`
+- `gemini.txt`
 - `metadata.json`
 - `rules-metadata.json`
 
@@ -95,7 +103,8 @@
 ```text
 https://raw.githubusercontent.com/<owner>/<repo>/release/clash-rules.js
 https://raw.githubusercontent.com/<owner>/<repo>/release/claude.txt
-https://raw.githubusercontent.com/<owner>/<repo>/release/ai.txt
+https://raw.githubusercontent.com/<owner>/<repo>/release/openai.txt
+https://raw.githubusercontent.com/<owner>/<repo>/release/gemini.txt
 ```
 
 如果使用 jsDelivr，可替换为：
@@ -103,7 +112,8 @@ https://raw.githubusercontent.com/<owner>/<repo>/release/ai.txt
 ```text
 https://cdn.jsdelivr.net/gh/<owner>/<repo>@release/clash-rules.js
 https://cdn.jsdelivr.net/gh/<owner>/<repo>@release/claude.txt
-https://cdn.jsdelivr.net/gh/<owner>/<repo>@release/ai.txt
+https://cdn.jsdelivr.net/gh/<owner>/<repo>@release/openai.txt
+https://cdn.jsdelivr.net/gh/<owner>/<repo>@release/gemini.txt
 ```
 
 ## 使用方式
@@ -119,7 +129,7 @@ https://cdn.jsdelivr.net/gh/<owner>/<repo>@release/ai.txt
 
 ### 自维护规则集
 
-脚本中的 `claude` 和 `ai` 规则提供者默认指向当前仓库：
+脚本中的 `claude`、`openai`、`gemini` 规则提供者默认指向当前仓库，`openai` 和 `gemini` 最终都汇入 `AI` 代理组：
 
 ```javascript
 const SELF_RULES_REPO = "yuanv4/clash-rules";

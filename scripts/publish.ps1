@@ -111,6 +111,67 @@ function Write-RulesFile {
     Set-Content -LiteralPath $Path -Value $content -Encoding utf8
 }
 
+function Get-CombinedRules {
+    param(
+        [string[]]$Sources,
+        [string[]]$Upstreams
+    )
+
+    $rules = New-Object System.Collections.Generic.List[string]
+
+    foreach ($sourceFile in $Sources) {
+        foreach ($rule in (Get-RulesFromFile -Path $sourceFile)) {
+            $rules.Add($rule)
+        }
+    }
+
+    foreach ($url in $Upstreams) {
+        foreach ($rule in (Get-RulesFromRemote -Url $url)) {
+            $rules.Add($rule)
+        }
+    }
+
+    return @(Select-UniqueRules -Rules $rules.ToArray())
+}
+
+function Get-ExcludesFromFiles {
+    param(
+        [string[]]$ExcludeFiles
+    )
+
+    $excludes = New-Object System.Collections.Generic.List[string]
+
+    foreach ($excludeFile in $ExcludeFiles) {
+        foreach ($rule in (Get-RulesFromFile -Path $excludeFile)) {
+            $excludes.Add($rule)
+        }
+    }
+
+    return $excludes.ToArray()
+}
+
+function Publish-RuleTarget {
+    param(
+        [hashtable]$Target,
+        [string]$OutputDir
+    )
+
+    $uniqueRules = Get-CombinedRules -Sources $Target.Sources -Upstreams $Target.Upstreams
+    $excludes = Get-ExcludesFromFiles -ExcludeFiles $Target.Excludes
+    $filteredRules = Remove-ExcludedRules -Rules $uniqueRules -Excludes $excludes
+    $outputPath = Join-Path $OutputDir "$($Target.Name).txt"
+
+    Write-RulesFile -Path $outputPath -Rules $filteredRules
+    Write-Host "Generated $outputPath with $($filteredRules.Count) rules"
+
+    return [ordered]@{
+        name = $Target.Name
+        count = $filteredRules.Count
+        output = "$($Target.Name).txt"
+        skip_remote = [bool]$SkipRemoteRules
+    }
+}
+
 Write-Host "Publishing artifacts into $OutputDir"
 
 if (-not (Test-Path -LiteralPath $SourceFile)) {
@@ -118,6 +179,17 @@ if (-not (Test-Path -LiteralPath $SourceFile)) {
 }
 
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
+
+$obsoleteArtifacts = @(
+    "ai.txt"
+)
+
+foreach ($artifact in $obsoleteArtifacts) {
+    $artifactPath = Join-Path $OutputDir $artifact
+    if (Test-Path -LiteralPath $artifactPath) {
+        Remove-Item -LiteralPath $artifactPath -Force
+    }
+}
 
 $scriptOutputFile = Join-Path $OutputDir "clash-rules.js"
 Copy-Item -LiteralPath $SourceFile -Destination $scriptOutputFile -Force
@@ -136,58 +208,33 @@ $targets = @(
         )
     },
     @{
-        Name = "ai"
+        Name = "openai"
         Sources = @(
-            "rules/ai/manual.txt"
+            "rules/openai/manual.txt"
         )
         Upstreams = @(
-            "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/OpenAI/OpenAI.yaml",
+            "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/OpenAI/OpenAI.yaml"
+        )
+        Excludes = @(
+            "rules/openai/exclude.txt"
+        )
+    },
+    @{
+        Name = "gemini"
+        Sources = @(
+            "rules/gemini/manual.txt"
+        )
+        Upstreams = @(
             "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Gemini/Gemini.yaml"
         )
         Excludes = @(
-            "rules/ai/exclude.txt"
+            "rules/gemini/exclude.txt"
         )
     }
 )
 
-$rulesSummary = @()
-
-foreach ($target in $targets) {
-    $rules = New-Object System.Collections.Generic.List[string]
-
-    foreach ($sourceFile in $target.Sources) {
-        foreach ($rule in (Get-RulesFromFile -Path $sourceFile)) {
-            $rules.Add($rule)
-        }
-    }
-
-    foreach ($url in $target.Upstreams) {
-        foreach ($rule in (Get-RulesFromRemote -Url $url)) {
-            $rules.Add($rule)
-        }
-    }
-
-    $uniqueRules = Select-UniqueRules -Rules $rules.ToArray()
-
-    $excludes = New-Object System.Collections.Generic.List[string]
-    foreach ($excludeFile in $target.Excludes) {
-        foreach ($rule in (Get-RulesFromFile -Path $excludeFile)) {
-            $excludes.Add($rule)
-        }
-    }
-
-    $filteredRules = Remove-ExcludedRules -Rules $uniqueRules -Excludes $excludes.ToArray()
-    $outputPath = Join-Path $OutputDir "$($target.Name).txt"
-    Write-RulesFile -Path $outputPath -Rules $filteredRules
-
-    $rulesSummary += [ordered]@{
-        name = $target.Name
-        count = $filteredRules.Count
-        output = "$($target.Name).txt"
-        skip_remote = [bool]$SkipRemoteRules
-    }
-
-    Write-Host "Generated $outputPath with $($filteredRules.Count) rules"
+$rulesSummary = foreach ($target in $targets) {
+    Publish-RuleTarget -Target $target -OutputDir $OutputDir
 }
 
 $scriptMetadata = [ordered]@{
@@ -209,6 +256,7 @@ $rulesMetadata | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $
 Write-Host "Publish preparation completed:"
 Write-Host " - $scriptOutputFile"
 Write-Host " - $(Join-Path $OutputDir 'claude.txt')"
-Write-Host " - $(Join-Path $OutputDir 'ai.txt')"
+Write-Host " - $(Join-Path $OutputDir 'openai.txt')"
+Write-Host " - $(Join-Path $OutputDir 'gemini.txt')"
 Write-Host " - $(Join-Path $OutputDir 'metadata.json')"
 Write-Host " - $(Join-Path $OutputDir 'rules-metadata.json')"

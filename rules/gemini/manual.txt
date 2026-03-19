@@ -1,7 +1,4 @@
-# Non-Claude AI services that should stay in the general AI group
-DOMAIN-SUFFIX,openrouter.ai
-DOMAIN-SUFFIX,cursor.com
-DOMAIN-SUFFIX,cursor.sh
+# Gemini manual overrides
 DOMAIN-SUFFIX,ai.google.dev
 DOMAIN-SUFFIX,aistudio.google.com
 DOMAIN-SUFFIX,makersuite.google.com
