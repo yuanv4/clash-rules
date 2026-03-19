@@ -89,14 +89,17 @@ const proxyKeywords = [
     "119.29.29.29",
   ];
 
-  // 这里仅保留传统 fake-ip-filter 域名列表，避免不同客户端/内核对 fake-ip-filter-mode 的兼容性差异。
+  // Mihomo Party 的配置检查会把 fake-ip-filter 当作规则条目解析，
+  // 因此这里使用最基础的 DOMAIN / DOMAIN-SUFFIX / MATCH 语法，避免 RULE-SET 与通配符列表的兼容性问题。
   const tunFriendlyFakeIpFilter = [
-    "*.lan",
-    "*.local",
-    "*.localhost",
-    "*.home.arpa",
-    "*.msftconnecttest.com",
-    "localhost.ptlogin2.qq.com",
+    "DOMAIN-SUFFIX,lan,real-ip",
+    "DOMAIN-SUFFIX,local,real-ip",
+    "DOMAIN-SUFFIX,localhost,real-ip",
+    "DOMAIN-SUFFIX,home.arpa,real-ip",
+    "DOMAIN-SUFFIX,msftconnecttest.com,real-ip",
+    "DOMAIN,localhost.ptlogin2.qq.com,real-ip",
+    "DOMAIN-KEYWORD,stun,real-ip",
+    "MATCH,fake-ip",
   ];
   
   // ===========================
@@ -356,6 +359,7 @@ const proxyKeywords = [
     // Fake-IP 配置
     "enhanced-mode": "fake-ip",
     "fake-ip-range": "198.18.0.1/16",
+    "fake-ip-filter-mode": "rule",
     "fake-ip-filter": tunFriendlyFakeIpFilter,
     
     "nameserver-policy": {    
