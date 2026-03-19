@@ -1,0 +1,9 @@
+# Non-Claude AI services that should stay in the general AI group
+DOMAIN-SUFFIX,openrouter.ai
+DOMAIN-SUFFIX,cursor.com
+DOMAIN-SUFFIX,cursor.sh
+DOMAIN-SUFFIX,ai.google.dev
+DOMAIN-SUFFIX,aistudio.google.com
+DOMAIN-SUFFIX,makersuite.google.com
+DOMAIN-SUFFIX,generativelanguage.googleapis.com
+DOMAIN-SUFFIX,notebooklm.google.com

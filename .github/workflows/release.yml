@@ -1,0 +1,47 @@
+name: Build And Publish Raw Files
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+    paths-ignore:
+      - "**/README.md"
+  schedule:
+    - cron: "30 22 * * *"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v4
+
+      - name: Build all publish artifacts
+        shell: pwsh
+        run: ./scripts/publish.ps1
+
+      - name: Prepare publish directory
+        shell: bash
+        run: |
+          mkdir -p publish
+          cp dist/* publish/
+
+      - name: Push artifacts to release branch
+        shell: bash
+        run: |
+          cd publish
+          git init
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b release
+          git add .
+          if git diff --cached --quiet; then
+            echo "No artifact changes to publish."
+            exit 0
+          fi
+          git commit -m "Publish raw files for run ${{ github.run_number }}"
+          git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
+          git push -f origin release

@@ -11,10 +11,10 @@
 
 - [src/clash-rules.js](/D:/yuanv4/clash-rules/src/clash-rules.js)：主覆写脚本源码。
 - [scripts/publish.ps1](/D:/yuanv4/clash-rules/scripts/publish.ps1)：构建入口，负责复制脚本、拉取远程规则、合并本地规则、生成 `dist/*`。
-- [sources/claude/manual.txt](/D:/yuanv4/clash-rules/sources/claude/manual.txt)：Claude / Anthropic 手工补充规则。
-- [sources/claude/exclude.txt](/D:/yuanv4/clash-rules/sources/claude/exclude.txt)：Claude 规则排除项。
-- [sources/ai/manual.txt](/D:/yuanv4/clash-rules/sources/ai/manual.txt)：通用 AI 手工补充规则。
-- [sources/ai/exclude.txt](/D:/yuanv4/clash-rules/sources/ai/exclude.txt)：AI 规则排除项。
+- [rules/claude/manual.txt](/D:/yuanv4/clash-rules/rules/claude/manual.txt)：Claude / Anthropic 手工补充规则。
+- [rules/claude/exclude.txt](/D:/yuanv4/clash-rules/rules/claude/exclude.txt)：Claude 规则排除项。
+- [rules/ai/manual.txt](/D:/yuanv4/clash-rules/rules/ai/manual.txt)：通用 AI 手工补充规则。
+- [rules/ai/exclude.txt](/D:/yuanv4/clash-rules/rules/ai/exclude.txt)：AI 规则排除项。
 - [dist/clash-rules.js](/D:/yuanv4/clash-rules/dist/clash-rules.js)：当前构建产物中的覆写脚本。
 
 ## 数据源
@@ -64,13 +64,13 @@
 这两个文件由 [scripts/publish.ps1](/D:/yuanv4/clash-rules/scripts/publish.ps1) 生成，规则来源如下：
 
 - `claude.txt`
-  - 本地手工补充：[sources/claude/manual.txt](/D:/yuanv4/clash-rules/sources/claude/manual.txt)
+  - 本地手工补充：[rules/claude/manual.txt](/D:/yuanv4/clash-rules/rules/claude/manual.txt)
   - 远程上游：`SkywalkerJi/Clash-Rules` 的 `AI/Anthropic.yaml`
-  - 本地排除：[sources/claude/exclude.txt](/D:/yuanv4/clash-rules/sources/claude/exclude.txt)
+  - 本地排除：[rules/claude/exclude.txt](/D:/yuanv4/clash-rules/rules/claude/exclude.txt)
 - `ai.txt`
-  - 本地手工补充：[sources/ai/manual.txt](/D:/yuanv4/clash-rules/sources/ai/manual.txt)
+  - 本地手工补充：[rules/ai/manual.txt](/D:/yuanv4/clash-rules/rules/ai/manual.txt)
   - 远程上游：`blackmatrix7/ios_rule_script` 的 `OpenAI.yaml` 与 `Gemini.yaml`
-  - 本地排除：[sources/ai/exclude.txt](/D:/yuanv4/clash-rules/sources/ai/exclude.txt)
+  - 本地排除：[rules/ai/exclude.txt](/D:/yuanv4/clash-rules/rules/ai/exclude.txt)
 
 脚本会先规范化规则行，再去重、应用排除项，最后输出为 Clash `payload:` YAML 格式。
 
