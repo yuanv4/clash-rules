@@ -1,0 +1,3 @@
+# Cursor manual overrides
+DOMAIN-SUFFIX,cursor.com
+DOMAIN-SUFFIX,cursor.sh

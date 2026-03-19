@@ -230,6 +230,36 @@ $targets = @(
         Excludes = @(
             "rules/gemini/exclude.txt"
         )
+    },
+    @{
+        Name = "cursor"
+        Sources = @(
+            "rules/cursor/manual.txt"
+        )
+        Upstreams = @()
+        Excludes = @(
+            "rules/cursor/exclude.txt"
+        )
+    },
+    @{
+        Name = "google-extra"
+        Sources = @(
+            "rules/google-extra/manual.txt"
+        )
+        Upstreams = @()
+        Excludes = @(
+            "rules/google-extra/exclude.txt"
+        )
+    },
+    @{
+        Name = "openrouter"
+        Sources = @(
+            "rules/openrouter/manual.txt"
+        )
+        Upstreams = @()
+        Excludes = @(
+            "rules/openrouter/exclude.txt"
+        )
     }
 )
 
@@ -258,5 +288,8 @@ Write-Host " - $scriptOutputFile"
 Write-Host " - $(Join-Path $OutputDir 'claude.txt')"
 Write-Host " - $(Join-Path $OutputDir 'openai.txt')"
 Write-Host " - $(Join-Path $OutputDir 'gemini.txt')"
+Write-Host " - $(Join-Path $OutputDir 'cursor.txt')"
+Write-Host " - $(Join-Path $OutputDir 'google-extra.txt')"
+Write-Host " - $(Join-Path $OutputDir 'openrouter.txt')"
 Write-Host " - $(Join-Path $OutputDir 'metadata.json')"
 Write-Host " - $(Join-Path $OutputDir 'rules-metadata.json')"

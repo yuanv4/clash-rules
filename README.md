@@ -8,7 +8,7 @@
 本仓库维护两类内容：
 
 - 覆写脚本：[src/clash-rules.js](src/clash-rules.js)
-- 自维护规则集：`claude.txt`、`openai.txt`、`gemini.txt`
+- 自维护规则集：`claude.txt`、`openai.txt`、`gemini.txt`、`cursor.txt`、`openrouter.txt`、`google-extra.txt`
 
 ## 目录
 
@@ -20,6 +20,12 @@
 - [rules/openai/exclude.txt](rules/openai/exclude.txt)
 - [rules/gemini/manual.txt](rules/gemini/manual.txt)
 - [rules/gemini/exclude.txt](rules/gemini/exclude.txt)
+- [rules/cursor/manual.txt](rules/cursor/manual.txt)
+- [rules/cursor/exclude.txt](rules/cursor/exclude.txt)
+- [rules/openrouter/manual.txt](rules/openrouter/manual.txt)
+- [rules/openrouter/exclude.txt](rules/openrouter/exclude.txt)
+- [rules/google-extra/manual.txt](rules/google-extra/manual.txt)
+- [rules/google-extra/exclude.txt](rules/google-extra/exclude.txt)
 
 ## 数据源
 
@@ -49,6 +55,18 @@
   - 上游：<https://github.com/blackmatrix7/ios_rule_script>
   - 文件：`rule/Clash/Gemini/Gemini.yaml`
   - 排除：[rules/gemini/exclude.txt](rules/gemini/exclude.txt)
+- `cursor.txt`
+  - 本地：[rules/cursor/manual.txt](rules/cursor/manual.txt)
+  - 上游：无
+  - 排除：[rules/cursor/exclude.txt](rules/cursor/exclude.txt)
+- `openrouter.txt`
+  - 本地：[rules/openrouter/manual.txt](rules/openrouter/manual.txt)
+  - 上游：无
+  - 排除：[rules/openrouter/exclude.txt](rules/openrouter/exclude.txt)
+- `google-extra.txt`
+  - 本地：[rules/google-extra/manual.txt](rules/google-extra/manual.txt)
+  - 上游：无
+  - 排除：[rules/google-extra/exclude.txt](rules/google-extra/exclude.txt)
 
 ## 发布产物
 
@@ -58,6 +76,9 @@
 - `claude.txt`
 - `openai.txt`
 - `gemini.txt`
+- `cursor.txt`
+- `openrouter.txt`
+- `google-extra.txt`
 - `metadata.json`
 - `rules-metadata.json`
 
@@ -76,6 +97,12 @@
 - CDN: `https://cdn.jsdelivr.net/gh/yuanv4/clash-rules@release/openai.txt`
 - Raw: `https://raw.githubusercontent.com/yuanv4/clash-rules/release/gemini.txt`
 - CDN: `https://cdn.jsdelivr.net/gh/yuanv4/clash-rules@release/gemini.txt`
+- Raw: `https://raw.githubusercontent.com/yuanv4/clash-rules/release/cursor.txt`
+- CDN: `https://cdn.jsdelivr.net/gh/yuanv4/clash-rules@release/cursor.txt`
+- Raw: `https://raw.githubusercontent.com/yuanv4/clash-rules/release/openrouter.txt`
+- CDN: `https://cdn.jsdelivr.net/gh/yuanv4/clash-rules@release/openrouter.txt`
+- Raw: `https://raw.githubusercontent.com/yuanv4/clash-rules/release/google-extra.txt`
+- CDN: `https://cdn.jsdelivr.net/gh/yuanv4/clash-rules@release/google-extra.txt`
 
 ## 使用说明
 

@@ -1,0 +1,2 @@
+# OpenRouter manual overrides
+DOMAIN-SUFFIX,openrouter.ai

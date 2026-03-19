@@ -30,20 +30,6 @@ const proxyKeywords = [
     ...rejectKeywords.map((keywords) => `DOMAIN-KEYWORD,${keywords},REJECT`),
   
     // 其他预设规则
-    // Claude / Anthropic 单独分流，优先于通用 AI 规则，减少认证/API 出口漂移
-    "DOMAIN-SUFFIX,claude.ai,Claude",
-    "DOMAIN-SUFFIX,code.claude.com,Claude",
-    "DOMAIN-SUFFIX,platform.claude.com,Claude",
-    "DOMAIN-SUFFIX,console.anthropic.com,Claude",
-    "DOMAIN-SUFFIX,api.anthropic.com,Claude",
-    "DOMAIN-SUFFIX,statsig.anthropic.com,Claude",
-    "DOMAIN-SUFFIX,openrouter.ai,AI",
-    "DOMAIN-SUFFIX,cursor.com,AI",
-    "DOMAIN-SUFFIX,cursor.sh,AI",
-    "DOMAIN-SUFFIX,googleapis.cn,节点选择", // Google 服务
-    "DOMAIN-SUFFIX,gstatic.com,节点选择", // Google 静态资源
-    "DOMAIN-SUFFIX,xn--ngstr-lra8j.com,节点选择", // Google Play下载服务
-    "DOMAIN-SUFFIX,github.io,节点选择", // GitHub Pages
   ];
   
   // ======= 伪节点排除（订阅里的说明项，非真实代理） =======
@@ -252,6 +238,9 @@ const proxyKeywords = [
     "RULE-SET,claude,Claude",
     "RULE-SET,openai,AI",
     "RULE-SET,gemini,AI",
+    "RULE-SET,cursor,AI",
+    "RULE-SET,openrouter,AI",
+    "RULE-SET,google-extra,节点选择",
   
     // 国内直连
     "RULE-SET,ChinaMedia,全局直连",
@@ -352,6 +341,27 @@ const proxyKeywords = [
       format: "yaml",
       url: `${RAW_BASE}/${SELF_RULES_REPO}/release/gemini.txt`,
       path: "./ruleset/local/gemini.yaml",
+    },
+    cursor: {
+      ...ruleProviderCommon,
+      behavior: "classical",
+      format: "yaml",
+      url: `${RAW_BASE}/${SELF_RULES_REPO}/release/cursor.txt`,
+      path: "./ruleset/local/cursor.yaml",
+    },
+    "google-extra": {
+      ...ruleProviderCommon,
+      behavior: "classical",
+      format: "yaml",
+      url: `${RAW_BASE}/${SELF_RULES_REPO}/release/google-extra.txt`,
+      path: "./ruleset/local/google-extra.yaml",
+    },
+    openrouter: {
+      ...ruleProviderCommon,
+      behavior: "classical",
+      format: "yaml",
+      url: `${RAW_BASE}/${SELF_RULES_REPO}/release/openrouter.txt`,
+      path: "./ruleset/local/openrouter.yaml",
     },
   
     // 通用服务代理规则集

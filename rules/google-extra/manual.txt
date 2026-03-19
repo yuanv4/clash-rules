@@ -1,0 +1,7 @@
+# Google build and download endpoints
+DOMAIN,dl.google.com
+DOMAIN,dl-ssl.google.com
+DOMAIN,maven.google.com
+DOMAIN-SUFFIX,googleapis.cn
+DOMAIN-SUFFIX,gstatic.com
+DOMAIN-SUFFIX,xn--ngstr-lra8j.com
