@@ -1,5 +1,6 @@
 param(
     [string]$SourceFile = "src/clash-rules.js",
+    [string]$RegionDataFile = "src/data/regions.js",
     [string]$OutputDir = "dist",
     [switch]$SkipRemoteRules
 )
@@ -111,6 +112,29 @@ function Write-RulesFile {
     Set-Content -LiteralPath $Path -Value $content -Encoding utf8
 }
 
+function Build-ScriptArtifact {
+    param(
+        [string]$SourceFile,
+        [string]$RegionDataFile,
+        [string]$OutputPath
+    )
+
+    if (-not (Test-Path -LiteralPath $RegionDataFile)) {
+        throw "Region data file not found: $RegionDataFile"
+    }
+
+    $sourceContent = Get-Content -LiteralPath $SourceFile -Raw
+    $regionData = (Get-Content -LiteralPath $RegionDataFile -Raw).Trim()
+    $placeholder = "__REGION_SPECS__"
+
+    if (-not $sourceContent.Contains($placeholder)) {
+        throw "Placeholder not found in source script: $placeholder"
+    }
+
+    $scriptContent = $sourceContent.Replace($placeholder, $regionData)
+    Set-Content -LiteralPath $OutputPath -Value $scriptContent -Encoding utf8
+}
+
 function Get-CombinedRules {
     param(
         [string[]]$Sources,
@@ -192,7 +216,7 @@ foreach ($artifact in $obsoleteArtifacts) {
 }
 
 $scriptOutputFile = Join-Path $OutputDir "clash-rules.js"
-Copy-Item -LiteralPath $SourceFile -Destination $scriptOutputFile -Force
+Build-ScriptArtifact -SourceFile $SourceFile -RegionDataFile $RegionDataFile -OutputPath $scriptOutputFile
 
 $targets = @(
     @{
@@ -269,6 +293,7 @@ $rulesSummary = foreach ($target in $targets) {
 
 $scriptMetadata = [ordered]@{
     source = $SourceFile
+    region_data = $RegionDataFile
     output = "clash-rules.js"
     build_time_utc = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
     git_sha = if ($env:GITHUB_SHA) { $env:GITHUB_SHA } else { "" }

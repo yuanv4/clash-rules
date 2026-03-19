@@ -1,0 +1,47 @@
+({
+  jp: {
+    codes: ["JP", "JPN"],
+    airports: ["TYO", "NRT", "HND", "KIX"],
+    names: ["日本", "Japan"],
+    cities: ["东京", "大阪", "Tokyo", "Osaka"],
+    emoji: ["🇯🇵"],
+  },
+  us: {
+    codes: ["US", "USA"],
+    airports: ["NYC", "JFK", "LAX", "SFO", "SJC", "SEA", "ORD", "DFW", "LAS", "PHX"],
+    names: ["美国", "美國", "United[\\s_-]*States", "America"],
+    cities: [
+      "Washington",
+      "Seattle",
+      "San[\\s_-]*Jose",
+      "SanJose",
+      "Los[\\s_-]*Angeles",
+      "LosAngeles",
+      "Phoenix",
+      "Dallas",
+      "Chicago",
+    ],
+    aliases: ["Silicon[\\s_-]*Valley", "SiliconValley"],
+    emoji: ["🇺🇸"],
+  },
+  sg: {
+    codes: ["SG", "SGP"],
+    airports: ["SIN"],
+    names: ["新加坡", "狮城", "獅城", "Singapore"],
+    emoji: ["🇸🇬"],
+  },
+  uk: {
+    codes: ["UK", "GB", "GBR"],
+    airports: ["LON", "LHR", "LGW", "MAN"],
+    names: ["英国", "英國", "United[\\s_-]*Kingdom", "Britain"],
+    cities: ["London", "Manchester", "Birmingham", "伦敦", "倫敦", "曼彻斯特", "曼徹斯特", "伯明翰"],
+    emoji: ["🇬🇧"],
+  },
+  de: {
+    codes: ["DE", "DEU"],
+    airports: ["FRA", "MUC", "BER"],
+    names: ["德国", "德國", "Germany"],
+    cities: ["Frankfurt", "Berlin", "Munich", "法兰克福", "法蘭克福", "柏林", "慕尼黑"],
+    emoji: ["🇩🇪"],
+  },
+})

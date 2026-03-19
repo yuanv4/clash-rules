@@ -42,138 +42,23 @@ const proxyKeywords = [
       (code) => `(?:^|[\\s\\-_|\\[\\]().])${code}(?:$|[\\s\\-_|\\[\\]().])`
     );
 
-  const regionKeywordGroups = {
-    jp: [
-      ...buildCodeBoundaryPattern(["JP", "JPN", "TYO", "NRT", "HND", "KIX"]),
-      "日本",
-      "东京",
-      "大阪",
-      "🇯🇵",
-      "Japan",
-      "Tokyo",
-      "Osaka",
-    ],
-    us: [
-      ...buildCodeBoundaryPattern([
-        "US",
-        "USA",
-        "NYC",
-        "JFK",
-        "LAX",
-        "SFO",
-        "SJC",
-        "SEA",
-        "ORD",
-        "DFW",
-        "LAS",
-        "PHX",
-      ]),
-      "美国",
-      "美國",
-      "🇺🇸",
-      "United[\\s_-]*States",
-      "America",
-      "Washington",
-      "Seattle",
-      "San[\\s_-]*Jose",
-      "SanJose",
-      "Los[\\s_-]*Angeles",
-      "LosAngeles",
-      "Phoenix",
-      "Dallas",
-      "Chicago",
-      "Silicon[\\s_-]*Valley",
-      "SiliconValley",
-    ],
-    sg: [
-      ...buildCodeBoundaryPattern(["SG", "SGP", "SIN"]),
-      "新加坡",
-      "狮城",
-      "獅城",
-      "🇸🇬",
-      "Singapore",
-    ],
-    ca: [
-      ...buildCodeBoundaryPattern(["CA", "CAN", "YYZ", "YVR", "YUL", "YOW"]),
-      "加拿大",
-      "🇨🇦",
-      "Canada",
-      "Toronto",
-      "Vancouver",
-      "Montreal",
-      "Ottawa",
-      "Calgary",
-      "多伦多",
-      "多倫多",
-      "温哥华",
-      "溫哥華",
-      "蒙特利尔",
-      "蒙特利爾",
-      "渥太华",
-      "渥太華",
-      "卡尔加里",
-      "卡爾加里",
-    ],
-    uk: [
-      ...buildCodeBoundaryPattern(["UK", "GB", "GBR", "LON", "LHR", "LGW", "MAN"]),
-      "英国",
-      "英國",
-      "🇬🇧",
-      "United[\\s_-]*Kingdom",
-      "Britain",
-      "London",
-      "Manchester",
-      "Birmingham",
-      "伦敦",
-      "倫敦",
-      "曼彻斯特",
-      "曼徹斯特",
-      "伯明翰",
-    ],
-    de: [
-      ...buildCodeBoundaryPattern(["DE", "DEU", "FRA", "MUC", "BER"]),
-      "德国",
-      "德國",
-      "🇩🇪",
-      "Germany",
-      "Frankfurt",
-      "Berlin",
-      "Munich",
-      "法兰克福",
-      "法蘭克福",
-      "柏林",
-      "慕尼黑",
-    ],
-    nl: [
-      ...buildCodeBoundaryPattern(["NL", "NLD", "AMS", "RTM"]),
-      "荷兰",
-      "荷蘭",
-      "🇳🇱",
-      "Netherlands",
-      "Amsterdam",
-      "Rotterdam",
-      "阿姆斯特丹",
-      "鹿特丹",
-    ],
-    au: [
-      ...buildCodeBoundaryPattern(["AU", "AUS", "SYD", "MEL", "BNE", "PER"]),
-      "澳大利亚",
-      "澳洲",
-      "澳大利亞",
-      "🇦🇺",
-      "Australia",
-      "Sydney",
-      "Melbourne",
-      "Perth",
-      "Brisbane",
-      "悉尼",
-      "雪梨",
-      "墨尔本",
-      "墨爾本",
-      "珀斯",
-      "布里斯班",
-    ],
-  };
+  const buildRegionKeywordGroup = (spec) => [
+    ...buildCodeBoundaryPattern([...(spec.codes ?? []), ...(spec.airports ?? [])]),
+    ...(spec.names ?? []),
+    ...(spec.cities ?? []),
+    ...(spec.aliases ?? []),
+    ...(spec.emoji ?? []),
+  ];
+
+  // 地区筛选数据在构建阶段从独立文件注入，最终发布产物仍保持单文件。
+  const regionSpecs = __REGION_SPECS__;
+
+  const regionKeywordGroups = Object.fromEntries(
+    Object.entries(regionSpecs).map(([key, spec]) => [
+      key,
+      buildRegionKeywordGroup(spec),
+    ])
+  );
 
   const buildRegionFilter = (groupKeys) => {
     const regionPattern = groupKeys
@@ -185,7 +70,7 @@ const proxyKeywords = [
   const stableNodeFilters = {
     all: `^(?!.*(${fakeNodeKeywords})).*$`,
     claude: buildRegionFilter(["jp", "us", "sg"]),
-    ai: buildRegionFilter(["jp", "us", "sg", "ca", "uk", "de", "nl", "au"]),
+    ai: buildRegionFilter(["jp", "us", "sg", "uk", "de"]),
   };
 
   const domesticResolvers = [
