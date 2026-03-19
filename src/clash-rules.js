@@ -51,9 +51,14 @@ const proxyKeywords = [
   const fakeNodeKeywords =
     "套餐|剩余|到期|流量|官网|时间|产品|倍率|倍速|转发|过期|续费";
 
+  const buildCodeBoundaryPattern = (codes) =>
+    codes.map(
+      (code) => `(?:^|[\\s\\-_|\\[\\]().])${code}(?:$|[\\s\\-_|\\[\\]().])`
+    );
+
   const regionKeywordGroups = {
     jp: [
-      "(?:^|[\\s\\-_|\\[\\]().])(?:JP|JPN)(?:$|[\\s\\-_|\\[\\]().])",
+      ...buildCodeBoundaryPattern(["JP", "JPN", "TYO", "NRT", "HND", "KIX"]),
       "日本",
       "东京",
       "大阪",
@@ -63,7 +68,20 @@ const proxyKeywords = [
       "Osaka",
     ],
     us: [
-      "(?:^|[\\s\\-_|\\[\\]().])(?:US|USA)(?:$|[\\s\\-_|\\[\\]().])",
+      ...buildCodeBoundaryPattern([
+        "US",
+        "USA",
+        "NYC",
+        "JFK",
+        "LAX",
+        "SFO",
+        "SJC",
+        "SEA",
+        "ORD",
+        "DFW",
+        "LAS",
+        "PHX",
+      ]),
       "美国",
       "美國",
       "🇺🇸",
@@ -82,7 +100,7 @@ const proxyKeywords = [
       "SiliconValley",
     ],
     sg: [
-      "(?:^|[\\s\\-_|\\[\\]().])SG(?:$|[\\s\\-_|\\[\\]().])",
+      ...buildCodeBoundaryPattern(["SG", "SGP", "SIN"]),
       "新加坡",
       "狮城",
       "獅城",
@@ -90,7 +108,7 @@ const proxyKeywords = [
       "Singapore",
     ],
     ca: [
-      "(?:^|[\\s\\-_|\\[\\]().])(?:CA|CAN)(?:$|[\\s\\-_|\\[\\]().])",
+      ...buildCodeBoundaryPattern(["CA", "CAN", "YYZ", "YVR", "YUL", "YOW"]),
       "加拿大",
       "🇨🇦",
       "Canada",
@@ -111,7 +129,7 @@ const proxyKeywords = [
       "卡爾加里",
     ],
     uk: [
-      "(?:^|[\\s\\-_|\\[\\]().])(?:UK|GB|GBR)(?:$|[\\s\\-_|\\[\\]().])",
+      ...buildCodeBoundaryPattern(["UK", "GB", "GBR", "LON", "LHR", "LGW", "MAN"]),
       "英国",
       "英國",
       "🇬🇧",
@@ -127,7 +145,7 @@ const proxyKeywords = [
       "伯明翰",
     ],
     de: [
-      "(?:^|[\\s\\-_|\\[\\]().])(?:DE|DEU)(?:$|[\\s\\-_|\\[\\]().])",
+      ...buildCodeBoundaryPattern(["DE", "DEU", "FRA", "MUC", "BER"]),
       "德国",
       "德國",
       "🇩🇪",
@@ -141,7 +159,7 @@ const proxyKeywords = [
       "慕尼黑",
     ],
     nl: [
-      "(?:^|[\\s\\-_|\\[\\]().])(?:NL|NLD)(?:$|[\\s\\-_|\\[\\]().])",
+      ...buildCodeBoundaryPattern(["NL", "NLD", "AMS", "RTM"]),
       "荷兰",
       "荷蘭",
       "🇳🇱",
@@ -152,7 +170,7 @@ const proxyKeywords = [
       "鹿特丹",
     ],
     au: [
-      "(?:^|[\\s\\-_|\\[\\]().])(?:AU|AUS)(?:$|[\\s\\-_|\\[\\]().])",
+      ...buildCodeBoundaryPattern(["AU", "AUS", "SYD", "MEL", "BNE", "PER"]),
       "澳大利亚",
       "澳洲",
       "澳大利亞",
@@ -259,15 +277,8 @@ const proxyKeywords = [
     "MATCH,漏网之鱼",
   ];
   // ======== 配置代理组 ========
-  // 规则源配置：默认使用官方 jsDelivr，镜像仅作故障切换
-  const CDN_PRESET = "official";
-  const CDN_BASES = {
-    official: "https://cdn.jsdelivr.net/gh",
-    mirror: "https://cdn.jsdmirror.com/gh",
-    gcore: "https://gcore.jsdelivr.net/gh",
-    cloudflare: "https://testingcf.jsdelivr.net/gh",
-  };
-  const CDN_BASE = CDN_BASES[CDN_PRESET] ?? CDN_BASES.official;
+  // 规则源默认直接使用 GitHub Raw，避免额外维护多套 CDN 入口。
+  const RAW_BASE = "https://raw.githubusercontent.com";
   const SELF_RULES_REPO = "yuanv4/clash-rules";
   
   // 规则集通用配置
@@ -283,40 +294,40 @@ const proxyKeywords = [
     reject: {
       ...ruleProviderCommon,
       behavior: "domain",
-      url: `${CDN_BASE}/Loyalsoldier/clash-rules@release/reject.txt`,
+      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/reject.txt`,
       path: "./ruleset/loyalsoldier/reject.yaml",
     },
     BanEasyListChina: {
       ...ruleProviderCommon,
       behavior: "classical",
       format: "text",
-      url: `${CDN_BASE}/ACL4SSR/ACL4SSR/Clash/BanEasyListChina.list`,
+      url: `${RAW_BASE}/ACL4SSR/ACL4SSR/master/Clash/BanEasyListChina.list`,
       path: "./ruleset/acl4ssr/BanEasyListChina.yaml",
     },
     BanEasyList: {
       ...ruleProviderCommon,
       behavior: "classical",
       format: "text",
-      url: `${CDN_BASE}/ACL4SSR/ACL4SSR/Clash/BanEasyList.list`,
+      url: `${RAW_BASE}/ACL4SSR/ACL4SSR/master/Clash/BanEasyList.list`,
       path: "./ruleset/acl4ssr/BanEasyList.yaml",
     },
     // 局域网与私有地址
     private: {
       ...ruleProviderCommon,
       behavior: "domain",
-      url: `${CDN_BASE}/Loyalsoldier/clash-rules@release/private.txt`,
+      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/private.txt`,
       path: "./ruleset/loyalsoldier/private.yaml",
     },
     applications: {
       ...ruleProviderCommon,
       behavior: "classical",
-      url: `${CDN_BASE}/Loyalsoldier/clash-rules@release/applications.txt`,
+      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/applications.txt`,
       path: "./ruleset/loyalsoldier/applications.yaml",
     },
     lancidr: {
       ...ruleProviderCommon,
       behavior: "ipcidr",
-      url: `${CDN_BASE}/Loyalsoldier/clash-rules@release/lancidr.txt`,
+      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/lancidr.txt`,
       path: "./ruleset/loyalsoldier/lancidr.yaml",
     },
   
@@ -325,21 +336,21 @@ const proxyKeywords = [
       ...ruleProviderCommon,
       behavior: "classical",
       format: "yaml",
-      url: `${CDN_BASE}/${SELF_RULES_REPO}@release/claude.txt`,
+      url: `${RAW_BASE}/${SELF_RULES_REPO}/release/claude.txt`,
       path: "./ruleset/local/claude.yaml",
     },
     openai: {
       ...ruleProviderCommon,
       behavior: "classical",
       format: "yaml",
-      url: `${CDN_BASE}/${SELF_RULES_REPO}@release/openai.txt`,
+      url: `${RAW_BASE}/${SELF_RULES_REPO}/release/openai.txt`,
       path: "./ruleset/local/openai.yaml",
     },
     gemini: {
       ...ruleProviderCommon,
       behavior: "classical",
       format: "yaml",
-      url: `${CDN_BASE}/${SELF_RULES_REPO}@release/gemini.txt`,
+      url: `${RAW_BASE}/${SELF_RULES_REPO}/release/gemini.txt`,
       path: "./ruleset/local/gemini.yaml",
     },
   
@@ -348,38 +359,38 @@ const proxyKeywords = [
       ...ruleProviderCommon,
       behavior: "classical",
       format: "text",
-      url: `${CDN_BASE}/ACL4SSR/ACL4SSR/Clash/OneDrive.list`,
+      url: `${RAW_BASE}/ACL4SSR/ACL4SSR/master/Clash/OneDrive.list`,
       path: "./ruleset/acl4ssr/OneDrive.yaml",
     },
     icloud: {
       ...ruleProviderCommon,
       behavior: "domain",
-      url: `${CDN_BASE}/Loyalsoldier/clash-rules@release/icloud.txt`,
+      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/icloud.txt`,
       path: "./ruleset/loyalsoldier/icloud.yaml",
     },
     apple: {
       ...ruleProviderCommon,
       behavior: "domain",
-      url: `${CDN_BASE}/Loyalsoldier/clash-rules@release/apple.txt`,
+      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/apple.txt`,
       path: "./ruleset/loyalsoldier/apple.yaml",
     },
     GoogleCN: {
       ...ruleProviderCommon,
       behavior: "classical",
       format: "text",
-      url: `${CDN_BASE}/ACL4SSR/ACL4SSR/Clash/GoogleCN.list`,
+      url: `${RAW_BASE}/ACL4SSR/ACL4SSR/master/Clash/GoogleCN.list`,
       path: "./ruleset/acl4ssr/GoogleCN.yaml",
     },
     google: {
       ...ruleProviderCommon,
       behavior: "domain",
-      url: `${CDN_BASE}/Loyalsoldier/clash-rules@release/google.txt`,
+      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/google.txt`,
       path: "./ruleset/loyalsoldier/google.yaml",
     },
     telegramcidr: {
       ...ruleProviderCommon,
       behavior: "ipcidr",
-      url: `${CDN_BASE}/Loyalsoldier/clash-rules@release/telegramcidr.txt`,
+      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/telegramcidr.txt`,
       path: "./ruleset/loyalsoldier/telegramcidr.yaml",
     },
     // 国内直连
@@ -387,46 +398,46 @@ const proxyKeywords = [
       ...ruleProviderCommon,
       behavior: "classical",
       format: "text",
-      url: `${CDN_BASE}/ACL4SSR/ACL4SSR/Clash/ChinaMedia.list`,
+      url: `${RAW_BASE}/ACL4SSR/ACL4SSR/master/Clash/ChinaMedia.list`,
       path: "./ruleset/acl4ssr/ChinaMedia.yaml",
     },
     ChinaDomain: {
       ...ruleProviderCommon,
       behavior: "classical",
       format: "text",
-      url: `${CDN_BASE}/ACL4SSR/ACL4SSR/Clash/ChinaDomain.list`,
+      url: `${RAW_BASE}/ACL4SSR/ACL4SSR/master/Clash/ChinaDomain.list`,
       path: "./ruleset/acl4ssr/ChinaDomain.yaml",
     },
     direct: {
       ...ruleProviderCommon,
       behavior: "domain",
-      url: `${CDN_BASE}/Loyalsoldier/clash-rules@release/direct.txt`,
+      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/direct.txt`,
       path: "./ruleset/loyalsoldier/direct.yaml",
     },
   
     cncidr: {
       ...ruleProviderCommon,
       behavior: "ipcidr",
-      url: `${CDN_BASE}/Loyalsoldier/clash-rules@release/cncidr.txt`,
+      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/cncidr.txt`,
       path: "./ruleset/loyalsoldier/cncidr.yaml",
     },
     // 国外代理
     proxy: {
       ...ruleProviderCommon,
       behavior: "domain",
-      url: `${CDN_BASE}/Loyalsoldier/clash-rules@release/proxy.txt`,
+      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/proxy.txt`,
       path: "./ruleset/loyalsoldier/proxy.yaml",
     },
     gfw: {
       ...ruleProviderCommon,
       behavior: "domain",
-      url: `${CDN_BASE}/Loyalsoldier/clash-rules@release/gfw.txt`,
+      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/gfw.txt`,
       path: "./ruleset/loyalsoldier/gfw.yaml",
     },
     "tld-not-cn": {
       ...ruleProviderCommon,
       behavior: "domain",
-      url: `${CDN_BASE}/Loyalsoldier/clash-rules@release/tld-not-cn.txt`,
+      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/tld-not-cn.txt`,
       path: "./ruleset/loyalsoldier/tld-not-cn.yaml",
     },
   };
