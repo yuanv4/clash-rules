@@ -201,7 +201,7 @@ $targets = @(
             "rules/claude/manual.txt"
         )
         Upstreams = @(
-            "https://cdn.jsdelivr.net/gh/SkywalkerJi/Clash-Rules@master/AI/Anthropic.yaml"
+            "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Claude/Claude.yaml"
         )
         Excludes = @(
             "rules/claude/exclude.txt"
