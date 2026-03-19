@@ -69,7 +69,6 @@ const proxyKeywords = [
 
   const stableNodeFilters = {
     all: `^(?!.*(${fakeNodeKeywords})).*$`,
-    claude: buildRegionFilter(["jp", "us", "sg"]),
     claudeJp: buildRegionFilter(["jp"]),
     claudeSg: buildRegionFilter(["sg"]),
     ai: buildRegionFilter(["jp", "sg", "us"]),
@@ -550,7 +549,7 @@ const proxyKeywords = [
         icon: groupIcons.latency,
       },
       {
-        ...selectGroupBaseOption,
+        ...probeGroupBaseOption,
         name: "日本(故障转移)",
         type: "fallback",
         "include-all": true,
@@ -558,7 +557,7 @@ const proxyKeywords = [
         icon: groupIcons.manual,
       },
       {
-        ...selectGroupBaseOption,
+        ...probeGroupBaseOption,
         name: "新加坡(故障转移)",
         type: "fallback",
         "include-all": true,
