@@ -41,7 +41,11 @@
 - `gfw`
 - `tld-not-cn`
 
-这些规则的发布模式与上游仓库一致，默认通过 jsDelivr 的 `release` 分支文件地址获取。
+上游 GitHub 仓库：
+
+- <https://github.com/Loyalsoldier/clash-rules>
+
+这些规则默认通过该仓库 `release` 分支的原始文件发布。
 
 ### 2. `ACL4SSR/ACL4SSR`
 
@@ -53,6 +57,10 @@
 - `GoogleCN`
 - `ChinaMedia`
 - `ChinaDomain`
+
+上游 GitHub 仓库：
+
+- <https://github.com/ACL4SSR/ACL4SSR>
 
 这些列表用于广告拦截、国内直连和部分常用服务分流补充。
 
@@ -68,15 +76,18 @@
 
 - `claude.txt`
   - 本地手工补充：[rules/claude/manual.txt](/D:/yuanv4/clash-rules/rules/claude/manual.txt)
-  - 远程上游：`SkywalkerJi/Clash-Rules` 的 `AI/Anthropic.yaml`
+  - 远程上游仓库：<https://github.com/blackmatrix7/ios_rule_script>
+  - 远程规则文件：`rule/Clash/Claude/Claude.yaml`
   - 本地排除：[rules/claude/exclude.txt](/D:/yuanv4/clash-rules/rules/claude/exclude.txt)
 - `openai.txt`
   - 本地手工补充：[rules/openai/manual.txt](/D:/yuanv4/clash-rules/rules/openai/manual.txt)
-  - 远程上游：`blackmatrix7/ios_rule_script` 的 `OpenAI.yaml`
+  - 远程上游仓库：<https://github.com/blackmatrix7/ios_rule_script>
+  - 远程规则文件：`rule/Clash/OpenAI/OpenAI.yaml`
   - 本地排除：[rules/openai/exclude.txt](/D:/yuanv4/clash-rules/rules/openai/exclude.txt)
 - `gemini.txt`
   - 本地手工补充：[rules/gemini/manual.txt](/D:/yuanv4/clash-rules/rules/gemini/manual.txt)
-  - 远程上游：`blackmatrix7/ios_rule_script` 的 `Gemini.yaml`
+  - 远程上游仓库：<https://github.com/blackmatrix7/ios_rule_script>
+  - 远程规则文件：`rule/Clash/Gemini/Gemini.yaml`
   - 本地排除：[rules/gemini/exclude.txt](/D:/yuanv4/clash-rules/rules/gemini/exclude.txt)
 
 脚本会先规范化规则行，再去重、应用排除项，最后输出为 Clash `payload:` YAML 格式。
