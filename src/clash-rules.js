@@ -531,17 +531,11 @@ const proxyKeywords = [
     config["proxy-groups"] = [
       {
         ...selectGroupBaseOption,
-        name: "手动选择",
+        name: "节点选择",
         type: "select",
         "include-all": true,
         filter: stableNodeFilters.all,
-        icon: groupIcons.manual,
-      },
-      {
-        ...selectGroupBaseOption,
-        name: "节点选择",
-        type: "select",
-        proxies: ["手动选择", "延迟选优", "DIRECT"],
+        proxies: ["延迟选优", "DIRECT"],
         icon: groupIcons.proxy,
       },
       {
@@ -573,7 +567,7 @@ const proxyKeywords = [
         ...selectGroupBaseOption,
         name: "全局直连",
         type: "select",
-        proxies: ["DIRECT", "手动选择", "节点选择", "延迟选优"],
+        proxies: ["DIRECT", "节点选择", "延迟选优"],
         icon: groupIcons.direct,
       },
       {
@@ -587,7 +581,7 @@ const proxyKeywords = [
         ...selectGroupBaseOption,
         name: "漏网之鱼",
         type: "select",
-        proxies: ["手动选择", "节点选择", "延迟选优", "DIRECT"],
+        proxies: ["节点选择", "延迟选优", "DIRECT"],
         icon: groupIcons.fallback,
       },
     ];
