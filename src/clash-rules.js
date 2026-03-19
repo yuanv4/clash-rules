@@ -70,15 +70,10 @@ const proxyKeywords = [
   const stableNodeFilters = {
     all: `^(?!.*(${fakeNodeKeywords})).*$`,
     claude: buildRegionFilter(["jp", "us", "sg"]),
-    ai: buildRegionFilter(["jp", "us", "sg", "uk", "de"]),
+    claudeJp: buildRegionFilter(["jp"]),
+    claudeSg: buildRegionFilter(["sg"]),
+    ai: buildRegionFilter(["jp", "sg", "us"]),
   };
-
-  const claudeProxyMatcher = new RegExp(
-    `^(?!.*(${fakeNodeKeywords})).*(?:${["jp", "us", "sg"]
-      .flatMap((key) => regionKeywordGroups[key] ?? [])
-      .join("|")}).*$`,
-    "i"
-  );
 
   const domesticResolvers = [
     "https://doh.pub/dns-query",
@@ -441,13 +436,6 @@ const proxyKeywords = [
       );
     }
 
-    const claudeProxyNames = Array.isArray(config.proxies)
-      ? config.proxies
-          .filter((proxy) => proxy?.name && claudeProxyMatcher.test(proxy.name))
-          .map((proxy) => proxy.name)
-          .sort((left, right) => left.localeCompare(right, "zh-Hans-CN"))
-      : [];
-  
     // 覆盖DNS配置
     config.dns = dnsConfig;
 
@@ -563,15 +551,31 @@ const proxyKeywords = [
       },
       {
         ...selectGroupBaseOption,
-        name: "Claude",
-        type: "select",
-        proxies: claudeProxyNames,
-        icon: groupIcons.claude,
+        name: "日本(故障转移)",
+        type: "fallback",
+        "include-all": true,
+        filter: stableNodeFilters.claudeJp,
+        icon: groupIcons.manual,
       },
       {
         ...selectGroupBaseOption,
-        name: "AI",
+        name: "新加坡(故障转移)",
+        type: "fallback",
+        "include-all": true,
+        filter: stableNodeFilters.claudeSg,
+        icon: groupIcons.manual,
+      },
+      {
+        ...selectGroupBaseOption,
+        name: "Claude",
         type: "select",
+        proxies: ["日本(故障转移)", "新加坡(故障转移)"],
+        icon: groupIcons.claude,
+      },
+      {
+        ...probeGroupBaseOption,
+        name: "AI",
+        type: "fallback",
         "include-all": true,
         filter: stableNodeFilters.ai,
         icon: groupIcons.ai,
