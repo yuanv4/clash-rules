@@ -7,19 +7,19 @@
 
 本仓库维护两类内容：
 
-- 覆写脚本：[src/clash-rules.js](/D:/yuanv4/clash-rules/src/clash-rules.js)
+- 覆写脚本：[src/clash-rules.js](src/clash-rules.js)
 - 自维护规则集：`claude.txt`、`openai.txt`、`gemini.txt`
 
 ## 目录
 
-- [src/clash-rules.js](/D:/yuanv4/clash-rules/src/clash-rules.js)：覆写脚本源码
-- [scripts/publish.ps1](/D:/yuanv4/clash-rules/scripts/publish.ps1)：构建脚本
-- [rules/claude/manual.txt](/D:/yuanv4/clash-rules/rules/claude/manual.txt)
-- [rules/claude/exclude.txt](/D:/yuanv4/clash-rules/rules/claude/exclude.txt)
-- [rules/openai/manual.txt](/D:/yuanv4/clash-rules/rules/openai/manual.txt)
-- [rules/openai/exclude.txt](/D:/yuanv4/clash-rules/rules/openai/exclude.txt)
-- [rules/gemini/manual.txt](/D:/yuanv4/clash-rules/rules/gemini/manual.txt)
-- [rules/gemini/exclude.txt](/D:/yuanv4/clash-rules/rules/gemini/exclude.txt)
+- [src/clash-rules.js](src/clash-rules.js)：覆写脚本源码
+- [scripts/publish.ps1](scripts/publish.ps1)：构建脚本
+- [rules/claude/manual.txt](rules/claude/manual.txt)
+- [rules/claude/exclude.txt](rules/claude/exclude.txt)
+- [rules/openai/manual.txt](rules/openai/manual.txt)
+- [rules/openai/exclude.txt](rules/openai/exclude.txt)
+- [rules/gemini/manual.txt](rules/gemini/manual.txt)
+- [rules/gemini/exclude.txt](rules/gemini/exclude.txt)
 
 ## 数据源
 
@@ -35,20 +35,20 @@
 自维护规则：
 
 - `claude.txt`
-  - 本地：[rules/claude/manual.txt](/D:/yuanv4/clash-rules/rules/claude/manual.txt)
+  - 本地：[rules/claude/manual.txt](rules/claude/manual.txt)
   - 上游：<https://github.com/blackmatrix7/ios_rule_script>
   - 文件：`rule/Clash/Claude/Claude.yaml`
-  - 排除：[rules/claude/exclude.txt](/D:/yuanv4/clash-rules/rules/claude/exclude.txt)
+  - 排除：[rules/claude/exclude.txt](rules/claude/exclude.txt)
 - `openai.txt`
-  - 本地：[rules/openai/manual.txt](/D:/yuanv4/clash-rules/rules/openai/manual.txt)
+  - 本地：[rules/openai/manual.txt](rules/openai/manual.txt)
   - 上游：<https://github.com/blackmatrix7/ios_rule_script>
   - 文件：`rule/Clash/OpenAI/OpenAI.yaml`
-  - 排除：[rules/openai/exclude.txt](/D:/yuanv4/clash-rules/rules/openai/exclude.txt)
+  - 排除：[rules/openai/exclude.txt](rules/openai/exclude.txt)
 - `gemini.txt`
-  - 本地：[rules/gemini/manual.txt](/D:/yuanv4/clash-rules/rules/gemini/manual.txt)
+  - 本地：[rules/gemini/manual.txt](rules/gemini/manual.txt)
   - 上游：<https://github.com/blackmatrix7/ios_rule_script>
   - 文件：`rule/Clash/Gemini/Gemini.yaml`
-  - 排除：[rules/gemini/exclude.txt](/D:/yuanv4/clash-rules/rules/gemini/exclude.txt)
+  - 排除：[rules/gemini/exclude.txt](rules/gemini/exclude.txt)
 
 ## 发布产物
 
@@ -92,7 +92,7 @@
 const SELF_RULES_REPO = "yuanv4/clash-rules";
 ```
 
-如果仓库名或所有者变化，需要同步修改 [src/clash-rules.js](/D:/yuanv4/clash-rules/src/clash-rules.js) 中的 `SELF_RULES_REPO`。
+如果仓库名或所有者变化，需要同步修改 [src/clash-rules.js](src/clash-rules.js) 中的 `SELF_RULES_REPO`。
 
 ## 本地构建
 
