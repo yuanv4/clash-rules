@@ -89,19 +89,15 @@ const proxyKeywords = [
     "119.29.29.29",
   ];
 
-  // TUN + Fake-IP 更适合只排除局域网/探测/打洞这类必须使用真实 IP 的域名，
-  // 避免把整类 CN 域名都排除出 Fake-IP，导致部分“国内域名但应代理”的流量回落到 IP 规则。
+  // 为兼容 Mihomo Party 等客户端，这里使用兼容性更好的 blacklist 模式，
+  // 只排除必须走真实解析的本地域名/探测域名，避免 rule 模式在不同内核版本上出现校验失败。
   const tunFriendlyFakeIpFilter = [
-    "RULE-SET,private,real-ip",
-    "RULE-SET,applications,real-ip",
-    "DOMAIN-SUFFIX,lan,real-ip",
-    "DOMAIN-SUFFIX,local,real-ip",
-    "DOMAIN-SUFFIX,localhost,real-ip",
-    "DOMAIN-SUFFIX,home.arpa,real-ip",
-    "DOMAIN-SUFFIX,msftconnecttest.com,real-ip",
-    "DOMAIN,localhost.ptlogin2.qq.com,real-ip",
-    "DOMAIN-KEYWORD,stun,real-ip",
-    "MATCH,fake-ip",
+    "*.lan",
+    "*.local",
+    "*.localhost",
+    "*.home.arpa",
+    "*.msftconnecttest.com",
+    "localhost.ptlogin2.qq.com",
   ];
   
   // ===========================
@@ -361,7 +357,7 @@ const proxyKeywords = [
     // Fake-IP 配置
     "enhanced-mode": "fake-ip",
     "fake-ip-range": "198.18.0.1/16",
-    "fake-ip-filter-mode": "rule",
+    "fake-ip-filter-mode": "blacklist",
     "fake-ip-filter": tunFriendlyFakeIpFilter,
     
     "nameserver-policy": {    
