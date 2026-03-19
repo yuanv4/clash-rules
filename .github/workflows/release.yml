@@ -11,6 +11,9 @@ on:
   schedule:
     - cron: "30 22 * * *"
 
+permissions:
+  contents: write
+
 jobs:
   publish:
     runs-on: ubuntu-latest
