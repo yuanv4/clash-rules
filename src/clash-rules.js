@@ -89,8 +89,7 @@ const proxyKeywords = [
     "119.29.29.29",
   ];
 
-  // 为兼容 Mihomo Party 等客户端，这里使用兼容性更好的 blacklist 模式，
-  // 只排除必须走真实解析的本地域名/探测域名，避免 rule 模式在不同内核版本上出现校验失败。
+  // 这里仅保留传统 fake-ip-filter 域名列表，避免不同客户端/内核对 fake-ip-filter-mode 的兼容性差异。
   const tunFriendlyFakeIpFilter = [
     "*.lan",
     "*.local",
@@ -357,7 +356,6 @@ const proxyKeywords = [
     // Fake-IP 配置
     "enhanced-mode": "fake-ip",
     "fake-ip-range": "198.18.0.1/16",
-    "fake-ip-filter-mode": "blacklist",
     "fake-ip-filter": tunFriendlyFakeIpFilter,
     
     "nameserver-policy": {    
