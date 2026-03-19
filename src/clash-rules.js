@@ -73,6 +73,13 @@ const proxyKeywords = [
     ai: buildRegionFilter(["jp", "us", "sg", "uk", "de"]),
   };
 
+  const claudeProxyMatcher = new RegExp(
+    `^(?!.*(${fakeNodeKeywords})).*(?:${["jp", "us", "sg"]
+      .flatMap((key) => regionKeywordGroups[key] ?? [])
+      .join("|")}).*$`,
+    "i"
+  );
+
   const domesticResolvers = [
     "https://doh.pub/dns-query",
     "https://dns.alidns.com/dns-query",
@@ -433,6 +440,13 @@ const proxyKeywords = [
         (p) => p && p.name && !fakeNodePattern.test(p.name)
       );
     }
+
+    const claudeProxyNames = Array.isArray(config.proxies)
+      ? config.proxies
+          .filter((proxy) => proxy?.name && claudeProxyMatcher.test(proxy.name))
+          .map((proxy) => proxy.name)
+          .sort((left, right) => left.localeCompare(right, "zh-Hans-CN"))
+      : [];
   
     // 覆盖DNS配置
     config.dns = dnsConfig;
@@ -551,8 +565,7 @@ const proxyKeywords = [
         ...selectGroupBaseOption,
         name: "Claude",
         type: "select",
-        "include-all": true,
-        filter: stableNodeFilters.claude,
+        proxies: claudeProxyNames,
         icon: groupIcons.claude,
       },
       {
