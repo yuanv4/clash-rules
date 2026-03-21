@@ -1,0 +1,42 @@
+{
+  "build_time_utc": "2026-03-21T22:46:43Z",
+  "git_sha": "4b328b9505cb9687120d7674a2335ece26a23d2a",
+  "targets": [
+    {
+      "name": "claude",
+      "count": 8,
+      "output": "claude.txt",
+      "skip_remote": false
+    },
+    {
+      "name": "openai",
+      "count": 35,
+      "output": "openai.txt",
+      "skip_remote": false
+    },
+    {
+      "name": "gemini",
+      "count": 18,
+      "output": "gemini.txt",
+      "skip_remote": false
+    },
+    {
+      "name": "cursor",
+      "count": 2,
+      "output": "cursor.txt",
+      "skip_remote": false
+    },
+    {
+      "name": "google-extra",
+      "count": 6,
+      "output": "google-extra.txt",
+      "skip_remote": false
+    },
+    {
+      "name": "openrouter",
+      "count": 1,
+      "output": "openrouter.txt",
+      "skip_remote": false
+    }
+  ]
+}
