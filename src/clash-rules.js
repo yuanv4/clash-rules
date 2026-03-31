@@ -21,6 +21,12 @@ const proxyKeywords = [
   ];
   // ===========================
   // 自动生成规则
+  const localLoopbackRules = [
+    "DOMAIN,localhost,全局直连",
+    "DOMAIN-SUFFIX,localhost,全局直连",
+    "IP-CIDR,127.0.0.0/8,全局直连,no-resolve",
+  ];
+
   const customRules = [
     // 代理关键词规则
     ...proxyKeywords.map((keywords) => `DOMAIN-KEYWORD,${keywords},节点选择`),
@@ -28,8 +34,9 @@ const proxyKeywords = [
     ...directKeywords.map((keywords) => `DOMAIN-KEYWORD,${keywords},DIRECT`),
     // 拦截关键词规则
     ...rejectKeywords.map((keywords) => `DOMAIN-KEYWORD,${keywords},REJECT`),
-  
-    // 其他预设规则
+
+    // 本地回环地址必须显式直连，避免 OAuth/Auth 回调被错误送入代理/TUN
+    ...localLoopbackRules,
   ];
   
   // ======= 伪节点排除（订阅里的说明项，非真实代理） =======
@@ -93,6 +100,7 @@ const proxyKeywords = [
   // Mihomo Party 的配置检查会把 fake-ip-filter 当作规则条目解析，
   // 因此这里使用最基础的 DOMAIN / DOMAIN-SUFFIX / MATCH 语法，避免 RULE-SET 与通配符列表的兼容性问题。
   const tunFriendlyFakeIpFilter = [
+    "DOMAIN,localhost,real-ip",
     "DOMAIN-SUFFIX,lan,real-ip",
     "DOMAIN-SUFFIX,local,real-ip",
     "DOMAIN-SUFFIX,localhost,real-ip",
