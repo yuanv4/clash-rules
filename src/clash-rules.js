@@ -43,11 +43,11 @@ const proxyKeywords = [
     );
 
   const buildRegionKeywordGroup = (spec) => [
-    ...buildCodeBoundaryPattern([...(spec.codes ?? []), ...(spec.airports ?? [])]),
-    ...(spec.names ?? []),
-    ...(spec.cities ?? []),
-    ...(spec.aliases ?? []),
-    ...(spec.emoji ?? []),
+    ...buildCodeBoundaryPattern([...(spec.codes || []), ...(spec.airports || [])]),
+    ...(spec.names || []),
+    ...(spec.cities || []),
+    ...(spec.aliases || []),
+    ...(spec.emoji || []),
   ];
 
   // 地区筛选数据在构建阶段从独立文件注入，最终发布产物仍保持单文件。
@@ -62,7 +62,7 @@ const proxyKeywords = [
 
   const buildRegionFilter = (groupKeys) => {
     const regionPattern = groupKeys
-      .flatMap((key) => regionKeywordGroups[key] ?? [])
+      .flatMap((key) => regionKeywordGroups[key] || [])
       .join("|");
     return `(?i)^(?!.*(${fakeNodeKeywords})).*(?:${regionPattern}).*$`;
   };
@@ -418,8 +418,8 @@ const proxyKeywords = [
       throw new Error("配置对象为空");
     }
   
-    const proxyCount = config?.proxies?.length ?? 0;
-    const proxyProviderCount = config?.["proxy-providers"]
+    const proxyCount = (config.proxies && config.proxies.length) || 0;
+    const proxyProviderCount = config["proxy-providers"]
       ? Object.keys(config["proxy-providers"]).length
       : 0;
   
@@ -460,24 +460,24 @@ const proxyKeywords = [
       },
     };
 
-    const currentSniffer = config.sniffer ?? {};
+    const currentSniffer = config.sniffer || {};
     config.sniffer = {
       ...snifferDefaults,
       ...currentSniffer,
       sniff: {
         ...snifferDefaults.sniff,
-        ...(currentSniffer.sniff ?? {}),
+        ...(currentSniffer.sniff || {}),
         HTTP: {
           ...snifferDefaults.sniff.HTTP,
-          ...(currentSniffer.sniff?.HTTP ?? {}),
+          ...((currentSniffer.sniff && currentSniffer.sniff.HTTP) || {}),
         },
         TLS: {
           ...snifferDefaults.sniff.TLS,
-          ...(currentSniffer.sniff?.TLS ?? {}),
+          ...((currentSniffer.sniff && currentSniffer.sniff.TLS) || {}),
         },
         QUIC: {
           ...snifferDefaults.sniff.QUIC,
-          ...(currentSniffer.sniff?.QUIC ?? {}),
+          ...((currentSniffer.sniff && currentSniffer.sniff.QUIC) || {}),
         },
       },
     };
@@ -497,7 +497,7 @@ const proxyKeywords = [
       config.tun = {
         ...tunDefaults,
         ...currentTun,
-        "dns-hijack": currentTun["dns-hijack"] ?? tunDefaults["dns-hijack"],
+        "dns-hijack": currentTun["dns-hijack"] !== undefined ? currentTun["dns-hijack"] : tunDefaults["dns-hijack"],
       };
     }
   
