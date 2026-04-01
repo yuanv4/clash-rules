@@ -1,5 +1,8 @@
 # Claude / Anthropic manual overrides
 DOMAIN-SUFFIX,claude.ai
+DOMAIN-SUFFIX,claude.com
+DOMAIN-SUFFIX,claudeusercontent.com
+DOMAIN-SUFFIX,claudemcpclient.com
 DOMAIN-SUFFIX,code.claude.com
 DOMAIN-SUFFIX,platform.claude.com
 DOMAIN-SUFFIX,console.anthropic.com

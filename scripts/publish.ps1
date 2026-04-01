@@ -8,9 +8,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 function Get-NormalizedRuleLines {
-    param(
-        [string[]]$Lines
-    )
+    param([string[]]$Lines)
 
     foreach ($rawLine in $Lines) {
         $line = $rawLine.Trim()
@@ -37,44 +35,71 @@ function Get-NormalizedRuleLines {
     }
 }
 
-function Get-RulesFromFile {
-    param(
-        [string]$Path
-    )
+function Get-NormalizedFileRules {
+    param([string[]]$Paths)
 
-    if (-not (Test-Path -LiteralPath $Path)) {
-        return @()
+    $rules = New-Object System.Collections.Generic.List[string]
+
+    foreach ($path in $Paths) {
+        if (-not (Test-Path -LiteralPath $path)) {
+            continue
+        }
+
+        foreach ($rule in (Get-NormalizedRuleLines -Lines (Get-Content -LiteralPath $path))) {
+            $rules.Add($rule)
+        }
     }
 
-    return @(Get-NormalizedRuleLines -Lines (Get-Content -LiteralPath $Path))
+    return $rules.ToArray()
 }
 
-function Get-RulesFromRemote {
-    param(
-        [string]$Url
-    )
+function Get-NormalizedRemoteRules {
+    param([string[]]$Urls)
 
     if ($SkipRemoteRules) {
         return @()
     }
 
-    Write-Host "Fetching $Url"
-    $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 60
-    return @(Get-NormalizedRuleLines -Lines ($response.Content -split "`r?`n"))
+    $rules = New-Object System.Collections.Generic.List[string]
+    $maxAttempts = 3
+    $delaySeconds = 2
+
+    foreach ($url in $Urls) {
+        for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+            try {
+                Write-Host "Fetching $url (attempt $attempt/$maxAttempts)"
+                $response = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 60
+
+                foreach ($rule in (Get-NormalizedRuleLines -Lines ($response.Content -split "`r?`n"))) {
+                    $rules.Add($rule)
+                }
+
+                break
+            }
+            catch {
+                if ($attempt -eq $maxAttempts) {
+                    throw
+                }
+
+                Write-Warning ("Fetch failed for {0}: {1}. Retrying in {2} seconds..." -f $url, $_.Exception.Message, $delaySeconds)
+                Start-Sleep -Seconds $delaySeconds
+            }
+        }
+    }
+
+    return $rules.ToArray()
 }
 
 function Select-UniqueRules {
-    param(
-        [string[]]$Rules
-    )
+    param([string[]]$Rules)
 
-    $set = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
     $result = New-Object System.Collections.Generic.List[string]
 
     foreach ($rule in $Rules) {
         $normalized = $rule.Trim()
         if (-not $normalized) { continue }
-        if ($set.Add($normalized)) {
+        if ($seen.Add($normalized)) {
             $result.Add($normalized)
         }
     }
@@ -94,8 +119,9 @@ function Remove-ExcludedRules {
 
     $excludeSet = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
     foreach ($exclude in $Excludes) {
-        if ($exclude.Trim()) {
-            [void]$excludeSet.Add($exclude.Trim())
+        $normalized = $exclude.Trim()
+        if ($normalized) {
+            [void]$excludeSet.Add($normalized)
         }
     }
 
@@ -114,86 +140,25 @@ function Write-RulesFile {
 
 function Build-ScriptArtifact {
     param(
-        [string]$SourceFile,
-        [string]$RegionDataFile,
+        [string]$SourcePath,
+        [string]$RegionPath,
         [string]$OutputPath
     )
 
-    if (-not (Test-Path -LiteralPath $RegionDataFile)) {
-        throw "Region data file not found: $RegionDataFile"
+    if (-not (Test-Path -LiteralPath $RegionPath)) {
+        throw "Region data file not found: $RegionPath"
     }
 
-    $sourceContent = Get-Content -LiteralPath $SourceFile -Raw
-    $regionData = (Get-Content -LiteralPath $RegionDataFile -Raw).Trim()
-    $placeholder = "__REGION_SPECS__"
+    $sourceContent = Get-Content -LiteralPath $SourcePath -Raw
+    $regionContent = (Get-Content -LiteralPath $RegionPath -Raw).Trim()
+    $regionPlaceholder = "__REGION_SPECS__"
 
-    if (-not $sourceContent.Contains($placeholder)) {
-        throw "Placeholder not found in source script: $placeholder"
+    if (-not $sourceContent.Contains($regionPlaceholder)) {
+        throw "Placeholder not found in source script: $regionPlaceholder"
     }
 
-    $scriptContent = $sourceContent.Replace($placeholder, $regionData)
+    $scriptContent = $sourceContent.Replace($regionPlaceholder, $regionContent)
     Set-Content -LiteralPath $OutputPath -Value $scriptContent -Encoding utf8
-}
-
-function Get-CombinedRules {
-    param(
-        [string[]]$Sources,
-        [string[]]$Upstreams
-    )
-
-    $rules = New-Object System.Collections.Generic.List[string]
-
-    foreach ($sourceFile in $Sources) {
-        foreach ($rule in (Get-RulesFromFile -Path $sourceFile)) {
-            $rules.Add($rule)
-        }
-    }
-
-    foreach ($url in $Upstreams) {
-        foreach ($rule in (Get-RulesFromRemote -Url $url)) {
-            $rules.Add($rule)
-        }
-    }
-
-    return @(Select-UniqueRules -Rules $rules.ToArray())
-}
-
-function Get-ExcludesFromFiles {
-    param(
-        [string[]]$ExcludeFiles
-    )
-
-    $excludes = New-Object System.Collections.Generic.List[string]
-
-    foreach ($excludeFile in $ExcludeFiles) {
-        foreach ($rule in (Get-RulesFromFile -Path $excludeFile)) {
-            $excludes.Add($rule)
-        }
-    }
-
-    return $excludes.ToArray()
-}
-
-function Publish-RuleTarget {
-    param(
-        [hashtable]$Target,
-        [string]$OutputDir
-    )
-
-    $uniqueRules = Get-CombinedRules -Sources $Target.Sources -Upstreams $Target.Upstreams
-    $excludes = Get-ExcludesFromFiles -ExcludeFiles $Target.Excludes
-    $filteredRules = Remove-ExcludedRules -Rules $uniqueRules -Excludes $excludes
-    $outputPath = Join-Path $OutputDir "$($Target.Name).txt"
-
-    Write-RulesFile -Path $outputPath -Rules $filteredRules
-    Write-Host "Generated $outputPath with $($filteredRules.Count) rules"
-
-    return [ordered]@{
-        name = $Target.Name
-        count = $filteredRules.Count
-        output = "$($Target.Name).txt"
-        skip_remote = [bool]$SkipRemoteRules
-    }
 }
 
 Write-Host "Publishing artifacts into $OutputDir"
@@ -205,7 +170,13 @@ if (-not (Test-Path -LiteralPath $SourceFile)) {
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 
 $obsoleteArtifacts = @(
-    "ai.txt"
+    "ai.txt",
+    "fakeip-filter.txt",
+    "openai.txt",
+    "gemini.txt",
+    "cursor.txt",
+    "google-extra.txt",
+    "openrouter.txt"
 )
 
 foreach ($artifact in $obsoleteArtifacts) {
@@ -216,93 +187,40 @@ foreach ($artifact in $obsoleteArtifacts) {
 }
 
 $scriptOutputFile = Join-Path $OutputDir "clash-rules.js"
-Build-ScriptArtifact -SourceFile $SourceFile -RegionDataFile $RegionDataFile -OutputPath $scriptOutputFile
+Build-ScriptArtifact -SourcePath $SourceFile -RegionPath $RegionDataFile -OutputPath $scriptOutputFile
 
-$targets = @(
-    @{
-        Name = "claude"
-        Sources = @(
-            "rules/claude/manual.txt"
-        )
-        Upstreams = @(
-            "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Claude/Claude.yaml"
-        )
-        Excludes = @(
-            "rules/claude/exclude.txt"
-        )
-    },
-    @{
-        Name = "openai"
-        Sources = @(
-            "rules/openai/manual.txt"
-        )
-        Upstreams = @(
-            "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/OpenAI/OpenAI.yaml"
-        )
-        Excludes = @(
-            "rules/openai/exclude.txt"
-        )
-    },
-    @{
-        Name = "gemini"
-        Sources = @(
-            "rules/gemini/manual.txt"
-        )
-        Upstreams = @(
-            "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Gemini/Gemini.yaml"
-        )
-        Excludes = @(
-            "rules/gemini/exclude.txt"
-        )
-    },
-    @{
-        Name = "cursor"
-        Sources = @(
-            "rules/cursor/manual.txt"
-        )
-        Upstreams = @()
-        Excludes = @(
-            "rules/cursor/exclude.txt"
-        )
-    },
-    @{
-        Name = "google-extra"
-        Sources = @(
-            "rules/google-extra/manual.txt"
-        )
-        Upstreams = @()
-        Excludes = @(
-            "rules/google-extra/exclude.txt"
-        )
-    },
-    @{
-        Name = "openrouter"
-        Sources = @(
-            "rules/openrouter/manual.txt"
-        )
-        Upstreams = @()
-        Excludes = @(
-            "rules/openrouter/exclude.txt"
-        )
-    }
-)
+$claudeRules = @()
+$claudeRules += Get-NormalizedFileRules -Paths @("rules/claude/manual.txt")
+$claudeRules += Get-NormalizedRemoteRules -Urls @("https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Claude/Claude.yaml")
+$claudeRules = Select-UniqueRules -Rules $claudeRules
+$claudeRules = Remove-ExcludedRules -Rules $claudeRules -Excludes (Get-NormalizedFileRules -Paths @("rules/claude/exclude.txt"))
 
-$rulesSummary = foreach ($target in $targets) {
-    Publish-RuleTarget -Target $target -OutputDir $OutputDir
-}
+$claudeOutputPath = Join-Path $OutputDir "claude.txt"
+Write-RulesFile -Path $claudeOutputPath -Rules $claudeRules
+Write-Host "Generated $claudeOutputPath with $($claudeRules.Count) rules"
+
+$buildTimeUtc = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+$gitSha = if ($env:GITHUB_SHA) { $env:GITHUB_SHA } else { "" }
 
 $scriptMetadata = [ordered]@{
     source = $SourceFile
     region_data = $RegionDataFile
     output = "clash-rules.js"
-    build_time_utc = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-    git_sha = if ($env:GITHUB_SHA) { $env:GITHUB_SHA } else { "" }
+    build_time_utc = $buildTimeUtc
+    git_sha = $gitSha
 }
 
 $rulesMetadata = [ordered]@{
-    build_time_utc = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-    git_sha = if ($env:GITHUB_SHA) { $env:GITHUB_SHA } else { "" }
-    targets = $rulesSummary
+    build_time_utc = $buildTimeUtc
+    git_sha = $gitSha
+    targets = @(
+        [ordered]@{
+            name = "claude"
+            count = $claudeRules.Count
+            output = "claude.txt"
+            skip_remote = [bool]$SkipRemoteRules
+        }
+    )
 }
 
 $scriptMetadata | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $OutputDir "metadata.json") -Encoding utf8
@@ -310,11 +228,6 @@ $rulesMetadata | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $
 
 Write-Host "Publish preparation completed:"
 Write-Host " - $scriptOutputFile"
-Write-Host " - $(Join-Path $OutputDir 'claude.txt')"
-Write-Host " - $(Join-Path $OutputDir 'openai.txt')"
-Write-Host " - $(Join-Path $OutputDir 'gemini.txt')"
-Write-Host " - $(Join-Path $OutputDir 'cursor.txt')"
-Write-Host " - $(Join-Path $OutputDir 'google-extra.txt')"
-Write-Host " - $(Join-Path $OutputDir 'openrouter.txt')"
+Write-Host " - $claudeOutputPath"
 Write-Host " - $(Join-Path $OutputDir 'metadata.json')"
 Write-Host " - $(Join-Path $OutputDir 'rules-metadata.json')"

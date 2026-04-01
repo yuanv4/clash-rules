@@ -21,15 +21,32 @@ const proxyKeywords = [
   ];
   // ===========================
   // 自动生成规则
+  // ======= 伪节点排除（订阅里的说明项，非真实代理） =======
+  // 业界常见写法（subconverter 默认含 到期|剩余流量|时间|官网|产品），此处补全便于脚本与 exclude-filter 复用
+  const fakeNodeKeywords =
+    "套餐|剩余|到期|流量|官网|时间|产品|倍率|倍速|转发|过期|续费";
+
+  const groupNames = {
+    proxy: "🚀 节点选择",
+    latency: "📈 延迟选优",
+    claudeJp: "🇯🇵 日本故障转移",
+    claudeSg: "🇸🇬 新加坡故障转移",
+    claude: "🧠 Claude",
+    ai: "🤖 AI",
+    direct: "🎯 全局直连",
+    reject: "⛔ 全局拦截",
+    fallback: "🐟 漏网之鱼",
+  };
+
   const localLoopbackRules = [
-    "DOMAIN,localhost,全局直连",
-    "DOMAIN-SUFFIX,localhost,全局直连",
-    "IP-CIDR,127.0.0.0/8,全局直连,no-resolve",
+    `DOMAIN,localhost,${groupNames.direct}`,
+    `DOMAIN-SUFFIX,localhost,${groupNames.direct}`,
+    `IP-CIDR,127.0.0.0/8,${groupNames.direct},no-resolve`,
   ];
 
   const customRules = [
     // 代理关键词规则
-    ...proxyKeywords.map((keywords) => `DOMAIN-KEYWORD,${keywords},节点选择`),
+    ...proxyKeywords.map((keywords) => `DOMAIN-KEYWORD,${keywords},${groupNames.proxy}`),
     // 直连关键词规则
     ...directKeywords.map((keywords) => `DOMAIN-KEYWORD,${keywords},DIRECT`),
     // 拦截关键词规则
@@ -38,11 +55,6 @@ const proxyKeywords = [
     // 本地回环地址必须显式直连，避免 OAuth/Auth 回调被错误送入代理/TUN
     ...localLoopbackRules,
   ];
-  
-  // ======= 伪节点排除（订阅里的说明项，非真实代理） =======
-  // 业界常见写法（subconverter 默认含 到期|剩余流量|时间|官网|产品），此处补全便于脚本与 exclude-filter 复用
-  const fakeNodeKeywords =
-    "套餐|剩余|到期|流量|官网|时间|产品|倍率|倍速|转发|过期|续费";
 
   const buildCodeBoundaryPattern = (codes) =>
     codes.map(
@@ -97,71 +109,54 @@ const proxyKeywords = [
     "119.29.29.29",
   ];
 
-  // Mihomo Party 的配置检查会把 fake-ip-filter 当作规则条目解析，
-  // 因此这里使用最基础的 DOMAIN / DOMAIN-SUFFIX / MATCH 语法，避免 RULE-SET 与通配符列表的兼容性问题。
+  // fake-ip-filter 改为运行时通过 rule-provider 拉取，降低脚本维护成本。
   const tunFriendlyFakeIpFilter = [
-    "DOMAIN-SUFFIX,lan,real-ip",
-    "DOMAIN-SUFFIX,local,real-ip",
-    "DOMAIN-SUFFIX,localhost,real-ip",
-    "DOMAIN-SUFFIX,home.arpa,real-ip",
-    "DOMAIN-SUFFIX,msftconnecttest.com,real-ip",
-    "DOMAIN,localhost.ptlogin2.qq.com,real-ip",
-    "DOMAIN-KEYWORD,stun,real-ip",
+    "RULE-SET,fakeip-filter,real-ip",
     "MATCH,fake-ip",
   ];
-  
+
   // ===========================
   // 第二部分：规则集和代理组配置
   // ======= 自定义规则集 =======
   const customRuleSets = [
     // 拦截规则
-    "RULE-SET,reject,全局拦截",
-    "RULE-SET,BanEasyListChina,全局拦截",
-    "RULE-SET,BanEasyList,全局拦截",
+    `RULE-SET,reject,${groupNames.reject}`,
   
     // 局域网与私有地址
-    "GEOIP,LAN,全局直连,no-resolve",
-    "RULE-SET,private,全局直连",
-    "RULE-SET,applications,全局直连",
-    "RULE-SET,lancidr,全局直连,no-resolve",
+    `GEOIP,LAN,${groupNames.direct},no-resolve`,
+    `RULE-SET,private,${groupNames.direct}`,
+    `RULE-SET,applications,${groupNames.direct}`,
+    `RULE-SET,lancidr,${groupNames.direct},no-resolve`,
 
     // AI服务规则
-    "RULE-SET,claude,Claude",
-    "RULE-SET,openai,AI",
-    "RULE-SET,gemini,AI",
-    "RULE-SET,cursor,AI",
-    "RULE-SET,openrouter,AI",
-    "RULE-SET,google-extra,节点选择",
+    `RULE-SET,claude,${groupNames.claude}`,
+    `RULE-SET,ai,${groupNames.ai}`,
   
     // 国内直连
-    "RULE-SET,ChinaMedia,全局直连",
-    "RULE-SET,ChinaDomain,全局直连",
-    "RULE-SET,direct,全局直连",
-    "RULE-SET,cncidr,全局直连,no-resolve",
-    "GEOIP,CN,全局直连,no-resolve",
+    `GEOSITE,cn,${groupNames.direct}`,
+    `RULE-SET,direct,${groupNames.direct}`,
+    `RULE-SET,cncidr,${groupNames.direct},no-resolve`,
+    `GEOIP,CN,${groupNames.direct},no-resolve`,
   
     // 通用服务代理规则
-    "RULE-SET,OneDrive,节点选择",
-    "RULE-SET,icloud,全局直连",
-    "RULE-SET,apple,全局直连",
-    "RULE-SET,GoogleCN,全局直连",
-    "RULE-SET,google,节点选择",
-    "RULE-SET,telegramcidr,节点选择,no-resolve",
+    `RULE-SET,icloud,${groupNames.direct}`,
+    `RULE-SET,apple,${groupNames.direct}`,
+    `GEOSITE,google-cn,${groupNames.direct}`,
+    `RULE-SET,google,${groupNames.proxy}`,
+    `RULE-SET,telegramcidr,${groupNames.proxy},no-resolve`,
   
     // 国外代理
-    "RULE-SET,proxy,节点选择",
-    "RULE-SET,gfw,节点选择",
-    "RULE-SET,tld-not-cn,节点选择",
+    `RULE-SET,proxy,${groupNames.proxy}`,
+    `RULE-SET,gfw,${groupNames.proxy}`,
+    `RULE-SET,tld-not-cn,${groupNames.proxy}`,
   
     // 兜底规则
-    "MATCH,漏网之鱼",
+    `MATCH,${groupNames.fallback}`,
   ];
   // ======== 配置代理组 ========
   // 规则源默认直接使用 GitHub Raw，避免额外维护多套 CDN 入口。
   const RAW_BASE = "https://raw.githubusercontent.com";
-  const SELF_RULES_REPO = "yuanv4/clash-rules";
-  const BOOTSTRAP_ICON_BASE = "https://icons.getbootstrap.com/assets/icons";
-  
+
   // 规则集通用配置
   const ruleProviderCommon = {
     type: "http",
@@ -177,20 +172,6 @@ const proxyKeywords = [
       behavior: "domain",
       url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/reject.txt`,
       path: "./ruleset/loyalsoldier/reject.yaml",
-    },
-    BanEasyListChina: {
-      ...ruleProviderCommon,
-      behavior: "classical",
-      format: "text",
-      url: `${RAW_BASE}/ACL4SSR/ACL4SSR/master/Clash/BanEasyListChina.list`,
-      path: "./ruleset/acl4ssr/BanEasyListChina.yaml",
-    },
-    BanEasyList: {
-      ...ruleProviderCommon,
-      behavior: "classical",
-      format: "text",
-      url: `${RAW_BASE}/ACL4SSR/ACL4SSR/master/Clash/BanEasyList.list`,
-      path: "./ruleset/acl4ssr/BanEasyList.yaml",
     },
     // 局域网与私有地址
     private: {
@@ -212,58 +193,30 @@ const proxyKeywords = [
       path: "./ruleset/loyalsoldier/lancidr.yaml",
     },
   
-    // 自维护 AI 服务规则集
+    // AI 服务规则集
     claude: {
       ...ruleProviderCommon,
       behavior: "classical",
       format: "yaml",
-      url: `${RAW_BASE}/${SELF_RULES_REPO}/release/claude.txt`,
+      url: `${RAW_BASE}/yuanv4/clash-rules/release/claude.txt`,
       path: "./ruleset/local/claude.yaml",
     },
-    openai: {
+    ai: {
       ...ruleProviderCommon,
-      behavior: "classical",
-      format: "yaml",
-      url: `${RAW_BASE}/${SELF_RULES_REPO}/release/openai.txt`,
-      path: "./ruleset/local/openai.yaml",
+      behavior: "domain",
+      format: "mrs",
+      url: "https://github.com/DustinWin/ruleset_geodata/releases/download/mihomo-ruleset/ai.mrs",
+      path: "./ruleset/dustinwin/ai.mrs",
     },
-    gemini: {
+    "fakeip-filter": {
       ...ruleProviderCommon,
-      behavior: "classical",
-      format: "yaml",
-      url: `${RAW_BASE}/${SELF_RULES_REPO}/release/gemini.txt`,
-      path: "./ruleset/local/gemini.yaml",
-    },
-    cursor: {
-      ...ruleProviderCommon,
-      behavior: "classical",
-      format: "yaml",
-      url: `${RAW_BASE}/${SELF_RULES_REPO}/release/cursor.txt`,
-      path: "./ruleset/local/cursor.yaml",
-    },
-    "google-extra": {
-      ...ruleProviderCommon,
-      behavior: "classical",
-      format: "yaml",
-      url: `${RAW_BASE}/${SELF_RULES_REPO}/release/google-extra.txt`,
-      path: "./ruleset/local/google-extra.yaml",
-    },
-    openrouter: {
-      ...ruleProviderCommon,
-      behavior: "classical",
-      format: "yaml",
-      url: `${RAW_BASE}/${SELF_RULES_REPO}/release/openrouter.txt`,
-      path: "./ruleset/local/openrouter.yaml",
+      behavior: "domain",
+      format: "mrs",
+      url: "https://github.com/DustinWin/ruleset_geodata/releases/download/mihomo-ruleset/fakeip-filter.mrs",
+      path: "./ruleset/dustinwin/fakeip-filter.mrs",
     },
   
     // 通用服务代理规则集
-    OneDrive: {
-      ...ruleProviderCommon,
-      behavior: "classical",
-      format: "text",
-      url: `${RAW_BASE}/ACL4SSR/ACL4SSR/master/Clash/OneDrive.list`,
-      path: "./ruleset/acl4ssr/OneDrive.yaml",
-    },
     icloud: {
       ...ruleProviderCommon,
       behavior: "domain",
@@ -276,13 +229,6 @@ const proxyKeywords = [
       url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/apple.txt`,
       path: "./ruleset/loyalsoldier/apple.yaml",
     },
-    GoogleCN: {
-      ...ruleProviderCommon,
-      behavior: "classical",
-      format: "text",
-      url: `${RAW_BASE}/ACL4SSR/ACL4SSR/master/Clash/GoogleCN.list`,
-      path: "./ruleset/acl4ssr/GoogleCN.yaml",
-    },
     google: {
       ...ruleProviderCommon,
       behavior: "domain",
@@ -294,21 +240,6 @@ const proxyKeywords = [
       behavior: "ipcidr",
       url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/telegramcidr.txt`,
       path: "./ruleset/loyalsoldier/telegramcidr.yaml",
-    },
-    // 国内直连
-    ChinaMedia: {
-      ...ruleProviderCommon,
-      behavior: "classical",
-      format: "text",
-      url: `${RAW_BASE}/ACL4SSR/ACL4SSR/master/Clash/ChinaMedia.list`,
-      path: "./ruleset/acl4ssr/ChinaMedia.yaml",
-    },
-    ChinaDomain: {
-      ...ruleProviderCommon,
-      behavior: "classical",
-      format: "text",
-      url: `${RAW_BASE}/ACL4SSR/ACL4SSR/master/Clash/ChinaDomain.list`,
-      path: "./ruleset/acl4ssr/ChinaDomain.yaml",
     },
     direct: {
       ...ruleProviderCommon,
@@ -524,88 +455,68 @@ const proxyKeywords = [
       "max-failed-times": 3,
     };
 
-    const groupIcons = {
-      manual: `${BOOTSTRAP_ICON_BASE}/sliders.svg`,
-      proxy: `${BOOTSTRAP_ICON_BASE}/send-arrow-up.svg`,
-      latency: `${BOOTSTRAP_ICON_BASE}/speedometer.svg`,
-      claude: `${BOOTSTRAP_ICON_BASE}/claude.svg`,
-      ai: `${BOOTSTRAP_ICON_BASE}/openai.svg`,
-      direct: `${BOOTSTRAP_ICON_BASE}/plug.svg`,
-      reject: `${BOOTSTRAP_ICON_BASE}/shield-slash.svg`,
-      fallback: `${BOOTSTRAP_ICON_BASE}/question-circle.svg`,
-    };
-  
     // 覆盖代理组配置
     config["proxy-groups"] = [
       {
         ...selectGroupBaseOption,
-        name: "节点选择",
+        name: groupNames.proxy,
         type: "select",
         "include-all": true,
         filter: stableNodeFilters.all,
-        proxies: ["延迟选优", "DIRECT"],
-        icon: groupIcons.proxy,
+        proxies: [groupNames.latency, "DIRECT"],
       },
       {
         ...probeGroupBaseOption,
-        name: "延迟选优",
+        name: groupNames.latency,
         type: "url-test",
         tolerance: 150,
         "include-all": true,
         filter: stableNodeFilters.all,
-        icon: groupIcons.latency,
       },
       {
         ...probeGroupBaseOption,
-        name: "日本(故障转移)",
+        name: groupNames.claudeJp,
         type: "fallback",
         "include-all": true,
         filter: stableNodeFilters.claudeJp,
-        icon: groupIcons.manual,
       },
       {
         ...probeGroupBaseOption,
-        name: "新加坡(故障转移)",
+        name: groupNames.claudeSg,
         type: "fallback",
         "include-all": true,
         filter: stableNodeFilters.claudeSg,
-        icon: groupIcons.manual,
       },
       {
         ...selectGroupBaseOption,
-        name: "Claude",
+        name: groupNames.claude,
         type: "select",
-        proxies: ["日本(故障转移)", "新加坡(故障转移)"],
-        icon: groupIcons.claude,
+        proxies: [groupNames.claudeJp, groupNames.claudeSg],
       },
       {
         ...probeGroupBaseOption,
-        name: "AI",
+        name: groupNames.ai,
         type: "fallback",
         "include-all": true,
         filter: stableNodeFilters.ai,
-        icon: groupIcons.ai,
       },
       {
         ...selectGroupBaseOption,
-        name: "全局直连",
+        name: groupNames.direct,
         type: "select",
-        proxies: ["DIRECT", "节点选择", "延迟选优"],
-        icon: groupIcons.direct,
+        proxies: ["DIRECT", groupNames.proxy, groupNames.latency],
       },
       {
         ...selectGroupBaseOption,
-        name: "全局拦截",
+        name: groupNames.reject,
         type: "select",
         proxies: ["REJECT"],
-        icon: groupIcons.reject,
       },
       {
         ...selectGroupBaseOption,
-        name: "漏网之鱼",
+        name: groupNames.fallback,
         type: "select",
-        proxies: ["节点选择", "延迟选优", "DIRECT"],
-        icon: groupIcons.fallback,
+        proxies: [groupNames.proxy, groupNames.latency, "DIRECT"],
       },
     ];
   
