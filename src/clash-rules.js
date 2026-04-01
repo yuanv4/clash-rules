@@ -46,7 +46,7 @@ const proxyKeywords = [
     // 代理关键词规则
     ...proxyKeywords.map((keywords) => `DOMAIN-KEYWORD,${keywords},${groupNames.proxy}`),
     // 直连关键词规则
-    ...directKeywords.map((keywords) => `DOMAIN-KEYWORD,${keywords},DIRECT`),
+    ...directKeywords.map((keywords) => `DOMAIN-KEYWORD,${keywords},${groupNames.direct}`),
     // 拦截关键词规则
     ...rejectKeywords.map((keywords) => `DOMAIN-KEYWORD,${keywords},REJECT`),
 
