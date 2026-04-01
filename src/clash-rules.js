@@ -29,8 +29,6 @@ const proxyKeywords = [
   const groupNames = {
     proxy: "🚀 节点选择",
     latency: "📈 延迟选优",
-    claudeJp: "🇯🇵 日本故障转移",
-    claudeSg: "🇸🇬 新加坡故障转移",
     claude: "🧠 Claude",
     ai: "🤖 AI",
     direct: "🎯 全局直连",
@@ -88,8 +86,7 @@ const proxyKeywords = [
 
   const stableNodeFilters = {
     all: `^(?!.*(${fakeNodeKeywords})).*$`,
-    claudeJp: buildRegionFilter(["jp"]),
-    claudeSg: buildRegionFilter(["sg"]),
+    claude: buildRegionFilter(["jp"]),
     ai: buildRegionFilter(["jp", "sg", "us"]),
   };
 
@@ -475,23 +472,10 @@ const proxyKeywords = [
       },
       {
         ...probeGroupBaseOption,
-        name: groupNames.claudeJp,
-        type: "fallback",
-        "include-all": true,
-        filter: stableNodeFilters.claudeJp,
-      },
-      {
-        ...probeGroupBaseOption,
-        name: groupNames.claudeSg,
-        type: "fallback",
-        "include-all": true,
-        filter: stableNodeFilters.claudeSg,
-      },
-      {
-        ...selectGroupBaseOption,
         name: groupNames.claude,
-        type: "select",
-        proxies: [groupNames.claudeJp, groupNames.claudeSg],
+        type: "fallback",
+        "include-all": true,
+        filter: stableNodeFilters.claude,
       },
       {
         ...probeGroupBaseOption,
