@@ -3,56 +3,12 @@
 // ===========================
 
 // ===========================
-// 第一部分：自定义关键词和规则
-// ======= 自定义关键词 =======
-// 代理关键词
-const proxyKeywords = [
-    // "example", 示例，可以添加需要代理的关键词
-  ];
-  
-  // 直连关键词
-  const directKeywords = [
-    //"example",  示例，可以添加需要直连的关键词
-  ];
-  
-  // 拦截关键词
-  const rejectKeywords = [
-    //"example",  示例，可以添加需要拦截的关键词
-  ];
-  // ===========================
-  // 自动生成规则
-  // ======= 伪节点排除（订阅里的说明项，非真实代理） =======
-  // 业界常见写法（subconverter 默认含 到期|剩余流量|时间|官网|产品），此处补全便于脚本与 exclude-filter 复用
-  const fakeNodeKeywords =
-    "套餐|剩余|到期|流量|官网|时间|产品|倍率|倍速|转发|过期|续费";
-
+// 第一部分：分流组与节点筛选
+// ===========================
   const groupNames = {
-    proxy: "🚀 节点选择",
-    latency: "📈 延迟选优",
     claude: "🧠 Claude",
     ai: "🤖 AI",
-    direct: "🎯 全局直连",
-    reject: "⛔ 全局拦截",
-    fallback: "🐟 漏网之鱼",
   };
-
-  const localLoopbackRules = [
-    `DOMAIN,localhost,${groupNames.direct}`,
-    `DOMAIN-SUFFIX,localhost,${groupNames.direct}`,
-    `IP-CIDR,127.0.0.0/8,${groupNames.direct},no-resolve`,
-  ];
-
-  const customRules = [
-    // 代理关键词规则
-    ...proxyKeywords.map((keywords) => `DOMAIN-KEYWORD,${keywords},${groupNames.proxy}`),
-    // 直连关键词规则
-    ...directKeywords.map((keywords) => `DOMAIN-KEYWORD,${keywords},${groupNames.direct}`),
-    // 拦截关键词规则
-    ...rejectKeywords.map((keywords) => `DOMAIN-KEYWORD,${keywords},REJECT`),
-
-    // 本地回环地址必须显式直连，避免 OAuth/Auth 回调被错误送入代理/TUN
-    ...localLoopbackRules,
-  ];
 
   const buildCodeBoundaryPattern = (codes) =>
     codes.map(
@@ -81,76 +37,68 @@ const proxyKeywords = [
     const regionPattern = groupKeys
       .flatMap((key) => regionKeywordGroups[key] || [])
       .join("|");
-    return `(?i)^(?!.*(${fakeNodeKeywords})).*(?:${regionPattern}).*$`;
+    return `(?i)^.*(?:${regionPattern}).*$`;
   };
 
   const stableNodeFilters = {
-    all: `^(?!.*(${fakeNodeKeywords})).*$`,
     claude: buildRegionFilter(["jp"]),
     ai: buildRegionFilter(["jp", "sg", "us"]),
   };
 
-  const domesticResolvers = [
-    "https://doh.pub/dns-query",
-    "https://dns.alidns.com/dns-query",
+  const buildNodeMatcher = (filter) => {
+    const normalized = filter.replace(/^\(\?i\)/, "");
+    return new RegExp(normalized, "i");
+  };
+
+  const uniqueValues = (items) => [...new Set(items.filter(Boolean))];
+
+  const pickPreferredGroupName = (proxyGroups) => {
+    const preferredNames = ["🚀 节点选择", "Proxy", "PROXY", "节点选择"];
+    const preferredGroup = preferredNames.find((name) =>
+      proxyGroups.some((group) => group && group.name === name)
+    );
+
+    if (preferredGroup) {
+      return preferredGroup;
+    }
+
+    const compatibleGroup = proxyGroups.find(
+      (group) =>
+        group &&
+        group.name &&
+        ["select", "url-test", "fallback"].includes(group.type)
+    );
+
+    return compatibleGroup ? compatibleGroup.name : "DIRECT";
+  };
+
+  const appendProxyGroups = (existingGroups, additions) => [
+    ...existingGroups,
+    ...additions.filter(
+      (group) =>
+        !existingGroups.some(
+          (existingGroup) => existingGroup && existingGroup.name === group.name
+        )
+    ),
   ];
 
-  const remoteResolvers = [
-    "https://1.1.1.1/dns-query",
-    "https://8.8.8.8/dns-query",
+  const prependMissingRules = (existingRules, additions) => [
+    ...additions.filter((rule) => !existingRules.includes(rule)),
+    ...existingRules,
   ];
 
-  // 代理节点自身域名解析优先使用直连可达的解析器，避免启动阶段依赖国外 DoH
-  const proxyBootstrapResolvers = [
-    "223.5.5.5",
-    "119.29.29.29",
-  ];
-
-  // fake-ip-filter 改为运行时通过 rule-provider 拉取，降低脚本维护成本。
-  const tunFriendlyFakeIpFilter = [
-    "RULE-SET,fakeip-filter,real-ip",
-    "MATCH,fake-ip",
-  ];
+  const mergeRuleProviders = (existingProviders, additions) => ({
+    ...(existingProviders || {}),
+    ...Object.fromEntries(
+      Object.entries(additions).filter(
+        ([name]) => !Object.prototype.hasOwnProperty.call(existingProviders || {}, name)
+      )
+    ),
+  });
 
   // ===========================
-  // 第二部分：规则集和代理组配置
-  // ======= 自定义规则集 =======
-  const customRuleSets = [
-    // 拦截规则
-    `RULE-SET,reject,${groupNames.reject}`,
-  
-    // 局域网与私有地址
-    `GEOIP,LAN,${groupNames.direct},no-resolve`,
-    `RULE-SET,private,${groupNames.direct}`,
-    `RULE-SET,applications,${groupNames.direct}`,
-    `RULE-SET,lancidr,${groupNames.direct},no-resolve`,
-
-    // AI服务规则
-    `RULE-SET,claude,${groupNames.claude}`,
-    `RULE-SET,ai,${groupNames.ai}`,
-  
-    // 国内直连
-    `GEOSITE,cn,${groupNames.direct}`,
-    `RULE-SET,direct,${groupNames.direct}`,
-    `RULE-SET,cncidr,${groupNames.direct},no-resolve`,
-    `GEOIP,CN,${groupNames.direct},no-resolve`,
-  
-    // 通用服务代理规则
-    `RULE-SET,icloud,${groupNames.direct}`,
-    `RULE-SET,apple,${groupNames.direct}`,
-    `GEOSITE,google-cn,${groupNames.direct}`,
-    `RULE-SET,google,${groupNames.proxy}`,
-    `RULE-SET,telegramcidr,${groupNames.proxy},no-resolve`,
-  
-    // 国外代理
-    `RULE-SET,proxy,${groupNames.proxy}`,
-    `RULE-SET,gfw,${groupNames.proxy}`,
-    `RULE-SET,tld-not-cn,${groupNames.proxy}`,
-  
-    // 兜底规则
-    `MATCH,${groupNames.fallback}`,
-  ];
-  // ======== 配置代理组 ========
+  // 第二部分：规则集提供者
+  // ===========================
   // 规则源默认直接使用 GitHub Raw，避免额外维护多套 CDN 入口。
   const RAW_BASE = "https://raw.githubusercontent.com";
 
@@ -163,34 +111,6 @@ const proxyKeywords = [
   
   // 规则集提供者
   const ruleProviders = {
-    // 拦截规则集
-    reject: {
-      ...ruleProviderCommon,
-      behavior: "domain",
-      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/reject.txt`,
-      path: "./ruleset/loyalsoldier/reject.yaml",
-    },
-    // 局域网与私有地址
-    private: {
-      ...ruleProviderCommon,
-      behavior: "domain",
-      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/private.txt`,
-      path: "./ruleset/loyalsoldier/private.yaml",
-    },
-    applications: {
-      ...ruleProviderCommon,
-      behavior: "classical",
-      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/applications.txt`,
-      path: "./ruleset/loyalsoldier/applications.yaml",
-    },
-    lancidr: {
-      ...ruleProviderCommon,
-      behavior: "ipcidr",
-      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/lancidr.txt`,
-      path: "./ruleset/loyalsoldier/lancidr.yaml",
-    },
-  
-    // AI 服务规则集
     claude: {
       ...ruleProviderCommon,
       behavior: "classical",
@@ -205,146 +125,24 @@ const proxyKeywords = [
       url: "https://github.com/DustinWin/ruleset_geodata/releases/download/mihomo-ruleset/ai.mrs",
       path: "./ruleset/dustinwin/ai.mrs",
     },
-    "fakeip-filter": {
-      ...ruleProviderCommon,
-      behavior: "domain",
-      format: "mrs",
-      url: "https://github.com/DustinWin/ruleset_geodata/releases/download/mihomo-ruleset/fakeip-filter.mrs",
-      path: "./ruleset/dustinwin/fakeip-filter.mrs",
-    },
-  
-    // 通用服务代理规则集
-    icloud: {
-      ...ruleProviderCommon,
-      behavior: "domain",
-      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/icloud.txt`,
-      path: "./ruleset/loyalsoldier/icloud.yaml",
-    },
-    apple: {
-      ...ruleProviderCommon,
-      behavior: "domain",
-      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/apple.txt`,
-      path: "./ruleset/loyalsoldier/apple.yaml",
-    },
-    google: {
-      ...ruleProviderCommon,
-      behavior: "domain",
-      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/google.txt`,
-      path: "./ruleset/loyalsoldier/google.yaml",
-    },
-    telegramcidr: {
-      ...ruleProviderCommon,
-      behavior: "ipcidr",
-      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/telegramcidr.txt`,
-      path: "./ruleset/loyalsoldier/telegramcidr.yaml",
-    },
-    direct: {
-      ...ruleProviderCommon,
-      behavior: "domain",
-      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/direct.txt`,
-      path: "./ruleset/loyalsoldier/direct.yaml",
-    },
-  
-    cncidr: {
-      ...ruleProviderCommon,
-      behavior: "ipcidr",
-      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/cncidr.txt`,
-      path: "./ruleset/loyalsoldier/cncidr.yaml",
-    },
-    // 国外代理
-    proxy: {
-      ...ruleProviderCommon,
-      behavior: "domain",
-      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/proxy.txt`,
-      path: "./ruleset/loyalsoldier/proxy.yaml",
-    },
-    gfw: {
-      ...ruleProviderCommon,
-      behavior: "domain",
-      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/gfw.txt`,
-      path: "./ruleset/loyalsoldier/gfw.yaml",
-    },
-    "tld-not-cn": {
-      ...ruleProviderCommon,
-      behavior: "domain",
-      url: `${RAW_BASE}/Loyalsoldier/clash-rules/release/tld-not-cn.txt`,
-      path: "./ruleset/loyalsoldier/tld-not-cn.yaml",
-    },
   };
   
-  // 最终规则列表
-  const rules = [...customRules, ...customRuleSets];
-  
-  // ===========================
-  // 第三部分：DNS配置
-  // ===========================
-  const dnsConfig = {
-    enable: true,
-    listen: "0.0.0.0:1053",
-    ipv6: false,
-    "use-system-hosts": true,
-    "respect-rules": true,
-    "cache-algorithm": "arc",
-    
-    "default-nameserver": [
-      "223.5.5.5",
-      "119.29.29.29",
-    ],
-    
-    "proxy-server-nameserver": proxyBootstrapResolvers,
-    
-    // Fake-IP 配置
-    "enhanced-mode": "fake-ip",
-    "fake-ip-range": "198.18.0.1/16",
-    "fake-ip-filter-mode": "rule",
-    "fake-ip-filter": tunFriendlyFakeIpFilter,
-    
-    "nameserver-policy": {    
-      // Claude / Anthropic 相关域名强制走国外 DoH，避免认证/API 解析漂移
-      "+.claude.ai": remoteResolvers,
-      "+.claude.com": remoteResolvers,
-      "+.anthropic.com": remoteResolvers,
-      "+.openrouter.ai": remoteResolvers,
-      "+.cursor.com": remoteResolvers,
-      "+.cursor.sh": remoteResolvers,
-      "+.update.googleapis.com": remoteResolvers,
-      "+.googleapis.cn": remoteResolvers,
-      "+.googleapis.com": remoteResolvers,
-      "+.gstatic.com": remoteResolvers,
-      "+.github.io": remoteResolvers,
+  const incrementalRuleProviders = {
+    claude: {
+      ...ruleProviders.claude,
+    },
+    ai: {
+      ...ruleProviders.ai,
+    },
+  };
 
-      // 中国域名用国内DNS
-      "geosite:cn": domesticResolvers,
-      
-      // 国外域名用国外DNS
-      "geosite:geolocation-!cn": remoteResolvers,
-    },
-    
-    // 主DNS（会被 nameserver-policy 覆盖）
-    nameserver: domesticResolvers,
-    
-    // 备用DNS
-    fallback: remoteResolvers,
-    
-    // 防污染过滤
-    "fallback-filter": {
-      "geoip": true,
-      "geoip-code": "CN",
-      "ipcidr": ["240.0.0.0/4", "0.0.0.0/8"],
-      "domain": [
-        "+.claude.ai",
-        "+.anthropic.com",
-        "+.openrouter.ai",
-        "+.cursor.com",
-        "+.cursor.sh",
-        "+.google.com",
-        "+.youtube.com",
-        "+.github.com",
-      ],
-    },
-  };
+  const incrementalRules = [
+    `RULE-SET,claude,${groupNames.claude}`,
+    `RULE-SET,ai,${groupNames.ai}`,
+  ];
+  
   // ===========================
-  // 第四部分：主函数
+  // 第三部分：主函数
   // ===========================
   // 程序入口
   function main(config) {
@@ -362,151 +160,54 @@ const proxyKeywords = [
       throw new Error("配置文件中未找到任何代理节点");
     }
   
-    // 从源头剔除伪节点（名称匹配说明项的条目），所有策略组共用过滤后的列表，无需每组单独写排除
-    const fakeNodePattern = new RegExp(fakeNodeKeywords, "i");
     if (Array.isArray(config.proxies)) {
-      config.proxies = config.proxies.filter(
-        (p) => p && p.name && !fakeNodePattern.test(p.name)
-      );
+      config.proxies = config.proxies.filter((p) => p && p.name);
     }
 
-    // 覆盖DNS配置
-    config.dns = dnsConfig;
-
-    // 嗅探用于在 TUN/Fake-IP 下把连接重新关联回域名，减少按 IP 误判造成的 TLS 失败。
-    const snifferDefaults = {
-      enable: true,
-      "force-dns-mapping": true,
-      "parse-pure-ip": true,
-      "override-destination": false,
-      sniff: {
-        HTTP: {
-          ports: [80, 8080, "8081-8880"],
-          "override-destination": true,
-        },
-        TLS: {
-          ports: [443, 8443],
-          "override-destination": true,
-        },
-        QUIC: {
-          ports: [443, 8443],
-          "override-destination": true,
-        },
-      },
-    };
-
-    const currentSniffer = config.sniffer || {};
-    config.sniffer = {
-      ...snifferDefaults,
-      ...currentSniffer,
-      sniff: {
-        ...snifferDefaults.sniff,
-        ...(currentSniffer.sniff || {}),
-        HTTP: {
-          ...snifferDefaults.sniff.HTTP,
-          ...((currentSniffer.sniff && currentSniffer.sniff.HTTP) || {}),
-        },
-        TLS: {
-          ...snifferDefaults.sniff.TLS,
-          ...((currentSniffer.sniff && currentSniffer.sniff.TLS) || {}),
-        },
-        QUIC: {
-          ...snifferDefaults.sniff.QUIC,
-          ...((currentSniffer.sniff && currentSniffer.sniff.QUIC) || {}),
-        },
-      },
-    };
-
-    // 只在已有 tun 配置时注入稳妥默认值，避免脚本替用户强行切换运行模式。
-    if (config.tun && typeof config.tun === "object") {
-      const tunDefaults = {
-        enable: true,
-        stack: "mixed",
-        "auto-route": true,
-        "auto-detect-interface": true,
-        "strict-route": true,
-        "dns-hijack": ["any:53", "tcp://any:53"],
-      };
-
-      const currentTun = config.tun;
-      config.tun = {
-        ...tunDefaults,
-        ...currentTun,
-        "dns-hijack": currentTun["dns-hijack"] !== undefined ? currentTun["dns-hijack"] : tunDefaults["dns-hijack"],
-      };
-    }
-  
     const selectGroupBaseOption = {
       hidden: false,
     };
 
-    const probeGroupBaseOption = {
-      ...selectGroupBaseOption,
-      interval: 300,
-      timeout: 5000,
-      // Mihomo 官方更推荐使用稳定的 HTTPS 探测地址，避免旧 HTTP 地址频繁超时
-      // url: "https://www.gstatic.com/generate_204",
-      url: "https://cp.cloudflare.com",
-      "expected-status": 204,
-      lazy: true,
-      "max-failed-times": 3,
-    };
+    const existingProxyGroups = Array.isArray(config["proxy-groups"])
+      ? config["proxy-groups"]
+      : [];
+    const fallbackGroupName = pickPreferredGroupName(existingProxyGroups);
+    const proxyNames = Array.isArray(config.proxies)
+      ? config.proxies.map((proxy) => proxy && proxy.name).filter(Boolean)
+      : [];
+    const claudeMatcher = buildNodeMatcher(stableNodeFilters.claude);
+    const aiMatcher = buildNodeMatcher(stableNodeFilters.ai);
+    const claudeCandidates = proxyNames.filter((name) => claudeMatcher.test(name));
+    const aiCandidates = proxyNames.filter((name) => aiMatcher.test(name));
 
-    // 覆盖代理组配置
-    config["proxy-groups"] = [
+    const additionalProxyGroups = [
       {
         ...selectGroupBaseOption,
-        name: groupNames.proxy,
-        type: "select",
-        "include-all": true,
-        filter: stableNodeFilters.all,
-        proxies: [groupNames.latency, "DIRECT"],
-      },
-      {
-        ...probeGroupBaseOption,
-        name: groupNames.latency,
-        type: "url-test",
-        tolerance: 150,
-        "include-all": true,
-        filter: stableNodeFilters.all,
-      },
-      {
-        ...probeGroupBaseOption,
         name: groupNames.claude,
-        type: "fallback",
-        "include-all": true,
-        filter: stableNodeFilters.claude,
+        type: "select",
+        proxies: uniqueValues([...claudeCandidates, fallbackGroupName, "DIRECT"]),
       },
       {
-        ...probeGroupBaseOption,
+        ...selectGroupBaseOption,
         name: groupNames.ai,
-        type: "fallback",
-        "include-all": true,
-        filter: stableNodeFilters.ai,
-      },
-      {
-        ...selectGroupBaseOption,
-        name: groupNames.direct,
         type: "select",
-        proxies: ["DIRECT", groupNames.proxy, groupNames.latency],
-      },
-      {
-        ...selectGroupBaseOption,
-        name: groupNames.reject,
-        type: "select",
-        proxies: ["REJECT"],
-      },
-      {
-        ...selectGroupBaseOption,
-        name: groupNames.fallback,
-        type: "select",
-        proxies: [groupNames.proxy, groupNames.latency, "DIRECT"],
+        proxies: uniqueValues([...aiCandidates, fallbackGroupName, "DIRECT"]),
       },
     ];
-  
-    // 覆盖规则配置
-    config["rule-providers"] = ruleProviders;
-    config.rules = rules;
+
+    config["proxy-groups"] = appendProxyGroups(
+      existingProxyGroups,
+      additionalProxyGroups
+    );
+
+    config["rule-providers"] = mergeRuleProviders(
+      config["rule-providers"],
+      incrementalRuleProviders
+    );
+    config.rules = prependMissingRules(
+      Array.isArray(config.rules) ? config.rules : [],
+      incrementalRules
+    );
   
     // 返回修改后的配置
     return config;
