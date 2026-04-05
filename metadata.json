@@ -1,0 +1,7 @@
+{
+  "source": "src/clash-rules.js",
+  "region_data": "src/data/regions.js",
+  "output": "clash-rules.js",
+  "build_time_utc": "2026-04-05T22:55:47Z",
+  "git_sha": "8134ccd04d5123f41e356c91ccabb809783a9c7e"
+}
