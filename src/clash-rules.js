@@ -52,26 +52,6 @@
 
   const uniqueValues = (items) => [...new Set(items.filter(Boolean))];
 
-  const pickPreferredGroupName = (proxyGroups) => {
-    const preferredNames = ["🚀 节点选择", "Proxy", "PROXY", "节点选择"];
-    const preferredGroup = preferredNames.find((name) =>
-      proxyGroups.some((group) => group && group.name === name)
-    );
-
-    if (preferredGroup) {
-      return preferredGroup;
-    }
-
-    const compatibleGroup = proxyGroups.find(
-      (group) =>
-        group &&
-        group.name &&
-        ["select", "url-test", "fallback"].includes(group.type)
-    );
-
-    return compatibleGroup ? compatibleGroup.name : "DIRECT";
-  };
-
   const appendProxyGroups = (existingGroups, additions) => [
     ...existingGroups,
     ...additions.filter(
@@ -99,7 +79,6 @@
   // ===========================
   // 第二部分：规则集提供者
   // ===========================
-  // 规则源默认直接使用 GitHub Raw，避免额外维护多套 CDN 入口。
   const RAW_BASE = "https://raw.githubusercontent.com";
 
   // 规则集通用配置
@@ -127,15 +106,6 @@
     },
   };
   
-  const incrementalRuleProviders = {
-    claude: {
-      ...ruleProviders.claude,
-    },
-    ai: {
-      ...ruleProviders.ai,
-    },
-  };
-
   const incrementalRules = [
     `RULE-SET,claude,${groupNames.claude}`,
     `RULE-SET,ai,${groupNames.ai}`,
@@ -164,14 +134,16 @@
       config.proxies = config.proxies.filter((p) => p && p.name);
     }
 
-    const selectGroupBaseOption = {
+    const fallbackGroupHealthCheck = {
       hidden: false,
+      url: "https://cp.cloudflare.com/",
+      interval: 300,
+      "expected-status": 204,
     };
 
     const existingProxyGroups = Array.isArray(config["proxy-groups"])
       ? config["proxy-groups"]
       : [];
-    const fallbackGroupName = pickPreferredGroupName(existingProxyGroups);
     const proxyNames = Array.isArray(config.proxies)
       ? config.proxies.map((proxy) => proxy && proxy.name).filter(Boolean)
       : [];
@@ -182,16 +154,16 @@
 
     const additionalProxyGroups = [
       {
-        ...selectGroupBaseOption,
+        ...fallbackGroupHealthCheck,
         name: groupNames.claude,
-        type: "select",
-        proxies: uniqueValues([...claudeCandidates, fallbackGroupName, "DIRECT"]),
+        type: "fallback",
+        proxies: uniqueValues(claudeCandidates),
       },
       {
-        ...selectGroupBaseOption,
+        ...fallbackGroupHealthCheck,
         name: groupNames.ai,
-        type: "select",
-        proxies: uniqueValues([...aiCandidates, fallbackGroupName, "DIRECT"]),
+        type: "fallback",
+        proxies: uniqueValues(aiCandidates),
       },
     ];
 
@@ -202,14 +174,13 @@
 
     config["rule-providers"] = mergeRuleProviders(
       config["rule-providers"],
-      incrementalRuleProviders
+      ruleProviders
     );
     config.rules = prependMissingRules(
       Array.isArray(config.rules) ? config.rules : [],
       incrementalRules
     );
   
-    // 返回修改后的配置
     return config;
   }
   
