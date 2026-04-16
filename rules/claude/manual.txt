@@ -8,3 +8,5 @@ DOMAIN-SUFFIX,platform.claude.com
 DOMAIN-SUFFIX,console.anthropic.com
 DOMAIN-SUFFIX,api.anthropic.com
 DOMAIN-SUFFIX,statsig.anthropic.com
+# ipdata
+DOMAIN-SUFFIX,ipdata.co
