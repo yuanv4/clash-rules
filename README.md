@@ -9,13 +9,17 @@
 
 - [https://raw.githubusercontent.com/yuanv4/clash-rules/release/clash-rules.js](https://raw.githubusercontent.com/yuanv4/clash-rules/release/clash-rules.js)
 - [https://cdn.jsdelivr.net/gh/yuanv4/clash-rules@release/clash-rules.js](https://cdn.jsdelivr.net/gh/yuanv4/clash-rules@release/clash-rules.js)
+- [https://raw.githubusercontent.com/yuanv4/clash-rules/release/subconverter.yaml](https://raw.githubusercontent.com/yuanv4/clash-rules/release/subconverter.yaml)
 
 ### 自维护规则
 
 当前发布：
-`claude.txt`、`openai.txt`、`gemini.txt`、`cursor.txt`、`openrouter.txt`、`google-extra.txt`
+`clash-rules.js`、`subconverter.yaml`、`claude.yaml`、`ai.yaml`
 
-其中 `claude/openai/gemini` 结合 `blackmatrix7/ios_rule_script` 与本地补充生成，
-`cursor/openrouter/google-extra` 由本地规则直接维护。
+其中：
+- `clash-rules.js` 用于 Mihomo / Clash Meta 的 `script` 覆写
+- `subconverter.yaml` 用于 subconverter 外部配置直接引用
+- `claude.yaml` 由 `blackmatrix7/ios_rule_script` 的 Claude 规则加本地补充生成
+- `ai.yaml` 为 `Claude + OpenAI + Gemini` 聚合产物，供 AI 分流组直接复用
 
 维护文件位于 [rules/](rules/) 目录。

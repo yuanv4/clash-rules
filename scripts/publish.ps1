@@ -138,6 +138,47 @@ function Write-RulesFile {
     Set-Content -LiteralPath $Path -Value $content -Encoding utf8
 }
 
+function Write-SubconverterConfigFile {
+    param(
+        [string]$Path,
+        [string]$ClaudeRulesUrl,
+        [string]$AiRulesUrl
+    )
+
+    $content = @"
+custom:
+  enable_rule_generator: true
+  overwrite_original_rules: false
+  clash_rule_base: base/forcerule.yml
+
+  proxy_groups:
+  - name: "🧠 Claude"
+    type: fallback
+    rule:
+    - "(?i)^.*(?:(?:^|[\\s\\-_|\\[\\]().])JP(?:$|[\\s\\-_|\\[\\]().])|(?:^|[\\s\\-_|\\[\\]().])JPN(?:$|[\\s\\-_|\\[\\]().])|(?:^|[\\s\\-_|\\[\\]().])TYO(?:$|[\\s\\-_|\\[\\]().])|(?:^|[\\s\\-_|\\[\\]().])NRT(?:$|[\\s\\-_|\\[\\]().])|(?:^|[\\s\\-_|\\[\\]().])HND(?:$|[\\s\\-_|\\[\\]().])|(?:^|[\\s\\-_|\\[\\]().])KIX(?:$|[\\s\\-_|\\[\\]().])|日本|Japan|东京|大阪|Tokyo|Osaka|🇯🇵).*$"
+    url: "https://cp.cloudflare.com/"
+    interval: 300
+
+  - name: "🤖 AI"
+    type: fallback
+    rule:
+    - "(?i)^.*(?:(?:^|[\\s\\-_|\\[\\]().])JP(?:$|[\\s\\-_|\\[\\]().])|(?:^|[\\s\\-_|\\[\\]().])JPN(?:$|[\\s\\-_|\\[\\]().])|(?:^|[\\s\\-_|\\[\\]().])TYO(?:$|[\\s\\-_|\\[\\]().])|(?:^|[\\s\\-_|\\[\\]().])NRT(?:$|[\\s\\-_|\\[\\]().])|(?:^|[\\s\\-_|\\[\\]().])HND(?:$|[\\s\\-_|\\[\\]().])|(?:^|[\\s\\-_|\\[\\]().])KIX(?:$|[\\s\\-_|\\[\\]().])|日本|Japan|东京|大阪|Tokyo|Osaka|🇯🇵|(?:^|[\\s\\-_|\\[\\]().])SG(?:$|[\\s\\-_|\\[\\]().])|(?:^|[\\s\\-_|\\[\\]().])SGP(?:$|[\\s\\-_|\\[\\]().])|(?:^|[\\s\\-_|\\[\\]().])SIN(?:$|[\\s\\-_|\\[\\]().])|新加坡|狮城|獅城|Singapore|🇸🇬|(?:^|[\\s\\-_|\\[\\]().])US(?:$|[\\s\\-_|\\[\\]().])|(?:^|[\\s\\-_|\\[\\]().])USA(?:$|[\\s\\-_|\\[\\]().])|(?:^|[\\s\\-_|\\[\\]().])NYC(?:$|[\\s\\-_|\\[\\]().])|(?:^|[\\s\\-_|\\[\\]().])JFK(?:$|[\\s\\-_|\\[\\]().])|(?:^|[\\s\\-_|\\[\\]().])LAX(?:$|[\\s\\-_|\\[\\]().])|(?:^|[\\s\\-_|\\[\\]().])SFO(?:$|[\\s\\-_|\\[\\]().])|(?:^|[\\s\\-_|\\[\\]().])SJC(?:$|[\\s\\-_|\\[\\]().])|(?:^|[\\s\\-_|\\[\\]().])SEA(?:$|[\\s\\-_|\\[\\]().])|(?:^|[\\s\\-_|\\[\\]().])ORD(?:$|[\\s\\-_|\\[\\]().])|(?:^|[\\s\\-_|\\[\\]().])DFW(?:$|[\\s\\-_|\\[\\]().])|(?:^|[\\s\\-_|\\[\\]().])LAS(?:$|[\\s\\-_|\\[\\]().])|(?:^|[\\s\\-_|\\[\\]().])PHX(?:$|[\\s\\-_|\\[\\]().])|美国|美國|United[\\s_-]*States|America|Washington|Seattle|San[\\s_-]*Jose|SanJose|Los[\\s_-]*Angeles|LosAngeles|Phoenix|Dallas|Chicago|Silicon[\\s_-]*Valley|SiliconValley|🇺🇸).*$"
+    url: "https://cp.cloudflare.com/"
+    interval: 300
+
+  rulesets:
+  - group: "🧠 Claude"
+    ruleset: "clash-classic:$ClaudeRulesUrl"
+    interval: 86400
+
+  - group: "🤖 AI"
+    ruleset: "clash-classic:$AiRulesUrl"
+    interval: 86400
+"@
+
+    Set-Content -LiteralPath $Path -Value $content -Encoding utf8
+}
+
 function Build-ScriptArtifact {
     param(
         [string]$SourcePath,
@@ -171,6 +212,8 @@ New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 
 $obsoleteArtifacts = @(
     "ai.txt",
+    "ai.yaml",
+    "claude.yaml",
     "fakeip-filter.txt",
     "openai.txt",
     "gemini.txt",
@@ -195,9 +238,34 @@ $claudeRules += Get-NormalizedRemoteRules -Urls @("https://cdn.jsdelivr.net/gh/b
 $claudeRules = Select-UniqueRules -Rules $claudeRules
 $claudeRules = Remove-ExcludedRules -Rules $claudeRules -Excludes (Get-NormalizedFileRules -Paths @("rules/claude/exclude.txt"))
 
-$claudeOutputPath = Join-Path $OutputDir "claude.txt"
-Write-RulesFile -Path $claudeOutputPath -Rules $claudeRules
-Write-Host "Generated $claudeOutputPath with $($claudeRules.Count) rules"
+$openAiRules = Get-NormalizedRemoteRules -Urls @("https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/OpenAI/OpenAI.yaml")
+$geminiRules = Get-NormalizedRemoteRules -Urls @("https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Gemini/Gemini.yaml")
+
+$aiRules = @()
+$aiRules += $claudeRules
+$aiRules += $openAiRules
+$aiRules += $geminiRules
+$aiRules = Select-UniqueRules -Rules $aiRules
+
+$claudeOutputPaths = @(
+    (Join-Path $OutputDir "claude.txt"),
+    (Join-Path $OutputDir "claude.yaml")
+)
+foreach ($claudeOutputPath in $claudeOutputPaths) {
+    Write-RulesFile -Path $claudeOutputPath -Rules $claudeRules
+    Write-Host "Generated $claudeOutputPath with $($claudeRules.Count) rules"
+}
+
+$aiOutputPath = Join-Path $OutputDir "ai.yaml"
+Write-RulesFile -Path $aiOutputPath -Rules $aiRules
+Write-Host "Generated $aiOutputPath with $($aiRules.Count) rules"
+
+$subconverterConfigPath = Join-Path $OutputDir "subconverter.yaml"
+$rawBase = "https://raw.githubusercontent.com/yuanv4/clash-rules/release"
+Write-SubconverterConfigFile -Path $subconverterConfigPath `
+    -ClaudeRulesUrl "$rawBase/claude.yaml" `
+    -AiRulesUrl "$rawBase/ai.yaml"
+Write-Host "Generated $subconverterConfigPath"
 
 $buildTimeUtc = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
 $gitSha = if ($env:GITHUB_SHA) { $env:GITHUB_SHA } else { "" }
@@ -217,7 +285,18 @@ $rulesMetadata = [ordered]@{
         [ordered]@{
             name = "claude"
             count = $claudeRules.Count
-            output = "claude.txt"
+            output = @("claude.txt", "claude.yaml")
+            skip_remote = [bool]$SkipRemoteRules
+        }
+        [ordered]@{
+            name = "ai"
+            count = $aiRules.Count
+            output = "ai.yaml"
+            skip_remote = [bool]$SkipRemoteRules
+        }
+        [ordered]@{
+            name = "subconverter"
+            output = "subconverter.yaml"
             skip_remote = [bool]$SkipRemoteRules
         }
     )
@@ -228,6 +307,10 @@ $rulesMetadata | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $
 
 Write-Host "Publish preparation completed:"
 Write-Host " - $scriptOutputFile"
-Write-Host " - $claudeOutputPath"
+foreach ($claudeOutputPath in $claudeOutputPaths) {
+    Write-Host " - $claudeOutputPath"
+}
+Write-Host " - $aiOutputPath"
+Write-Host " - $subconverterConfigPath"
 Write-Host " - $(Join-Path $OutputDir 'metadata.json')"
 Write-Host " - $(Join-Path $OutputDir 'rules-metadata.json')"

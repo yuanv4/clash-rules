@@ -59,16 +59,16 @@ const ruleProviders = {
     behavior: "classical",
     format: "yaml",
     interval: 86400,
-    url: `${RAW_BASE}/yuanv4/clash-rules/release/claude.txt`,
+    url: `${RAW_BASE}/yuanv4/clash-rules/release/claude.yaml`,
     path: "./ruleset/local/claude.yaml",
   },
   ai: {
     type: "http",
-    behavior: "domain",
-    format: "mrs",
+    behavior: "classical",
+    format: "yaml",
     interval: 86400,
-    url: "https://github.com/DustinWin/ruleset_geodata/releases/download/mihomo-ruleset/ai.mrs",
-    path: "./ruleset/dustinwin/ai.mrs",
+    url: `${RAW_BASE}/yuanv4/clash-rules/release/ai.yaml`,
+    path: "./ruleset/local/ai.yaml",
   },
 };
 
