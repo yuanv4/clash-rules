@@ -1,0 +1,13 @@
+payload:
+  - DOMAIN-SUFFIX,claude.ai
+  - DOMAIN-SUFFIX,claude.com
+  - DOMAIN-SUFFIX,claudeusercontent.com
+  - DOMAIN-SUFFIX,claudemcpclient.com
+  - DOMAIN-SUFFIX,code.claude.com
+  - DOMAIN-SUFFIX,platform.claude.com
+  - DOMAIN-SUFFIX,console.anthropic.com
+  - DOMAIN-SUFFIX,api.anthropic.com
+  - DOMAIN-SUFFIX,statsig.anthropic.com
+  - DOMAIN-SUFFIX,ipdata.co
+  - DOMAIN,cdn.usefathom.com
+  - DOMAIN-SUFFIX,anthropic.com

@@ -1,0 +1,26 @@
+{
+  "build_time_utc": "2026-04-26T23:02:39Z",
+  "git_sha": "9a39eba7ccc2a7e68ec7798e94076f010b0d0efb",
+  "targets": [
+    {
+      "name": "claude",
+      "count": 12,
+      "output": [
+        "claude.txt",
+        "claude.yaml"
+      ],
+      "skip_remote": false
+    },
+    {
+      "name": "ai",
+      "count": 60,
+      "output": "ai.yaml",
+      "skip_remote": false
+    },
+    {
+      "name": "subconverter",
+      "output": "subconverter.yaml",
+      "skip_remote": false
+    }
+  ]
+}
