@@ -168,43 +168,6 @@ write_rules_file() {
   } > "$path"
 }
 
-write_subconverter_config_file() {
-  local path="$1"
-  local claude_rules_url="$2"
-  local ai_rules_url="$3"
-
-  cat > "$path" <<EOF
-custom:
-  enable_rule_generator: true
-  overwrite_original_rules: false
-  clash_rule_base: base/forcerule.yml
-
-  proxy_groups:
-  - name: "🧠 Claude"
-    type: fallback
-    rule:
-    - "(?i)^.*(?:(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])JP(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])JPN(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])TYO(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])NRT(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])HND(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])KIX(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|日本|Japan|东京|大阪|Tokyo|Osaka|🇯🇵).*$"
-    url: "https://cp.cloudflare.com/"
-    interval: 300
-
-  - name: "🤖 AI"
-    type: fallback
-    rule:
-    - "(?i)^.*(?:(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])JP(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])JPN(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])TYO(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])NRT(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])HND(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])KIX(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|日本|Japan|东京|大阪|Tokyo|Osaka|🇯🇵|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])SG(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])SGP(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])SIN(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|新加坡|狮城|獅城|Singapore|🇸🇬|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])US(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])USA(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])NYC(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])JFK(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])LAX(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])SFO(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])SJC(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])SEA(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])ORD(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])DFW(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])LAS(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|(?:^|[\\\\s\\\\-_|\\\\[\\\\]().])PHX(?:$|[\\\\s\\\\-_|\\\\[\\\\]().])|美国|美國|United[\\\\s_-]*States|America|Washington|Seattle|San[\\\\s_-]*Jose|SanJose|Los[\\\\s_-]*Angeles|LosAngeles|Phoenix|Dallas|Chicago|Silicon[\\\\s_-]*Valley|SiliconValley|🇺🇸).*$"
-    url: "https://cp.cloudflare.com/"
-    interval: 300
-
-  rulesets:
-  - group: "🧠 Claude"
-    ruleset: "clash-classic:$claude_rules_url"
-    interval: 86400
-
-  - group: "🤖 AI"
-    ruleset: "clash-classic:$ai_rules_url"
-    interval: 86400
-EOF
-}
-
 build_script_artifact() {
   local source_path="$1"
   local region_path="$2"
@@ -283,11 +246,6 @@ fs.writeFileSync(
         output: ["claude.txt", "claude.yaml"],
         skip_remote: skipRemote,
       },
-      {
-        name: "subconverter",
-        output: "subconverter.yaml",
-        skip_remote: skipRemote,
-      },
     ],
   }, null, 2) + "\n"
 );
@@ -309,6 +267,7 @@ obsolete_artifacts=(
   "cursor.txt"
   "google-extra.txt"
   "openrouter.txt"
+  "subconverter.yaml"
 )
 
 for artifact in "${obsolete_artifacts[@]}"; do
@@ -340,10 +299,6 @@ for claude_output_path in "${claude_output_paths[@]}"; do
   echo "Generated $claude_output_path with $(wc -l < "$claude_rules") rules"
 done
 
-subconverter_config_path="$OUTPUT_DIR/subconverter.yaml"
-raw_base="https://raw.githubusercontent.com/yuanv4/clash-rules/release"
-write_subconverter_config_file "$subconverter_config_path" "$raw_base/claude.yaml" "https://ruleset.skk.moe/Clash/non_ip/ai.txt"
-echo "Generated $subconverter_config_path"
 
 build_time_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 git_sha="${GITHUB_SHA:-}"
@@ -354,6 +309,5 @@ echo " - $script_output_file"
 for claude_output_path in "${claude_output_paths[@]}"; do
   echo " - $claude_output_path"
 done
-echo " - $subconverter_config_path"
 echo " - $OUTPUT_DIR/metadata.json"
 echo " - $OUTPUT_DIR/rules-metadata.json"

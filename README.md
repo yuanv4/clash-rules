@@ -9,16 +9,14 @@
 
 - [https://raw.githubusercontent.com/yuanv4/clash-rules/release/clash-rules.js](https://raw.githubusercontent.com/yuanv4/clash-rules/release/clash-rules.js)
 - [https://cdn.jsdelivr.net/gh/yuanv4/clash-rules@release/clash-rules.js](https://cdn.jsdelivr.net/gh/yuanv4/clash-rules@release/clash-rules.js)
-- [https://raw.githubusercontent.com/yuanv4/clash-rules/release/subconverter.yaml](https://raw.githubusercontent.com/yuanv4/clash-rules/release/subconverter.yaml)
 
 ### 自维护规则
 
 当前发布：
-`clash-rules.js`、`subconverter.yaml`、`claude.yaml`
+`clash-rules.js`、`claude.yaml`
 
 其中：
 - `clash-rules.js` 用于 Mihomo / Clash Meta 的 `script` 覆写，会生成完整 profile 所需的基础策略组，并通过 `rule-providers` 动态引用社区规则 URL
-- `subconverter.yaml` 用于 subconverter 外部配置直接引用
 - `claude.yaml` 由 `blackmatrix7/ios_rule_script` 的 Claude 规则加本地补充生成
 - AI 泛用分流直接使用 SukkaW 的 `ai.txt` 与 `apple_intelligence.txt`
 
