@@ -92,7 +92,6 @@ const buildRuleProviders = () => {
 
   return {
     claude: makeHttpProvider("local/claude", getProviderUrl(localBase, "claude.yaml")),
-    ai: makeHttpProvider("local/ai", getProviderUrl(localBase, "ai.yaml")),
     lan_non_ip: makeSukkaProvider("lan_non_ip", "non_ip", "lan.txt"),
     lan_ip: makeSukkaProvider("lan_ip", "ip", "lan.txt"),
     reject_non_ip: makeSukkaProvider("reject_non_ip", "non_ip", "reject.txt"),
@@ -116,7 +115,6 @@ const buildRuleProviders = () => {
 
 const incrementalRules = [
   `RULE-SET,claude,${groupNames.claude}`,
-  `RULE-SET,ai,${groupNames.ai}`,
 ];
 
 const communityRules = [

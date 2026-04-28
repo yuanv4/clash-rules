@@ -245,10 +245,9 @@ json_metadata() {
   local build_time_utc="$2"
   local git_sha="$3"
   local claude_count="$4"
-  local ai_count="$5"
-  local skip_remote="$6"
+  local skip_remote="$5"
 
-  node - "$path" "$SOURCE_FILE" "$REGION_DATA_FILE" "$build_time_utc" "$git_sha" "$claude_count" "$ai_count" "$skip_remote" <<'NODE'
+  node - "$path" "$SOURCE_FILE" "$REGION_DATA_FILE" "$build_time_utc" "$git_sha" "$claude_count" "$skip_remote" <<'NODE'
 const fs = require("fs");
 const [
   outputDir,
@@ -257,7 +256,6 @@ const [
   buildTimeUtc,
   gitSha,
   claudeCount,
-  aiCount,
   skipRemoteRaw,
 ] = process.argv.slice(2);
 const skipRemote = skipRemoteRaw === "1";
@@ -283,12 +281,6 @@ fs.writeFileSync(
         name: "claude",
         count: Number(claudeCount),
         output: ["claude.txt", "claude.yaml"],
-        skip_remote: skipRemote,
-      },
-      {
-        name: "ai",
-        count: Number(aiCount),
-        output: "ai.yaml",
         skip_remote: skipRemote,
       },
       {
@@ -333,11 +325,6 @@ claude_raw="$tmp_dir/claude.raw"
 claude_unique="$tmp_dir/claude.unique"
 claude_excludes="$tmp_dir/claude.excludes"
 claude_rules="$tmp_dir/claude.rules"
-openai_rules="$tmp_dir/openai.rules"
-gemini_rules="$tmp_dir/gemini.rules"
-ai_raw="$tmp_dir/ai.raw"
-ai_rules="$tmp_dir/ai.rules"
-
 {
   normalize_rule_file "rules/claude/manual.txt"
   fetch_remote_rules "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Claude/Claude.yaml"
@@ -346,11 +333,6 @@ unique_rules < "$claude_raw" > "$claude_unique"
 normalize_rule_file "rules/claude/exclude.txt" > "$claude_excludes"
 remove_excluded_rules "$claude_excludes" < "$claude_unique" > "$claude_rules"
 
-fetch_remote_rules "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/OpenAI/OpenAI.yaml" > "$openai_rules"
-fetch_remote_rules "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Gemini/Gemini.yaml" > "$gemini_rules"
-
-cat "$claude_rules" "$openai_rules" "$gemini_rules" > "$ai_raw"
-unique_rules < "$ai_raw" > "$ai_rules"
 
 claude_output_paths=("$OUTPUT_DIR/claude.txt" "$OUTPUT_DIR/claude.yaml")
 for claude_output_path in "${claude_output_paths[@]}"; do
@@ -358,25 +340,20 @@ for claude_output_path in "${claude_output_paths[@]}"; do
   echo "Generated $claude_output_path with $(wc -l < "$claude_rules") rules"
 done
 
-ai_output_path="$OUTPUT_DIR/ai.yaml"
-write_rules_file "$ai_output_path" "$ai_rules"
-echo "Generated $ai_output_path with $(wc -l < "$ai_rules") rules"
-
 subconverter_config_path="$OUTPUT_DIR/subconverter.yaml"
 raw_base="https://raw.githubusercontent.com/yuanv4/clash-rules/release"
-write_subconverter_config_file "$subconverter_config_path" "$raw_base/claude.yaml" "$raw_base/ai.yaml"
+write_subconverter_config_file "$subconverter_config_path" "$raw_base/claude.yaml" "https://ruleset.skk.moe/Clash/non_ip/ai.txt"
 echo "Generated $subconverter_config_path"
 
 build_time_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 git_sha="${GITHUB_SHA:-}"
-json_metadata "$OUTPUT_DIR" "$build_time_utc" "$git_sha" "$(wc -l < "$claude_rules")" "$(wc -l < "$ai_rules")" "$SKIP_REMOTE_RULES"
+json_metadata "$OUTPUT_DIR" "$build_time_utc" "$git_sha" "$(wc -l < "$claude_rules")" "$SKIP_REMOTE_RULES"
 
 echo "Publish preparation completed:"
 echo " - $script_output_file"
 for claude_output_path in "${claude_output_paths[@]}"; do
   echo " - $claude_output_path"
 done
-echo " - $ai_output_path"
 echo " - $subconverter_config_path"
 echo " - $OUTPUT_DIR/metadata.json"
 echo " - $OUTPUT_DIR/rules-metadata.json"
