@@ -16,10 +16,12 @@ const groupNames = {
   fallback: "🐟 漏网之鱼",
   claude: "🧠 Claude",
   ai: "🤖 AI",
+  cloudflare: "☁️ Cloudflare",
 };
 
 const DEFAULT_COMMUNITY_RULE_BASE = "https://ruleset.skk.moe/Clash";
 const DEFAULT_LOCAL_RULE_BASE = "https://raw.githubusercontent.com/yuanv4/clash-rules/release";
+const CLOUDFLARE_RULE_URL = "https://rules.kr328.app/cloudflare.yaml";
 const HEALTH_CHECK_URL = "https://cp.cloudflare.com/";
 
 // 地区筛选数据在构建阶段从独立文件注入，最终发布产物仍保持单文件。
@@ -96,6 +98,7 @@ const buildRuleProviders = () => {
 
   return {
     claude: makeHttpProvider("local/claude", getProviderUrl(localBase, "claude.yaml")),
+    cloudflare: makeHttpProvider("community/cloudflare", CLOUDFLARE_RULE_URL),
     lan_non_ip: makeSukkaProvider("lan_non_ip", "non_ip", "lan.txt"),
     lan_ip: makeSukkaProvider("lan_ip", "ip", "lan.txt"),
     reject_non_ip: makeSukkaProvider("reject_non_ip", "non_ip", "reject.txt"),
@@ -119,6 +122,7 @@ const buildRuleProviders = () => {
 
 const incrementalRules = [
   `RULE-SET,claude,${groupNames.claude}`,
+  `RULE-SET,cloudflare,${groupNames.cloudflare}`,
 ];
 
 const communityRules = [
@@ -233,6 +237,10 @@ function main(config) {
         name: groupNames.global,
         type: "select",
       }, selectableProxies),
+      withProxySources({
+        name: groupNames.cloudflare,
+        type: "select",
+      }, ["DIRECT", groupNames.select, groupNames.auto, ...proxyNames]),
       makeGroup(groupNames.claude, claudeFilter),
       makeGroup(groupNames.ai, aiFilter),
       withProxySources({
