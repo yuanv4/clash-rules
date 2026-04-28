@@ -23,8 +23,8 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build all publish artifacts
-        shell: pwsh
-        run: ./scripts/publish.ps1
+        shell: bash
+        run: ./scripts/publish.sh
 
       - name: Prepare publish directory
         shell: bash
