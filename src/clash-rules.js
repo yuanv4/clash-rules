@@ -14,7 +14,7 @@ const groupNames = {
   ai: "🤖 AI",
 };
 
-const DEFAULT_COMMUNITY_RULE_BASE = "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release";
+const DEFAULT_COMMUNITY_RULE_BASE = "https://ruleset.skk.moe/Clash";
 const DEFAULT_LOCAL_RULE_BASE = "https://raw.githubusercontent.com/yuanv4/clash-rules/release";
 const HEALTH_CHECK_URL = "https://cp.cloudflare.com/";
 
@@ -65,37 +65,52 @@ const getScriptArguments = () =>
 const trimTrailingSlash = (value) => `${value || ""}`.replace(/\/+$/, "");
 
 const getProviderUrl = (base, file) => `${trimTrailingSlash(base)}/${file}`;
+const getSukkaProviderUrl = (base, kind, file) => getProviderUrl(base, `${kind}/${file}`);
 
-const makeHttpProvider = (name, url, behavior = "classical") => ({
+const makeHttpProvider = (name, url, behavior = "classical", format = "yaml") => ({
   type: "http",
   behavior,
-  format: "yaml",
+  format,
   interval: 86400,
   url,
-  path: `./ruleset/${name}.yaml`,
+  path: `./ruleset/${name}.${format === "text" ? "txt" : "yaml"}`,
 });
+
+const makeSukkaProvider = (name, kind, file, behavior = "classical") => {
+  const args = getScriptArguments();
+  return makeHttpProvider(
+    `community/${name}`,
+    getSukkaProviderUrl(args.communityBase || DEFAULT_COMMUNITY_RULE_BASE, kind, file),
+    behavior,
+    "text"
+  );
+};
 
 const buildRuleProviders = () => {
   const args = getScriptArguments();
-  const communityBase = args.communityBase || DEFAULT_COMMUNITY_RULE_BASE;
   const localBase = args.localBase || DEFAULT_LOCAL_RULE_BASE;
 
   return {
     claude: makeHttpProvider("local/claude", getProviderUrl(localBase, "claude.yaml")),
     ai: makeHttpProvider("local/ai", getProviderUrl(localBase, "ai.yaml")),
-    applications: makeHttpProvider("community/applications", getProviderUrl(communityBase, "applications.txt")),
-    private: makeHttpProvider("community/private", getProviderUrl(communityBase, "private.txt")),
-    reject: makeHttpProvider("community/reject", getProviderUrl(communityBase, "reject.txt")),
-    icloud: makeHttpProvider("community/icloud", getProviderUrl(communityBase, "icloud.txt")),
-    apple: makeHttpProvider("community/apple", getProviderUrl(communityBase, "apple.txt")),
-    google: makeHttpProvider("community/google", getProviderUrl(communityBase, "google.txt")),
-    telegramcidr: makeHttpProvider("community/telegramcidr", getProviderUrl(communityBase, "telegramcidr.txt")),
-    gfw: makeHttpProvider("community/gfw", getProviderUrl(communityBase, "gfw.txt")),
-    greatfire: makeHttpProvider("community/greatfire", getProviderUrl(communityBase, "greatfire.txt")),
-    "tld-not-cn": makeHttpProvider("community/tld-not-cn", getProviderUrl(communityBase, "tld-not-cn.txt")),
-    direct: makeHttpProvider("community/direct", getProviderUrl(communityBase, "direct.txt")),
-    cncidr: makeHttpProvider("community/cncidr", getProviderUrl(communityBase, "cncidr.txt")),
-    lancidr: makeHttpProvider("community/lancidr", getProviderUrl(communityBase, "lancidr.txt")),
+    lan_non_ip: makeSukkaProvider("lan_non_ip", "non_ip", "lan.txt"),
+    lan_ip: makeSukkaProvider("lan_ip", "ip", "lan.txt"),
+    reject_non_ip: makeSukkaProvider("reject_non_ip", "non_ip", "reject.txt"),
+    reject_ip: makeSukkaProvider("reject_ip", "ip", "reject.txt"),
+    ai_non_ip: makeSukkaProvider("ai_non_ip", "non_ip", "ai.txt"),
+    apple_intelligence_non_ip: makeSukkaProvider("apple_intelligence_non_ip", "non_ip", "apple_intelligence.txt"),
+    telegram_non_ip: makeSukkaProvider("telegram_non_ip", "non_ip", "telegram.txt"),
+    telegram_ip: makeSukkaProvider("telegram_ip", "ip", "telegram.txt"),
+    stream_non_ip: makeSukkaProvider("stream_non_ip", "non_ip", "stream.txt"),
+    stream_ip: makeSukkaProvider("stream_ip", "ip", "stream.txt"),
+    apple_cdn: makeSukkaProvider("apple_cdn", "non_ip", "apple_cdn.txt"),
+    apple_services: makeSukkaProvider("apple_services", "non_ip", "apple_services.txt"),
+    microsoft_cdn: makeSukkaProvider("microsoft_cdn", "non_ip", "microsoft_cdn.txt"),
+    microsoft_services: makeSukkaProvider("microsoft_services", "non_ip", "microsoft.txt"),
+    domestic_non_ip: makeSukkaProvider("domestic_non_ip", "non_ip", "domestic.txt"),
+    direct_non_ip: makeSukkaProvider("direct_non_ip", "non_ip", "direct.txt"),
+    global_non_ip: makeSukkaProvider("global_non_ip", "non_ip", "global.txt"),
+    domestic_ip: makeSukkaProvider("domestic_ip", "ip", "domestic.txt"),
   };
 };
 
@@ -105,19 +120,24 @@ const incrementalRules = [
 ];
 
 const communityRules = [
-  "RULE-SET,applications,DIRECT",
-  "RULE-SET,private,DIRECT",
-  "RULE-SET,reject,REJECT",
-  "RULE-SET,icloud,DIRECT",
-  "RULE-SET,apple,DIRECT",
-  `RULE-SET,google,${groupNames.select}`,
-  `RULE-SET,telegramcidr,${groupNames.telegram},no-resolve`,
-  `RULE-SET,gfw,${groupNames.select}`,
-  `RULE-SET,greatfire,${groupNames.select}`,
-  `RULE-SET,tld-not-cn,${groupNames.select}`,
-  "RULE-SET,direct,DIRECT",
-  "RULE-SET,cncidr,DIRECT,no-resolve",
-  "RULE-SET,lancidr,DIRECT,no-resolve",
+  "RULE-SET,lan_non_ip,DIRECT",
+  "RULE-SET,lan_ip,DIRECT,no-resolve",
+  "RULE-SET,reject_non_ip,REJECT",
+  "RULE-SET,reject_ip,REJECT,no-resolve",
+  `RULE-SET,ai_non_ip,${groupNames.ai}`,
+  `RULE-SET,apple_intelligence_non_ip,${groupNames.ai}`,
+  `RULE-SET,telegram_non_ip,${groupNames.telegram}`,
+  `RULE-SET,telegram_ip,${groupNames.telegram},no-resolve`,
+  `RULE-SET,stream_non_ip,${groupNames.select}`,
+  `RULE-SET,stream_ip,${groupNames.select},no-resolve`,
+  "RULE-SET,apple_cdn,DIRECT",
+  "RULE-SET,apple_services,DIRECT",
+  "RULE-SET,microsoft_cdn,DIRECT",
+  "RULE-SET,microsoft_services,DIRECT",
+  "RULE-SET,domestic_non_ip,DIRECT",
+  "RULE-SET,direct_non_ip,DIRECT",
+  `RULE-SET,global_non_ip,${groupNames.select}`,
+  "RULE-SET,domestic_ip,DIRECT,no-resolve",
   "GEOIP,CN,DIRECT",
   `MATCH,${groupNames.fallback}`,
 ];

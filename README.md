@@ -28,11 +28,11 @@
 
 `clash-rules.js` 默认引用：
 
-- 社区规则：`https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release`
+- 社区规则：`https://ruleset.skk.moe/Clash`
 - 本仓库增量规则：`https://raw.githubusercontent.com/yuanv4/clash-rules/release`
 
 如需换成代理地址或镜像，可在 Sub-Store 脚本链接后追加参数：
 
 ```text
-https://raw.githubusercontent.com/yuanv4/clash-rules/refs/heads/release/clash-rules.js#communityBase=https%3A%2F%2Fexample.com%2Fcommunity&localBase=https%3A%2F%2Fexample.com%2Flocal
+https://raw.githubusercontent.com/yuanv4/clash-rules/refs/heads/release/clash-rules.js#communityBase=https%3A%2F%2Fruleset-mirror.skk.moe%2FClash&localBase=https%3A%2F%2Fexample.com%2Flocal
 ```
