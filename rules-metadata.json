@@ -1,0 +1,15 @@
+{
+  "build_time_utc": "2026-05-03T23:08:01Z",
+  "git_sha": "e9ad1bfff5f59e5b23bed06e77d96319b811512a",
+  "targets": [
+    {
+      "name": "claude",
+      "count": 12,
+      "output": [
+        "claude.txt",
+        "claude.yaml"
+      ],
+      "skip_remote": false
+    }
+  ]
+}
