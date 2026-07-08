@@ -14,6 +14,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: ${{ github.workflow }}-release
+  cancel-in-progress: true
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -26,11 +30,19 @@ jobs:
         shell: bash
         run: ./scripts/publish.sh
 
+      - name: Validate publish artifacts
+        shell: bash
+        run: ./scripts/validate.sh --output-dir dist --no-build
+
       - name: Prepare publish directory
         shell: bash
         run: |
           mkdir -p publish
-          cp dist/* publish/
+          cp dist/clash-rules.js publish/
+          cp dist/claude.txt publish/
+          cp dist/claude.yaml publish/
+          cp dist/metadata.json publish/
+          cp dist/rules-metadata.json publish/
 
       - name: Push artifacts to release branch
         shell: bash
