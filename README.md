@@ -15,13 +15,12 @@
 ### 自维护规则
 
 当前发布：
-`clash-rules.js`、`sub-store.js`、`claude.yaml`
+`clash-rules.js`、`sub-store.js`
 
 其中：
 - `clash-rules.js` 用于 Mihomo / Clash Meta 的 `script` 覆写，会生成完整 profile 所需的基础策略组，并通过 `rule-providers` 动态引用社区规则 URL
 - `sub-store.js` 是 `clash-rules.js` 的 Sub-Store 适配版本，暴露 `operator(config)` 函数供 Sub-Store Script Operator 调用，逻辑与 `clash-rules.js` 完全一致
-- `claude.yaml` 由 `blackmatrix7/ios_rule_script` 的 Claude 规则加本地补充生成
-- AI 泛用分流直接使用 SukkaW 的 `ai.txt` 与 `apple_intelligence.txt`
+- AI 泛用分流（含 Claude）直接使用 SukkaW 的 `ai.txt` 与 `apple_intelligence.txt`，社区规则未覆盖的域名由 `rules/ai/manual.txt` 在构建时注入补充
 
 维护文件位于 [rules/](rules/) 目录。
 
@@ -30,7 +29,6 @@
 `clash-rules.js` 默认引用：
 
 - 社区规则：`https://ruleset.skk.moe/Clash`
-- 本仓库 Claude 增量规则：`https://raw.githubusercontent.com/yuanv4/clash-rules/release`
 
 如需换成代理地址或镜像，可在 Sub-Store 脚本链接后追加参数：
 

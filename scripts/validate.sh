@@ -79,8 +79,7 @@ fi
 [[ -f "scripts/publish.sh" ]] || fail "required script missing: scripts/publish.sh"
 [[ -f "scripts/lib/rules.sh" ]] || fail "required script missing: scripts/lib/rules.sh"
 [[ -f "scripts/lib/artifacts.sh" ]] || fail "required script missing: scripts/lib/artifacts.sh"
-[[ -f "rules/claude/manual.txt" ]] || fail "required rule file missing: rules/claude/manual.txt"
-[[ -f "rules/claude/exclude.txt" ]] || fail "required rule file missing: rules/claude/exclude.txt"
+[[ -f "rules/ai/manual.txt" ]] || fail "required rule file missing: rules/ai/manual.txt"
 
 command -v node >/dev/null 2>&1 || fail "node command not found"
 
@@ -113,8 +112,6 @@ fi
 required_artifacts=(
   "clash-rules.js"
   "sub-store.js"
-  "claude.txt"
-  "claude.yaml"
   "metadata.json"
   "rules-metadata.json"
 )
@@ -129,10 +126,10 @@ node --check "$OUTPUT_DIR/sub-store.js" >/dev/null
 if node - "$OUTPUT_DIR/clash-rules.js" <<'NODE'
 const fs = require("fs");
 const content = fs.readFileSync(process.argv[2], "utf8");
-process.exit(content.includes("__REGION_SPECS__") ? 0 : 1);
+process.exit(content.includes("__REGION_SPECS__") || content.includes("__AI_SUPPLEMENT_RULES__") ? 0 : 1);
 NODE
 then
-  fail "artifact still contains __REGION_SPECS__: $OUTPUT_DIR/clash-rules.js"
+  fail "artifact still contains unresolved placeholder: $OUTPUT_DIR/clash-rules.js"
 fi
 
 if node - "$OUTPUT_DIR/sub-store.js" <<'NODE'
@@ -151,33 +148,15 @@ if (!/^function main\(config\)/m.test(content)) {
   console.error("sub-store.js missing main(config) function");
   bad = true;
 }
+if (content.includes("__REGION_SPECS__") || content.includes("__AI_SUPPLEMENT_RULES__")) {
+  console.error("sub-store.js still contains unresolved placeholder");
+  bad = true;
+}
 process.exit(bad ? 0 : 1);
 NODE
 then
   fail "sub-store.js validation failed: $OUTPUT_DIR/sub-store.js"
 fi
-
-node - "$OUTPUT_DIR/claude.yaml" <<'NODE'
-const fs = require("fs");
-const content = fs.readFileSync(process.argv[2], "utf8");
-if (!/^payload:\s*$/m.test(content)) {
-  throw new Error("claude.yaml missing payload:");
-}
-if (!/^  -\s+\S/m.test(content)) {
-  throw new Error("claude.yaml contains no payload rule lines");
-}
-NODE
-
-node - "$OUTPUT_DIR/claude.txt" <<'NODE'
-const fs = require("fs");
-const hasRule = fs.readFileSync(process.argv[2], "utf8")
-  .split(/\r?\n/)
-  .map((line) => line.trim())
-  .some((line) => line && !line.startsWith("#") && !line.startsWith(";"));
-if (!hasRule) {
-  throw new Error("claude.txt contains no non-empty, non-comment lines");
-}
-NODE
 
 node - "$OUTPUT_DIR/metadata.json" "$OUTPUT_DIR/rules-metadata.json" <<'NODE'
 const fs = require("fs");

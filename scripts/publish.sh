@@ -3,6 +3,7 @@ set -euo pipefail
 
 SOURCE_FILE="src/clash-rules.js"
 REGION_DATA_FILE="src/data/regions.js"
+AI_SUPPLEMENT_FILE="rules/ai/manual.txt"
 OUTPUT_DIR="dist"
 SKIP_REMOTE_RULES=0
 
@@ -60,6 +61,7 @@ mkdir -p "$OUTPUT_DIR"
 obsolete_artifacts=(
   "ai.txt"
   "ai.yaml"
+  "claude.txt"
   "claude.yaml"
   "fakeip-filter.txt"
   "openai.txt"
@@ -75,7 +77,7 @@ for artifact in "${obsolete_artifacts[@]}"; do
 done
 
 script_output_file="$OUTPUT_DIR/clash-rules.js"
-build_script_artifact "$SOURCE_FILE" "$REGION_DATA_FILE" "$script_output_file"
+build_script_artifact "$SOURCE_FILE" "$REGION_DATA_FILE" "$script_output_file" "$AI_SUPPLEMENT_FILE"
 
 substore_output_file="$OUTPUT_DIR/sub-store.js"
 build_substore_artifact "$script_output_file" "$substore_output_file"
@@ -83,35 +85,12 @@ build_substore_artifact "$script_output_file" "$substore_output_file"
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
-claude_raw="$tmp_dir/claude.raw"
-claude_unique="$tmp_dir/claude.unique"
-claude_excludes="$tmp_dir/claude.excludes"
-claude_rules="$tmp_dir/claude.rules"
-{
-  normalize_rule_file "rules/claude/manual.txt"
-  fetch_remote_rules "https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Claude/Claude.yaml"
-} > "$claude_raw"
-unique_rules < "$claude_raw" > "$claude_unique"
-normalize_rule_file "rules/claude/exclude.txt" > "$claude_excludes"
-remove_excluded_rules "$claude_excludes" < "$claude_unique" > "$claude_rules"
-
-
-claude_output_paths=("$OUTPUT_DIR/claude.txt" "$OUTPUT_DIR/claude.yaml")
-for claude_output_path in "${claude_output_paths[@]}"; do
-  write_rules_file "$claude_output_path" "$claude_rules"
-  echo "Generated $claude_output_path with $(wc -l < "$claude_rules") rules"
-done
-
-
 build_time_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 git_sha="${GITHUB_SHA:-}"
-json_metadata "$OUTPUT_DIR" "$build_time_utc" "$git_sha" "$(wc -l < "$claude_rules")" "$SKIP_REMOTE_RULES"
+json_metadata "$OUTPUT_DIR" "$build_time_utc" "$git_sha" "$SKIP_REMOTE_RULES"
 
 echo "Publish preparation completed:"
 echo " - $script_output_file"
 echo " - $substore_output_file"
-for claude_output_path in "${claude_output_paths[@]}"; do
-  echo " - $claude_output_path"
-done
 echo " - $OUTPUT_DIR/metadata.json"
 echo " - $OUTPUT_DIR/rules-metadata.json"

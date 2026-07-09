@@ -12,7 +12,6 @@ const groupNames = {
   apple: "🍎 Apple",
   microsoft: "Ⓜ️ Microsoft",
   fallback: "🐟 漏网之鱼",
-  claude: "🧠 Claude",
   ai: "🤖 AI",
   cloudflare: "☁️ Cloudflare",
 };
@@ -25,6 +24,11 @@ const HEALTH_CHECK_URL = "https://cp.cloudflare.com/";
 // 地区筛选数据在构建阶段从独立文件注入，最终发布产物仍保持单文件。
 const regionSpecs = __REGION_SPECS__;
 
+// AI 补充规则在构建阶段从 rules/ai/manual.txt 注入，补充社区 ai.txt 未覆盖的域名。
+const aiSupplementRules = __AI_SUPPLEMENT_RULES__.map(
+  (rule) => `${rule},${groupNames.ai}`
+);
+
 const buildRegionFilter = (groupKeys) => {
   const pattern = groupKeys.flatMap((key) => {
     const spec = regionSpecs[key] || {};
@@ -36,7 +40,6 @@ const buildRegionFilter = (groupKeys) => {
   return `(?i)^.*(?:${pattern}).*$`;
 };
 
-const claudeFilter = buildRegionFilter(["jp"]);
 const aiFilter = buildRegionFilter(["jp", "sg", "us"]);
 
 // ===========================
@@ -74,7 +77,6 @@ const buildRuleProviders = () => {
   const localBase = args.localBase || DEFAULT_LOCAL_RULE_BASE;
 
   return {
-    claude: makeHttpProvider("local/claude", getProviderUrl(localBase, "claude.yaml")),
     cloudflare: makeHttpProvider("community/cloudflare", CLOUDFLARE_RULE_URL),
     lan_non_ip: makeSukkaProvider("lan_non_ip", "non_ip", "lan.txt"),
     lan_ip: makeSukkaProvider("lan_ip", "ip", "lan.txt"),
@@ -95,7 +97,7 @@ const buildRuleProviders = () => {
 };
 
 const incrementalRules = [
-  `RULE-SET,claude,${groupNames.claude}`,
+  ...aiSupplementRules,
   `RULE-SET,cloudflare,${groupNames.cloudflare}`,
 ];
 
@@ -214,7 +216,6 @@ function main(config) {
       name: groupNames.cloudflare,
       type: "select",
     }, ["DIRECT", groupNames.select, groupNames.auto, ...proxyNames]),
-    makeGroup(groupNames.claude, claudeFilter),
     makeGroup(groupNames.ai, aiFilter),
     withProxySources({
       name: groupNames.fallback,

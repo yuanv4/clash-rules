@@ -1,0 +1,6 @@
+# Claude supplementary rules not covered by community ai.txt
+# One rule per line (without target group). Rules will target the AI group.
+DOMAIN-SUFFIX,claudeusercontent.com
+DOMAIN-SUFFIX,claudemcpclient.com
+DOMAIN-SUFFIX,code.claude.com
+DOMAIN-SUFFIX,platform.claude.com
