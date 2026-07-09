@@ -8,11 +8,9 @@
 const groupNames = {
   select: "🚀 节点选择",
   auto: "♻️ 自动选择",
-  telegram: "📲 Telegram",
   streaming: "🎬 流媒体",
   apple: "🍎 Apple",
   microsoft: "Ⓜ️ Microsoft",
-  global: "🌍 国外网站",
   fallback: "🐟 漏网之鱼",
   claude: "🧠 Claude",
   ai: "🤖 AI",
@@ -40,27 +38,6 @@ const buildRegionFilter = (groupKeys) => {
 
 const claudeFilter = buildRegionFilter(["jp"]);
 const aiFilter = buildRegionFilter(["jp", "sg", "us"]);
-
-const appendProxyGroups = (existingGroups, additions) => [
-  ...existingGroups,
-  ...additions.filter(
-    (group) => !existingGroups.some((g) => g && g.name === group.name)
-  ),
-];
-
-const prependMissingRules = (existingRules, additions) => [
-  ...additions.filter((rule) => !existingRules.includes(rule)),
-  ...existingRules,
-];
-
-const mergeRuleProviders = (existingProviders, additions) => ({
-  ...(existingProviders || {}),
-  ...Object.fromEntries(
-    Object.entries(additions).filter(
-      ([name]) => !Object.prototype.hasOwnProperty.call(existingProviders || {}, name)
-    )
-  ),
-});
 
 // ===========================
 // 第二部分：规则集提供者
@@ -105,8 +82,6 @@ const buildRuleProviders = () => {
     reject_ip: makeSukkaProvider("reject_ip", "ip", "reject.txt"),
     ai_non_ip: makeSukkaProvider("ai_non_ip", "non_ip", "ai.txt"),
     apple_intelligence_non_ip: makeSukkaProvider("apple_intelligence_non_ip", "non_ip", "apple_intelligence.txt"),
-    telegram_non_ip: makeSukkaProvider("telegram_non_ip", "non_ip", "telegram.txt"),
-    telegram_ip: makeSukkaProvider("telegram_ip", "ip", "telegram.txt"),
     stream_non_ip: makeSukkaProvider("stream_non_ip", "non_ip", "stream.txt"),
     stream_ip: makeSukkaProvider("stream_ip", "ip", "stream.txt"),
     apple_cdn: makeSukkaProvider("apple_cdn", "non_ip", "apple_cdn.txt"),
@@ -115,7 +90,6 @@ const buildRuleProviders = () => {
     microsoft_services: makeSukkaProvider("microsoft_services", "non_ip", "microsoft.txt"),
     domestic_non_ip: makeSukkaProvider("domestic_non_ip", "non_ip", "domestic.txt"),
     direct_non_ip: makeSukkaProvider("direct_non_ip", "non_ip", "direct.txt"),
-    global_non_ip: makeSukkaProvider("global_non_ip", "non_ip", "global.txt"),
     domestic_ip: makeSukkaProvider("domestic_ip", "ip", "domestic.txt"),
   };
 };
@@ -132,8 +106,6 @@ const communityRules = [
   "RULE-SET,reject_ip,REJECT,no-resolve",
   `RULE-SET,ai_non_ip,${groupNames.ai}`,
   `RULE-SET,apple_intelligence_non_ip,${groupNames.ai}`,
-  `RULE-SET,telegram_non_ip,${groupNames.telegram}`,
-  `RULE-SET,telegram_ip,${groupNames.telegram},no-resolve`,
   `RULE-SET,stream_non_ip,${groupNames.streaming}`,
   `RULE-SET,stream_ip,${groupNames.streaming},no-resolve`,
   `RULE-SET,apple_cdn,${groupNames.apple}`,
@@ -142,7 +114,6 @@ const communityRules = [
   `RULE-SET,microsoft_services,${groupNames.microsoft}`,
   "RULE-SET,domestic_non_ip,DIRECT",
   "RULE-SET,direct_non_ip,DIRECT",
-  `RULE-SET,global_non_ip,${groupNames.global}`,
   "RULE-SET,domestic_ip,DIRECT,no-resolve",
   "GEOIP,CN,DIRECT",
   `MATCH,${groupNames.fallback}`,
@@ -203,58 +174,44 @@ function main(config) {
     }, candidates.length > 0 ? candidates : proxyNames);
   };
 
-  config["proxy-groups"] = appendProxyGroups(
-    Array.isArray(config["proxy-groups"]) ? config["proxy-groups"] : [],
-    [
-      withProxySources({
-        name: groupNames.select,
-        type: "select",
-      }, selectableProxies),
-      withProxySources({
-        name: groupNames.auto,
-        type: "url-test",
-        url: HEALTH_CHECK_URL,
-        interval: 300,
-        tolerance: 50,
-      }),
-      withProxySources({
-        name: groupNames.telegram,
-        type: "select",
-      }, selectableProxies),
-      withProxySources({
-        name: groupNames.streaming,
-        type: "select",
-      }, selectableProxies),
-      withProxySources({
-        name: groupNames.apple,
-        type: "select",
-      }, ["DIRECT", groupNames.select, groupNames.auto, ...proxyNames]),
-      withProxySources({
-        name: groupNames.microsoft,
-        type: "select",
-      }, ["DIRECT", groupNames.select, groupNames.auto, ...proxyNames]),
-      withProxySources({
-        name: groupNames.global,
-        type: "select",
-      }, selectableProxies),
-      withProxySources({
-        name: groupNames.cloudflare,
-        type: "select",
-      }, ["DIRECT", groupNames.select, groupNames.auto, ...proxyNames]),
-      makeGroup(groupNames.claude, claudeFilter),
-      makeGroup(groupNames.ai, aiFilter),
-      withProxySources({
-        name: groupNames.fallback,
-        type: "select",
-      }, selectableProxies),
-    ]
-  );
+  config["proxy-groups"] = [
+    withProxySources({
+      name: groupNames.select,
+      type: "select",
+    }, selectableProxies),
+    withProxySources({
+      name: groupNames.auto,
+      type: "url-test",
+      url: HEALTH_CHECK_URL,
+      interval: 300,
+      tolerance: 50,
+    }),
+    withProxySources({
+      name: groupNames.streaming,
+      type: "select",
+    }, selectableProxies),
+    withProxySources({
+      name: groupNames.apple,
+      type: "select",
+    }, ["DIRECT", groupNames.select, groupNames.auto, ...proxyNames]),
+    withProxySources({
+      name: groupNames.microsoft,
+      type: "select",
+    }, ["DIRECT", groupNames.select, groupNames.auto, ...proxyNames]),
+    withProxySources({
+      name: groupNames.cloudflare,
+      type: "select",
+    }, ["DIRECT", groupNames.select, groupNames.auto, ...proxyNames]),
+    makeGroup(groupNames.claude, claudeFilter),
+    makeGroup(groupNames.ai, aiFilter),
+    withProxySources({
+      name: groupNames.fallback,
+      type: "select",
+    }, selectableProxies),
+  ];
 
-  config["rule-providers"] = mergeRuleProviders(config["rule-providers"], buildRuleProviders());
-  config.rules = prependMissingRules(
-    Array.isArray(config.rules) ? config.rules : [],
-    [...incrementalRules, ...communityRules]
-  );
+  config["rule-providers"] = buildRuleProviders();
+  config.rules = [...incrementalRules, ...communityRules];
 
   return config;
 }
