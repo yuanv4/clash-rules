@@ -9,14 +9,17 @@
 
 - [https://raw.githubusercontent.com/yuanv4/clash-rules/release/clash-rules.js](https://raw.githubusercontent.com/yuanv4/clash-rules/release/clash-rules.js)
 - [https://cdn.jsdelivr.net/gh/yuanv4/clash-rules@release/clash-rules.js](https://cdn.jsdelivr.net/gh/yuanv4/clash-rules@release/clash-rules.js)
+- [https://raw.githubusercontent.com/yuanv4/clash-rules/release/sub-store.js](https://raw.githubusercontent.com/yuanv4/clash-rules/release/sub-store.js)
+- [https://cdn.jsdelivr.net/gh/yuanv4/clash-rules@release/sub-store.js](https://cdn.jsdelivr.net/gh/yuanv4/clash-rules@release/sub-store.js)
 
 ### 自维护规则
 
 当前发布：
-`clash-rules.js`、`claude.yaml`
+`clash-rules.js`、`sub-store.js`、`claude.yaml`
 
 其中：
 - `clash-rules.js` 用于 Mihomo / Clash Meta 的 `script` 覆写，会生成完整 profile 所需的基础策略组，并通过 `rule-providers` 动态引用社区规则 URL
+- `sub-store.js` 是 `clash-rules.js` 的 Sub-Store 适配版本，暴露 `operator(config)` 函数供 Sub-Store Script Operator 调用，逻辑与 `clash-rules.js` 完全一致
 - `claude.yaml` 由 `blackmatrix7/ios_rule_script` 的 Claude 规则加本地补充生成
 - AI 泛用分流直接使用 SukkaW 的 `ai.txt` 与 `apple_intelligence.txt`
 
@@ -34,3 +37,13 @@
 ```text
 https://raw.githubusercontent.com/yuanv4/clash-rules/refs/heads/release/clash-rules.js#communityBase=https%3A%2F%2Fruleset-mirror.skk.moe%2FClash&localBase=https%3A%2F%2Fexample.com%2Flocal
 ```
+
+### Sub-Store 用法
+
+在 Sub-Store 的组合订阅或单订阅中，添加「脚本操作」并选择链接模式，填入：
+
+```text
+https://cdn.jsdelivr.net/gh/yuanv4/clash-rules@release/sub-store.js
+```
+
+`sub-store.js` 会暴露 `operator(config)` 函数，Sub-Store 会将完整 Clash 配置传入并接收修改后的配置返回。

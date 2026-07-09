@@ -21,6 +21,37 @@ fs.writeFileSync(outputPath, sourceContent.replace(placeholder, regionContent));
 NODE
 }
 
+build_substore_artifact() {
+  local clash_rules_path="$1"
+  local output_path="$2"
+
+  [[ -f "$clash_rules_path" ]] || { echo "Built clash-rules.js not found: $clash_rules_path" >&2; exit 1; }
+
+  node - "$clash_rules_path" "$output_path" <<'NODE'
+const fs = require("fs");
+const [clashRulesPath, outputPath] = process.argv.slice(2);
+const baseContent = fs.readFileSync(clashRulesPath, "utf8");
+
+const subStoreHeader = `// ===========================
+// Sub-Store Script Operator 适配
+// 本文件由 clash-rules.js 构建派生，暴露 operator() 供 Sub-Store 调用。
+// ===========================
+
+`;
+
+const subStoreFooter = `
+
+// Sub-Store Script Operator 入口
+// Sub-Store 会查找名为 operator 的函数并传入完整 Clash 配置对象。
+function operator(config) {
+  return main(config);
+}
+`;
+
+fs.writeFileSync(outputPath, subStoreHeader + baseContent + subStoreFooter);
+NODE
+}
+
 json_metadata() {
   local path="$1"
   local build_time_utc="$2"

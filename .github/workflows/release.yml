@@ -39,6 +39,7 @@ jobs:
         run: |
           mkdir -p publish
           cp dist/clash-rules.js publish/
+          cp dist/sub-store.js publish/
           cp dist/claude.txt publish/
           cp dist/claude.yaml publish/
           cp dist/metadata.json publish/

@@ -112,6 +112,7 @@ fi
 
 required_artifacts=(
   "clash-rules.js"
+  "sub-store.js"
   "claude.txt"
   "claude.yaml"
   "metadata.json"
@@ -123,6 +124,7 @@ for artifact in "${required_artifacts[@]}"; do
 done
 
 node --check "$OUTPUT_DIR/clash-rules.js" >/dev/null
+node --check "$OUTPUT_DIR/sub-store.js" >/dev/null
 
 if node - "$OUTPUT_DIR/clash-rules.js" <<'NODE'
 const fs = require("fs");
@@ -131,6 +133,28 @@ process.exit(content.includes("__REGION_SPECS__") ? 0 : 1);
 NODE
 then
   fail "artifact still contains __REGION_SPECS__: $OUTPUT_DIR/clash-rules.js"
+fi
+
+if node - "$OUTPUT_DIR/sub-store.js" <<'NODE'
+const fs = require("fs");
+const content = fs.readFileSync(process.argv[2], "utf8");
+let bad = false;
+if (content.includes("__REGION_SPECS__")) {
+  console.error("sub-store.js still contains __REGION_SPECS__");
+  bad = true;
+}
+if (!/^function operator\(config\)/m.test(content)) {
+  console.error("sub-store.js missing operator(config) function");
+  bad = true;
+}
+if (!/^function main\(config\)/m.test(content)) {
+  console.error("sub-store.js missing main(config) function");
+  bad = true;
+}
+process.exit(bad ? 0 : 1);
+NODE
+then
+  fail "sub-store.js validation failed: $OUTPUT_DIR/sub-store.js"
 fi
 
 node - "$OUTPUT_DIR/claude.yaml" <<'NODE'

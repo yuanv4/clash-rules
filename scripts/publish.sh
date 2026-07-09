@@ -77,6 +77,9 @@ done
 script_output_file="$OUTPUT_DIR/clash-rules.js"
 build_script_artifact "$SOURCE_FILE" "$REGION_DATA_FILE" "$script_output_file"
 
+substore_output_file="$OUTPUT_DIR/sub-store.js"
+build_substore_artifact "$script_output_file" "$substore_output_file"
+
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
@@ -106,6 +109,7 @@ json_metadata "$OUTPUT_DIR" "$build_time_utc" "$git_sha" "$(wc -l < "$claude_rul
 
 echo "Publish preparation completed:"
 echo " - $script_output_file"
+echo " - $substore_output_file"
 for claude_output_path in "${claude_output_paths[@]}"; do
   echo " - $claude_output_path"
 done
