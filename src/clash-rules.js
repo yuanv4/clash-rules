@@ -29,6 +29,11 @@ const aiSupplementRules = __AI_SUPPLEMENT_RULES__.map(
   (rule) => `${rule},${groupNames.ai}`
 );
 
+// 直连补充规则在构建阶段从 rules/direct/manual.txt 注入，补充社区 direct.txt 未覆盖的域名。
+const directSupplementRules = __DIRECT_SUPPLEMENT_RULES__.map(
+  (rule) => `${rule},DIRECT`
+);
+
 const buildRegionFilter = (groupKeys) => {
   const pattern = groupKeys.flatMap((key) => {
     const spec = regionSpecs[key] || {};
@@ -97,6 +102,7 @@ const buildRuleProviders = () => {
 };
 
 const incrementalRules = [
+  ...directSupplementRules,
   ...aiSupplementRules,
   `RULE-SET,cloudflare,${groupNames.cloudflare}`,
 ];

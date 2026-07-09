@@ -2,26 +2,29 @@ build_script_artifact() {
   local source_path="$1"
   local region_path="$2"
   local output_path="$3"
-  local supplement_path="$4"
+  local ai_supplement_path="$4"
+  local direct_supplement_path="$5"
 
   [[ -f "$source_path" ]] || { echo "Source file not found: $source_path" >&2; exit 1; }
   [[ -f "$region_path" ]] || { echo "Region data file not found: $region_path" >&2; exit 1; }
-  [[ -f "$supplement_path" ]] || { echo "AI supplement file not found: $supplement_path" >&2; exit 1; }
+  [[ -f "$ai_supplement_path" ]] || { echo "AI supplement file not found: $ai_supplement_path" >&2; exit 1; }
+  [[ -f "$direct_supplement_path" ]] || { echo "Direct supplement file not found: $direct_supplement_path" >&2; exit 1; }
 
-  node - "$source_path" "$region_path" "$supplement_path" "$output_path" <<'NODE'
+  node - "$source_path" "$region_path" "$ai_supplement_path" "$direct_supplement_path" "$output_path" <<'NODE'
 const fs = require("fs");
-const [sourcePath, regionPath, supplementPath, outputPath] = process.argv.slice(2);
+const [sourcePath, regionPath, aiSupplementPath, directSupplementPath, outputPath] = process.argv.slice(2);
 const sourceContent = fs.readFileSync(sourcePath, "utf8");
 const regionContent = fs.readFileSync(regionPath, "utf8").trim();
 
-const supplementRules = fs.readFileSync(supplementPath, "utf8")
+const readRuleFile = (path) => fs.readFileSync(path, "utf8")
   .split(/\r?\n/)
   .map((line) => line.trim())
   .filter((line) => line && !line.startsWith("#") && !line.startsWith(";"));
 
 const placeholders = {
   __REGION_SPECS__: regionContent,
-  __AI_SUPPLEMENT_RULES__: JSON.stringify(supplementRules),
+  __AI_SUPPLEMENT_RULES__: JSON.stringify(readRuleFile(aiSupplementPath)),
+  __DIRECT_SUPPLEMENT_RULES__: JSON.stringify(readRuleFile(directSupplementPath)),
 };
 
 let result = sourceContent;

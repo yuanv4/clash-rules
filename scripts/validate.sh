@@ -80,6 +80,7 @@ fi
 [[ -f "scripts/lib/rules.sh" ]] || fail "required script missing: scripts/lib/rules.sh"
 [[ -f "scripts/lib/artifacts.sh" ]] || fail "required script missing: scripts/lib/artifacts.sh"
 [[ -f "rules/ai/manual.txt" ]] || fail "required rule file missing: rules/ai/manual.txt"
+[[ -f "rules/direct/manual.txt" ]] || fail "required rule file missing: rules/direct/manual.txt"
 
 command -v node >/dev/null 2>&1 || fail "node command not found"
 
@@ -126,7 +127,7 @@ node --check "$OUTPUT_DIR/sub-store.js" >/dev/null
 if node - "$OUTPUT_DIR/clash-rules.js" <<'NODE'
 const fs = require("fs");
 const content = fs.readFileSync(process.argv[2], "utf8");
-process.exit(content.includes("__REGION_SPECS__") || content.includes("__AI_SUPPLEMENT_RULES__") ? 0 : 1);
+process.exit(content.includes("__REGION_SPECS__") || content.includes("__AI_SUPPLEMENT_RULES__") || content.includes("__DIRECT_SUPPLEMENT_RULES__") ? 0 : 1);
 NODE
 then
   fail "artifact still contains unresolved placeholder: $OUTPUT_DIR/clash-rules.js"
@@ -148,7 +149,7 @@ if (!/^function main\(config\)/m.test(content)) {
   console.error("sub-store.js missing main(config) function");
   bad = true;
 }
-if (content.includes("__REGION_SPECS__") || content.includes("__AI_SUPPLEMENT_RULES__")) {
+if (content.includes("__REGION_SPECS__") || content.includes("__AI_SUPPLEMENT_RULES__") || content.includes("__DIRECT_SUPPLEMENT_RULES__")) {
   console.error("sub-store.js still contains unresolved placeholder");
   bad = true;
 }

@@ -1,0 +1,5 @@
+# Direct supplement rules not covered by community direct.txt
+# One rule per line (without target). Rules will target DIRECT.
+# Tailscale control plane and MagicDNS
+DOMAIN-SUFFIX,tailscale.com
+DOMAIN-SUFFIX,ts.net
