@@ -136,8 +136,20 @@ function main(config) {
     throw new Error("配置文件中未找到任何代理节点");
   }
 
+  const INFO_PROXY_KEYWORDS = [
+    "套餐到期", "套餐重置", "订阅获取", "订阅到期", "订阅链接",
+    "剩余流量", "流量重置", "流量购买", "流量剩余", "官网地址",
+    "网址", "到期时间", "重置日期", "获取时间", "剩余天数",
+    "Expire", "Traffic", "Reset", "Subscribe", "Website",
+  ];
+  const isInfoProxy = (p) => {
+    if (!p || !p.name) return true;
+    const name = p.name.toLowerCase();
+    return INFO_PROXY_KEYWORDS.some((kw) => name.includes(kw.toLowerCase()));
+  };
+
   if (Array.isArray(config.proxies)) {
-    config.proxies = config.proxies.filter((p) => p && p.name);
+    config.proxies = config.proxies.filter((p) => !isInfoProxy(p));
   }
 
   const proxyNames = Array.isArray(config.proxies)
