@@ -16,6 +16,14 @@ const groupNames = {
   cloudflare: "☁️ Cloudflare",
 };
 
+const DEFAULT_COMMUNITY_RULE_BASE = "https://ruleset.skk.moe/Clash";
+const DEFAULT_LOCAL_RULE_BASE = "https://raw.githubusercontent.com/yuanv4/clash-rules/release";
+const CLOUDFLARE_RULE_URL = "https://rules.kr328.app/cloudflare.yaml";
+const HEALTH_CHECK_URL = "https://cp.cloudflare.com/";
+
+// 地区筛选数据在构建阶段从独立文件注入，最终发布产物仍保持单文件。
+const regionSpecs = __REGION_SPECS__;
+
 // 为每个地区生成独立的故障转移组名称，如 "🇯🇵 日本"、"🇸🇬 新加坡"。
 const regionGroupNames = {};
 for (const key of Object.keys(regionSpecs)) {
@@ -24,14 +32,6 @@ for (const key of Object.keys(regionSpecs)) {
   const name = (spec.names || [])[0] || key.toUpperCase();
   regionGroupNames[key] = `${emoji} ${name}`.trim();
 }
-
-const DEFAULT_COMMUNITY_RULE_BASE = "https://ruleset.skk.moe/Clash";
-const DEFAULT_LOCAL_RULE_BASE = "https://raw.githubusercontent.com/yuanv4/clash-rules/release";
-const CLOUDFLARE_RULE_URL = "https://rules.kr328.app/cloudflare.yaml";
-const HEALTH_CHECK_URL = "https://cp.cloudflare.com/";
-
-// 地区筛选数据在构建阶段从独立文件注入，最终发布产物仍保持单文件。
-const regionSpecs = __REGION_SPECS__;
 
 // AI 补充规则在构建阶段从 rules/ai/manual.txt 注入，补充社区 ai.txt 未覆盖的域名。
 const aiSupplementRules = __AI_SUPPLEMENT_RULES__.map(
