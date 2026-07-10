@@ -183,10 +183,8 @@ function main(config) {
     : [];
   const hasLocalProxies = proxyNames.length > 0;
   const hasProxyProviders = providerNames.length > 0;
-  const regionGroupList = Object.values(regionGroupNames);
   const selectableProxies = compactUnique([
     groupNames.auto,
-    ...regionGroupList,
     "DIRECT",
     ...proxyNames,
   ]);
