@@ -16,6 +16,15 @@ const groupNames = {
   cloudflare: "☁️ Cloudflare",
 };
 
+// 为每个地区生成独立的故障转移组名称，如 "🇯🇵 日本"、"🇸🇬 新加坡"。
+const regionGroupNames = {};
+for (const key of Object.keys(regionSpecs)) {
+  const spec = regionSpecs[key];
+  const emoji = (spec.emoji || [])[0] || "";
+  const name = (spec.names || [])[0] || key.toUpperCase();
+  regionGroupNames[key] = `${emoji} ${name}`.trim();
+}
+
 const DEFAULT_COMMUNITY_RULE_BASE = "https://ruleset.skk.moe/Clash";
 const DEFAULT_LOCAL_RULE_BASE = "https://raw.githubusercontent.com/yuanv4/clash-rules/release";
 const CLOUDFLARE_RULE_URL = "https://rules.kr328.app/cloudflare.yaml";
@@ -46,6 +55,12 @@ const buildRegionFilter = (groupKeys) => {
 };
 
 const aiFilter = buildRegionFilter(["jp", "sg", "us"]);
+
+// 为每个地区生成独立的故障转移筛选器。
+const regionFilters = {};
+for (const key of Object.keys(regionSpecs)) {
+  regionFilters[key] = buildRegionFilter([key]);
+}
 
 // ===========================
 // 第二部分：规则集提供者
@@ -168,8 +183,10 @@ function main(config) {
     : [];
   const hasLocalProxies = proxyNames.length > 0;
   const hasProxyProviders = providerNames.length > 0;
+  const regionGroupList = Object.values(regionGroupNames);
   const selectableProxies = compactUnique([
     groupNames.auto,
+    ...regionGroupList,
     "DIRECT",
     ...proxyNames,
   ]);
@@ -222,7 +239,14 @@ function main(config) {
       name: groupNames.cloudflare,
       type: "select",
     }, ["DIRECT", groupNames.select, groupNames.auto, ...proxyNames]),
-    makeGroup(groupNames.ai, aiFilter),
+    ...Object.keys(regionSpecs).map((key) =>
+      makeGroup(regionGroupNames[key], regionFilters[key])
+    ),
+    {
+      name: groupNames.ai,
+      type: "select",
+      proxies: ["jp", "sg", "us"].map((key) => regionGroupNames[key]).filter(Boolean),
+    },
     withProxySources({
       name: groupNames.fallback,
       type: "select",
