@@ -9,15 +9,16 @@ const groupNames = {
   select: "🚀 节点选择",
   auto: "♻️ 自动选择",
   streaming: "🎬 流媒体",
+  youtube: "📹 油管视频",
   apple: "🍎 Apple",
   microsoft: "Ⓜ️ Microsoft",
+  onedrive: "Ⓜ️ OneDrive",
   fallback: "🐟 漏网之鱼",
   ai: "🤖 AI",
   cloudflare: "☁️ Cloudflare",
 };
 
 const DEFAULT_COMMUNITY_RULE_BASE = "https://ruleset.skk.moe/Clash";
-const DEFAULT_LOCAL_RULE_BASE = "https://raw.githubusercontent.com/yuanv4/clash-rules/release";
 const CLOUDFLARE_RULE_URL = "https://rules.kr328.app/cloudflare.yaml";
 const HEALTH_CHECK_URL = "https://cp.cloudflare.com/";
 
@@ -33,15 +34,12 @@ for (const key of Object.keys(regionSpecs)) {
   regionGroupNames[key] = `${emoji} ${name}`.trim();
 }
 
-// AI 补充规则在构建阶段从 rules/ai/manual.txt 注入，补充社区 ai.txt 未覆盖的域名。
-const aiSupplementRules = __AI_SUPPLEMENT_RULES__.map(
-  (rule) => `${rule},${groupNames.ai}`
-);
+const makeSupplementRules = (rules, group) => rules.map((rule) => `${rule},${group}`);
 
-// 直连补充规则在构建阶段从 rules/direct/manual.txt 注入，补充社区 direct.txt 未覆盖的域名。
-const directSupplementRules = __DIRECT_SUPPLEMENT_RULES__.map(
-  (rule) => `${rule},DIRECT`
-);
+const aiSupplementRules = makeSupplementRules(__AI_SUPPLEMENT_RULES__, groupNames.ai);
+const youtubeSupplementRules = makeSupplementRules(__YOUTUBE_SUPPLEMENT_RULES__, groupNames.youtube);
+const onedriveSupplementRules = makeSupplementRules(__ONEDRIVE_SUPPLEMENT_RULES__, groupNames.onedrive);
+const directSupplementRules = makeSupplementRules(__DIRECT_SUPPLEMENT_RULES__, "DIRECT");
 
 const buildRegionFilter = (groupKeys) => {
   const pattern = groupKeys.flatMap((key) => {
@@ -53,8 +51,6 @@ const buildRegionFilter = (groupKeys) => {
   }).join("|");
   return `(?i)^.*(?:${pattern}).*$`;
 };
-
-const aiFilter = buildRegionFilter(["jp", "sg", "us"]);
 
 // 为每个地区生成独立的故障转移筛选器。
 const regionFilters = {};
@@ -94,7 +90,6 @@ const makeSukkaProvider = (name, kind, file, behavior = "classical") => {
 
 const buildRuleProviders = () => {
   const args = getScriptArguments();
-  const localBase = args.localBase || DEFAULT_LOCAL_RULE_BASE;
 
   return {
     cloudflare: makeHttpProvider("community/cloudflare", CLOUDFLARE_RULE_URL),
@@ -118,6 +113,8 @@ const buildRuleProviders = () => {
 
 const incrementalRules = [
   ...directSupplementRules,
+  ...youtubeSupplementRules,
+  ...onedriveSupplementRules,
   ...aiSupplementRules,
   `RULE-SET,cloudflare,${groupNames.cloudflare}`,
 ];
@@ -144,6 +141,18 @@ const communityRules = [
 
 const compactUnique = (items) => [...new Set(items.filter(Boolean))];
 
+const INFO_PROXY_KEYWORDS = [
+  "套餐到期", "套餐重置", "订阅获取", "订阅到期", "订阅链接",
+  "剩余流量", "流量重置", "流量购买", "流量剩余", "官网地址",
+  "网址", "到期时间", "重置日期", "获取时间", "剩余天数",
+  "Expire", "Traffic", "Reset", "Subscribe", "Website",
+];
+const isInfoProxy = (p) => {
+  if (!p || !p.name) return true;
+  const name = p.name.toLowerCase();
+  return INFO_PROXY_KEYWORDS.some((kw) => name.includes(kw.toLowerCase()));
+};
+
 // ===========================
 // 第三部分：主函数
 // ===========================
@@ -158,18 +167,6 @@ function main(config) {
   if (proxyCount === 0 && proxyProviderCount === 0) {
     throw new Error("配置文件中未找到任何代理节点");
   }
-
-  const INFO_PROXY_KEYWORDS = [
-    "套餐到期", "套餐重置", "订阅获取", "订阅到期", "订阅链接",
-    "剩余流量", "流量重置", "流量购买", "流量剩余", "官网地址",
-    "网址", "到期时间", "重置日期", "获取时间", "剩余天数",
-    "Expire", "Traffic", "Reset", "Subscribe", "Website",
-  ];
-  const isInfoProxy = (p) => {
-    if (!p || !p.name) return true;
-    const name = p.name.toLowerCase();
-    return INFO_PROXY_KEYWORDS.some((kw) => name.includes(kw.toLowerCase()));
-  };
 
   if (Array.isArray(config.proxies)) {
     config.proxies = config.proxies.filter((p) => !isInfoProxy(p));
@@ -189,6 +186,13 @@ function main(config) {
     ...proxyNames,
   ]);
 
+  const generalBusinessSources = compactUnique([
+    "DIRECT",
+    groupNames.select,
+    groupNames.auto,
+  ]);
+  const aiSources = ["jp", "sg", "us"].map((key) => regionGroupNames[key]).filter(Boolean);
+
   const withProxySources = (group, fallbackProxies = proxyNames) => ({
     ...group,
     ...(hasLocalProxies && { proxies: compactUnique(fallbackProxies) }),
@@ -197,7 +201,7 @@ function main(config) {
 
   const makeGroup = (name, filter) => {
     const matcher = new RegExp(filter.replace(/^\(\?i\)/, ""), "i");
-    const candidates = [...new Set(proxyNames.filter((n) => matcher.test(n)))];
+    const candidates = compactUnique(proxyNames.filter((n) => matcher.test(n)));
     return withProxySources({
       name,
       type: "fallback",
@@ -233,6 +237,16 @@ function main(config) {
       name: groupNames.microsoft,
       type: "select",
     }, ["DIRECT", groupNames.select, groupNames.auto, ...proxyNames]),
+    {
+      name: groupNames.youtube,
+      type: "select",
+      proxies: generalBusinessSources,
+    },
+    {
+      name: groupNames.onedrive,
+      type: "select",
+      proxies: generalBusinessSources,
+    },
     withProxySources({
       name: groupNames.cloudflare,
       type: "select",
@@ -243,7 +257,7 @@ function main(config) {
     {
       name: groupNames.ai,
       type: "select",
-      proxies: ["jp", "sg", "us"].map((key) => regionGroupNames[key]).filter(Boolean),
+      proxies: aiSources,
     },
     withProxySources({
       name: groupNames.fallback,

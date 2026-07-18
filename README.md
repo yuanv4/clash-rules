@@ -22,6 +22,7 @@
 - `sub-store.js` 是 `clash-rules.js` 的 Sub-Store 适配版本，暴露 `operator(config)` 函数供 Sub-Store Script Operator 调用，逻辑与 `clash-rules.js` 完全一致
 - AI 泛用分流（含 Claude）直接使用 SukkaW 的 `ai.txt` 与 `apple_intelligence.txt`，社区规则未覆盖的域名由 `rules/ai/manual.txt` 在构建时注入补充
 - 直连补充规则（如 Tailscale 控制面）由 `rules/direct/manual.txt` 在构建时注入补充
+- YouTube、OneDrive 提供独立可手选策略组；Microsoft 仍作为通用兜底组
 
 维护文件位于 [rules/](rules/) 目录。
 

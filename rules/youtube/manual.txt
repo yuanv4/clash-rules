@@ -1,0 +1,3 @@
+# Stable YouTube service domains not guaranteed by the community stream set.
+DOMAIN-SUFFIX,youtube-nocookie.com
+DOMAIN-SUFFIX,youtu.be

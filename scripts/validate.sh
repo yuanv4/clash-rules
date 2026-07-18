@@ -127,11 +127,55 @@ node --check "$OUTPUT_DIR/sub-store.js" >/dev/null
 if node - "$OUTPUT_DIR/clash-rules.js" <<'NODE'
 const fs = require("fs");
 const content = fs.readFileSync(process.argv[2], "utf8");
-process.exit(content.includes("__REGION_SPECS__") || content.includes("__AI_SUPPLEMENT_RULES__") || content.includes("__DIRECT_SUPPLEMENT_RULES__") ? 0 : 1);
+const placeholders = [
+  "__REGION_SPECS__", "__AI_SUPPLEMENT_RULES__", "__DIRECT_SUPPLEMENT_RULES__",
+  "__YOUTUBE_SUPPLEMENT_RULES__",
+  "__ONEDRIVE_SUPPLEMENT_RULES__",
+];
+process.exit(placeholders.some((placeholder) => content.includes(placeholder)) ? 0 : 1);
 NODE
 then
   fail "artifact still contains unresolved placeholder: $OUTPUT_DIR/clash-rules.js"
 fi
+
+node - "$OUTPUT_DIR/clash-rules.js" <<'NODE'
+const main = require(process.argv[2]);
+const builtins = new Set(["DIRECT", "REJECT", "REJECT-DROP", "PASS", "MATCH"]);
+const requiredGroups = ["📹 油管视频", "Ⓜ️ OneDrive"];
+
+const check = (label, config) => {
+  const result = main(config);
+  const groups = new Set((result["proxy-groups"] || []).map((group) => group.name));
+  const providers = new Set(Object.keys(result["rule-providers"] || {}));
+  const proxyNames = new Set((config.proxies || []).map((proxy) => proxy.name));
+  const validTargets = new Set([...groups, ...builtins, ...proxyNames]);
+  for (const group of requiredGroups) {
+    if (!groups.has(group)) throw new Error(`${label}: missing group ${group}`);
+  }
+  for (const group of result["proxy-groups"] || []) {
+    for (const candidate of group.proxies || []) {
+      if (!validTargets.has(candidate)) throw new Error(`${label}: dangling group candidate ${candidate}`);
+    }
+  }
+  for (const rule of result.rules || []) {
+    const fields = rule.split(",");
+    if (fields[0] === "RULE-SET" && !providers.has(fields[1])) throw new Error(`${label}: missing provider ${fields[1]}`);
+    let target = null;
+    if (fields[0] === "RULE-SET") target = fields[2];
+    else if (fields[0] === "GEOIP") target = fields[2];
+    else if (fields[0] === "MATCH") target = fields[1];
+    else if (fields.length >= 2) target = fields[fields.length - 1];
+    if (target && !validTargets.has(target)) throw new Error(`${label}: dangling rule target ${target}`);
+  }
+};
+
+check("inline", {
+  proxies: [{ name: "Public JP", type: "http", server: "example.invalid", port: 443 }],
+});
+check("provider", {
+  "proxy-providers": { PublicProvider: { type: "http", url: "https://example.invalid/public.yaml" } },
+});
+NODE
 
 if node - "$OUTPUT_DIR/sub-store.js" <<'NODE'
 const fs = require("fs");
@@ -149,7 +193,12 @@ if (!/^function main\(config\)/m.test(content)) {
   console.error("sub-store.js missing main(config) function");
   bad = true;
 }
-if (content.includes("__REGION_SPECS__") || content.includes("__AI_SUPPLEMENT_RULES__") || content.includes("__DIRECT_SUPPLEMENT_RULES__")) {
+const placeholders = [
+  "__REGION_SPECS__", "__AI_SUPPLEMENT_RULES__", "__DIRECT_SUPPLEMENT_RULES__",
+  "__YOUTUBE_SUPPLEMENT_RULES__",
+  "__ONEDRIVE_SUPPLEMENT_RULES__",
+];
+if (placeholders.some((placeholder) => content.includes(placeholder))) {
   console.error("sub-store.js still contains unresolved placeholder");
   bad = true;
 }
