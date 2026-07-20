@@ -12,7 +12,6 @@ const groupNames = {
   youtube: "📹 油管视频",
   apple: "🍎 Apple",
   microsoft: "Ⓜ️ Microsoft",
-  onedrive: "Ⓜ️ OneDrive",
   fallback: "🐟 漏网之鱼",
   ai: "🤖 AI",
   cloudflare: "☁️ Cloudflare",
@@ -38,7 +37,6 @@ const makeSupplementRules = (rules, group) => rules.map((rule) => `${rule},${gro
 
 const aiSupplementRules = makeSupplementRules(__AI_SUPPLEMENT_RULES__, groupNames.ai);
 const youtubeSupplementRules = makeSupplementRules(__YOUTUBE_SUPPLEMENT_RULES__, groupNames.youtube);
-const onedriveSupplementRules = makeSupplementRules(__ONEDRIVE_SUPPLEMENT_RULES__, groupNames.onedrive);
 const directSupplementRules = makeSupplementRules(__DIRECT_SUPPLEMENT_RULES__, "DIRECT");
 
 const buildRegionFilter = (groupKeys) => {
@@ -114,7 +112,6 @@ const buildRuleProviders = () => {
 const incrementalRules = [
   ...directSupplementRules,
   ...youtubeSupplementRules,
-  ...onedriveSupplementRules,
   ...aiSupplementRules,
   `RULE-SET,cloudflare,${groupNames.cloudflare}`,
 ];
@@ -239,11 +236,6 @@ function main(config) {
     }, ["DIRECT", groupNames.select, groupNames.auto, ...proxyNames]),
     {
       name: groupNames.youtube,
-      type: "select",
-      proxies: generalBusinessSources,
-    },
-    {
-      name: groupNames.onedrive,
       type: "select",
       proxies: generalBusinessSources,
     },

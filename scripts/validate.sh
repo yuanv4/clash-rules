@@ -128,7 +128,6 @@ const content = fs.readFileSync(process.argv[2], "utf8");
 const placeholders = [
   "__REGION_SPECS__", "__AI_SUPPLEMENT_RULES__", "__DIRECT_SUPPLEMENT_RULES__",
   "__YOUTUBE_SUPPLEMENT_RULES__",
-  "__ONEDRIVE_SUPPLEMENT_RULES__",
 ];
 process.exit(placeholders.some((placeholder) => content.includes(placeholder)) ? 0 : 1);
 NODE
@@ -139,7 +138,7 @@ fi
 node - "$OUTPUT_DIR/clash-rules.js" <<'NODE'
 const main = require(process.argv[2]);
 const builtins = new Set(["DIRECT", "REJECT", "REJECT-DROP", "PASS", "MATCH"]);
-const requiredGroups = ["📹 油管视频", "Ⓜ️ OneDrive"];
+const requiredGroups = ["📹 油管视频"];
 
 const check = (label, config) => {
   const result = main(config);
