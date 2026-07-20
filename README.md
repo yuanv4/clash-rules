@@ -22,15 +22,3 @@
 - YouTube 提供独立可手选策略组；Microsoft 仍作为通用兜底组
 
 维护文件位于 [rules/](rules/) 目录。
-
-### 脚本参数
-
-`clash-rules.js` 默认引用：
-
-- 社区规则：`https://ruleset.skk.moe/Clash`
-
-如需换成代理地址或镜像，可在脚本链接后追加参数：
-
-```text
-https://raw.githubusercontent.com/yuanv4/clash-rules/refs/heads/release/clash-rules.js#communityBase=https%3A%2F%2Fruleset-mirror.skk.moe%2FClash&localBase=https%3A%2F%2Fexample.com%2Flocal
-```
