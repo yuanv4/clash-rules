@@ -136,7 +136,8 @@ then
 fi
 
 node - "$OUTPUT_DIR/clash-rules.js" <<'NODE'
-const main = require(process.argv[2]);
+const path = require("path");
+const main = require(path.resolve(process.argv[2]));
 const builtins = new Set(["DIRECT", "REJECT", "REJECT-DROP", "PASS", "MATCH"]);
 const requiredGroups = ["📹 油管视频"];
 
