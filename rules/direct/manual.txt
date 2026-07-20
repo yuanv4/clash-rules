@@ -1,5 +1,19 @@
 # Direct supplement rules not covered by community direct.txt
 # One rule per line (without target). Rules will target DIRECT.
-# Tailscale control plane and MagicDNS
+#
+# Tailscale — 双重排除（TUN 层 + 规则层）
+# =========================================
+# TUN 层排除（需在 Clash 配置中补充）：
+#   tun:
+#     exclude-interface: [tailscale0]
+#     route-exclude-address:
+#       - 100.64.0.0/10
+#       - fd7a:115c:a1e0::/48
+#
+# 规则层直连（以下规则）：
 DOMAIN-SUFFIX,tailscale.com
 DOMAIN-SUFFIX,ts.net
+IP-CIDR,100.64.0.0/10
+IP-CIDR,fd7a:115c:a1e0::/48
+PROCESS-NAME,tailscale
+PROCESS-NAME,tailscaled
