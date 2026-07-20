@@ -82,9 +82,6 @@ done
 script_output_file="$OUTPUT_DIR/clash-rules.js"
 build_script_artifact "$SOURCE_FILE" "$REGION_DATA_FILE" "$script_output_file" "$AI_SUPPLEMENT_FILE" "$DIRECT_SUPPLEMENT_FILE" "$YOUTUBE_SUPPLEMENT_FILE" "$ONEDRIVE_SUPPLEMENT_FILE"
 
-substore_output_file="$OUTPUT_DIR/sub-store.js"
-build_substore_artifact "$script_output_file" "$substore_output_file"
-
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
@@ -94,6 +91,5 @@ json_metadata "$OUTPUT_DIR" "$build_time_utc" "$git_sha" "$SKIP_REMOTE_RULES"
 
 echo "Publish preparation completed:"
 echo " - $script_output_file"
-echo " - $substore_output_file"
 echo " - $OUTPUT_DIR/metadata.json"
 echo " - $OUTPUT_DIR/rules-metadata.json"
