@@ -196,13 +196,6 @@ function main(config) {
     return [...set];
   };
 
-  const TAILSCALE_PROCESS_RULES = [
-    "PROCESS-NAME,tailscale,DIRECT",
-    "PROCESS-NAME,tailscaled,DIRECT",
-    "PROCESS-NAME,tailscale.exe,DIRECT",
-    "PROCESS-NAME,tailscaled.exe,DIRECT",
-  ];
-
   config.tun = {
     ...(config.tun || {}),
     "stack": config.tun?.["stack"] ?? "system",
@@ -245,7 +238,7 @@ function main(config) {
   ];
 
   config["rule-providers"] = buildRuleProviders();
-  config.rules = [...TAILSCALE_PROCESS_RULES, ...incrementalRules, ...communityRules];
+  config.rules = [...incrementalRules, ...communityRules];
 
   return config;
 }
