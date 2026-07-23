@@ -188,6 +188,20 @@ function main(config) {
     }, candidates.length > 0 ? candidates : proxyNames);
   };
 
+  const TAILSCALE_CIDRS = ["100.64.0.0/10", "fd7a:115c:a1e0::/48"];
+
+  const mergedArray = (existing, items) => {
+    const set = new Set(Array.isArray(existing) ? existing : []);
+    for (const item of items) set.add(item);
+    return [...set];
+  };
+
+  config.tun = {
+    ...(config.tun || {}),
+    "exclude-interface": mergedArray(config.tun?.["exclude-interface"], ["tailscale0"]),
+    "route-exclude-address": mergedArray(config.tun?.["route-exclude-address"], TAILSCALE_CIDRS),
+  };
+
   config["proxy-groups"] = [
     withProxySources({
       name: groupNames.select,
