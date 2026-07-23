@@ -188,7 +188,7 @@ function main(config) {
     }, candidates.length > 0 ? candidates : proxyNames);
   };
 
-  const TAILSCALE_CIDRS = ["100.64.0.0/10", "fd7a:115c:a1e0::/48"];
+  const TAILSCALE_CIDRS = ["100.64.0.0/10", "fd7a:115c:a1e0::/48", "43.161.214.253/32"];
 
   const mergedArray = (existing, items) => {
     const set = new Set(Array.isArray(existing) ? existing : []);
