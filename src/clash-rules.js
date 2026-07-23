@@ -9,8 +9,6 @@ const groupNames = {
   select: "🚀 节点选择",
   auto: "♻️ 自动选择",
   streaming: "🎬 流媒体",
-  youtube: "📹 油管视频",
-  apple: "🍎 Apple",
   microsoft: "Ⓜ️ Microsoft",
   fallback: "🐟 漏网之鱼",
   ai: "🤖 AI",
@@ -24,19 +22,9 @@ const HEALTH_CHECK_URL = "https://cp.cloudflare.com/";
 // 地区筛选数据在构建阶段从独立文件注入，最终发布产物仍保持单文件。
 const regionSpecs = __REGION_SPECS__;
 
-// 为每个地区生成独立的故障转移组名称，如 "🇯🇵 日本"、"🇸🇬 新加坡"。
-const regionGroupNames = {};
-for (const key of Object.keys(regionSpecs)) {
-  const spec = regionSpecs[key];
-  const emoji = (spec.emoji || [])[0] || "";
-  const name = (spec.names || [])[0] || key.toUpperCase();
-  regionGroupNames[key] = `${emoji} ${name}`.trim();
-}
-
 const makeSupplementRules = (rules, group) => rules.map((rule) => `${rule},${group}`);
 
 const aiSupplementRules = makeSupplementRules(__AI_SUPPLEMENT_RULES__, groupNames.ai);
-const youtubeSupplementRules = makeSupplementRules(__YOUTUBE_SUPPLEMENT_RULES__, groupNames.youtube);
 const directSupplementRules = makeSupplementRules(__DIRECT_SUPPLEMENT_RULES__, "DIRECT");
 
 const buildRegionFilter = (groupKeys) => {
@@ -111,7 +99,6 @@ const buildRuleProviders = () => {
 
 const incrementalRules = [
   ...directSupplementRules,
-  ...youtubeSupplementRules,
   ...aiSupplementRules,
   `RULE-SET,cloudflare,${groupNames.cloudflare}`,
 ];
@@ -125,8 +112,6 @@ const communityRules = [
   `RULE-SET,apple_intelligence_non_ip,${groupNames.ai}`,
   `RULE-SET,stream_non_ip,${groupNames.streaming}`,
   `RULE-SET,stream_ip,${groupNames.streaming},no-resolve`,
-  `RULE-SET,apple_cdn,${groupNames.apple}`,
-  `RULE-SET,apple_services,${groupNames.apple}`,
   `RULE-SET,microsoft_cdn,${groupNames.microsoft}`,
   `RULE-SET,microsoft_services,${groupNames.microsoft}`,
   "RULE-SET,domestic_non_ip,DIRECT",
@@ -183,13 +168,6 @@ function main(config) {
     ...proxyNames,
   ]);
 
-  const generalBusinessSources = compactUnique([
-    "DIRECT",
-    groupNames.select,
-    groupNames.auto,
-  ]);
-  const aiSources = ["jp", "sg", "us"].map((key) => regionGroupNames[key]).filter(Boolean);
-
   const withProxySources = (group, fallbackProxies = proxyNames) => ({
     ...group,
     ...(hasLocalProxies && { proxies: compactUnique(fallbackProxies) }),
@@ -227,30 +205,14 @@ function main(config) {
       type: "select",
     }, selectableProxies),
     withProxySources({
-      name: groupNames.apple,
-      type: "select",
-    }, ["DIRECT", groupNames.select, groupNames.auto, ...proxyNames]),
-    withProxySources({
       name: groupNames.microsoft,
       type: "select",
     }, ["DIRECT", groupNames.select, groupNames.auto, ...proxyNames]),
-    {
-      name: groupNames.youtube,
-      type: "select",
-      proxies: generalBusinessSources,
-    },
     withProxySources({
       name: groupNames.cloudflare,
       type: "select",
     }, ["DIRECT", groupNames.select, groupNames.auto, ...proxyNames]),
-    ...Object.keys(regionSpecs).map((key) =>
-      makeGroup(regionGroupNames[key], regionFilters[key])
-    ),
-    {
-      name: groupNames.ai,
-      type: "select",
-      proxies: aiSources,
-    },
+    makeGroup(groupNames.ai, regionFilters["jp"]),
     withProxySources({
       name: groupNames.fallback,
       type: "select",
