@@ -166,7 +166,8 @@ const validCidr = (value, expectedVersion = null) => {
 };
 
 const isIpProvider = (name, provider) =>
-  /(?:^|_)ip$/.test(name) || Boolean(provider && /\/ip\//.test(provider.url || ""));
+  (name.endsWith("_ip") && !name.endsWith("_non_ip")) ||
+  Boolean(provider && /\/ip\//.test(provider.url || ""));
 
 const validateRoutes = (label, result) => {
   const groups = new Set((result["proxy-groups"] || []).map((group) => group.name));
