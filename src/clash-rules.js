@@ -196,8 +196,17 @@ function main(config) {
     return [...set];
   };
 
+  const TAILSCALE_PROCESS_RULES = [
+    "PROCESS-NAME,tailscale,DIRECT",
+    "PROCESS-NAME,tailscaled,DIRECT",
+    "PROCESS-NAME,tailscale.exe,DIRECT",
+    "PROCESS-NAME,tailscaled.exe,DIRECT",
+  ];
+
   config.tun = {
     ...(config.tun || {}),
+    "stack": config.tun?.["stack"] ?? "system",
+    "strict-route": config.tun?.["strict-route"] ?? false,
     "auto-route": config.tun?.["auto-route"] ?? true,
     "auto-detect-interface": config.tun?.["auto-detect-interface"] ?? true,
     "exclude-interface": mergedArray(config.tun?.["exclude-interface"], ["tailscale0"]),
@@ -236,7 +245,7 @@ function main(config) {
   ];
 
   config["rule-providers"] = buildRuleProviders();
-  config.rules = [...incrementalRules, ...communityRules];
+  config.rules = [...TAILSCALE_PROCESS_RULES, ...incrementalRules, ...communityRules];
 
   return config;
 }
