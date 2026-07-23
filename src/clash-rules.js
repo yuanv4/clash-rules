@@ -22,11 +22,6 @@ const HEALTH_CHECK_URL = "https://cp.cloudflare.com/";
 // 地区筛选数据在构建阶段从独立文件注入，最终发布产物仍保持单文件。
 const regionSpecs = __REGION_SPECS__;
 
-const makeSupplementRules = (rules, group) => rules.map((rule) => `${rule},${group}`);
-
-const aiSupplementRules = makeSupplementRules(__AI_SUPPLEMENT_RULES__, groupNames.ai);
-const directSupplementRules = makeSupplementRules(__DIRECT_SUPPLEMENT_RULES__, "DIRECT");
-
 const buildRegionFilter = (groupKeys) => {
   const pattern = groupKeys.flatMap((key) => {
     const spec = regionSpecs[key] || {};
@@ -96,30 +91,6 @@ const buildRuleProviders = () => {
     domestic_ip: makeSukkaProvider("domestic_ip", "ip", "domestic.txt"),
   };
 };
-
-const incrementalRules = [
-  ...directSupplementRules,
-  ...aiSupplementRules,
-  `RULE-SET,cloudflare,${groupNames.cloudflare}`,
-];
-
-const communityRules = [
-  "RULE-SET,lan_non_ip,DIRECT",
-  "RULE-SET,lan_ip,DIRECT,no-resolve",
-  "RULE-SET,reject_non_ip,REJECT",
-  "RULE-SET,reject_ip,REJECT,no-resolve",
-  `RULE-SET,ai_non_ip,${groupNames.ai}`,
-  `RULE-SET,apple_intelligence_non_ip,${groupNames.ai}`,
-  `RULE-SET,stream_non_ip,${groupNames.streaming}`,
-  `RULE-SET,stream_ip,${groupNames.streaming},no-resolve`,
-  `RULE-SET,microsoft_cdn,${groupNames.microsoft}`,
-  `RULE-SET,microsoft_services,${groupNames.microsoft}`,
-  "RULE-SET,domestic_non_ip,DIRECT",
-  "RULE-SET,direct_non_ip,DIRECT",
-  "RULE-SET,domestic_ip,DIRECT,no-resolve",
-  "GEOIP,CN,DIRECT",
-  `MATCH,${groupNames.fallback}`,
-];
 
 const compactUnique = (items) => [...new Set(items.filter(Boolean))];
 
@@ -238,7 +209,7 @@ function main(config) {
   ];
 
   config["rule-providers"] = buildRuleProviders();
-  config.rules = [...incrementalRules, ...communityRules];
+  config.rules = __ROUTING_RULES__;
 
   return config;
 }

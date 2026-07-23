@@ -1,0 +1,36 @@
+# Complete Mihomo routing payload.
+# Physical order is matching priority; keep this order when editing.
+# Every non-comment line must be a complete final Mihomo rule, including its target.
+DOMAIN-SUFFIX,tailscale.com,DIRECT
+DOMAIN-SUFFIX,ts.net,DIRECT
+PROCESS-NAME,tailscale,DIRECT
+PROCESS-NAME,tailscaled,DIRECT
+PROCESS-NAME,tailscale.exe,DIRECT
+PROCESS-NAME,tailscaled.exe,DIRECT
+DOMAIN-SUFFIX,chatgpt.com,🤖 AI
+DOMAIN-SUFFIX,oaiusercontent.com,🤖 AI
+DOMAIN-SUFFIX,claude.ai,🤖 AI
+DOMAIN-SUFFIX,claudeusercontent.com,🤖 AI
+DOMAIN-SUFFIX,claudemcpclient.com,🤖 AI
+DOMAIN-SUFFIX,code.claude.com,🤖 AI
+DOMAIN-SUFFIX,platform.claude.com,🤖 AI
+DOMAIN-SUFFIX,anthropic.com,🤖 AI
+DOMAIN-SUFFIX,gemini.google.com,🤖 AI
+DOMAIN-SUFFIX,ai.google.dev,🤖 AI
+DOMAIN-SUFFIX,generativelanguage.googleapis.com,🤖 AI
+RULE-SET,cloudflare,☁️ Cloudflare
+RULE-SET,lan_non_ip,DIRECT
+RULE-SET,lan_ip,DIRECT,no-resolve
+RULE-SET,reject_non_ip,REJECT
+RULE-SET,reject_ip,REJECT,no-resolve
+RULE-SET,ai_non_ip,🤖 AI
+RULE-SET,apple_intelligence_non_ip,🤖 AI
+RULE-SET,stream_non_ip,🎬 流媒体
+RULE-SET,stream_ip,🎬 流媒体,no-resolve
+RULE-SET,microsoft_cdn,Ⓜ️ Microsoft
+RULE-SET,microsoft_services,Ⓜ️ Microsoft
+RULE-SET,domestic_non_ip,DIRECT
+RULE-SET,direct_non_ip,DIRECT
+RULE-SET,domestic_ip,DIRECT,no-resolve
+GEOIP,CN,DIRECT
+MATCH,🐟 漏网之鱼
