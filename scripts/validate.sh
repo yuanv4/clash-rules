@@ -127,7 +127,6 @@ const fs = require("fs");
 const content = fs.readFileSync(process.argv[2], "utf8");
 const placeholders = [
   "__REGION_SPECS__", "__AI_SUPPLEMENT_RULES__", "__DIRECT_SUPPLEMENT_RULES__",
-  "__YOUTUBE_SUPPLEMENT_RULES__",
 ];
 process.exit(placeholders.some((placeholder) => content.includes(placeholder)) ? 0 : 1);
 NODE

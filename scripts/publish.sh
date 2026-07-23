@@ -5,7 +5,6 @@ SOURCE_FILE="src/clash-rules.js"
 REGION_DATA_FILE="src/data/regions.js"
 AI_SUPPLEMENT_FILE="rules/ai/manual.txt"
 DIRECT_SUPPLEMENT_FILE="rules/direct/manual.txt"
-YOUTUBE_SUPPLEMENT_FILE="rules/youtube/manual.txt"
 OUTPUT_DIR="dist"
 SKIP_REMOTE_RULES=0
 
@@ -79,7 +78,7 @@ for artifact in "${obsolete_artifacts[@]}"; do
 done
 
 script_output_file="$OUTPUT_DIR/clash-rules.js"
-build_script_artifact "$SOURCE_FILE" "$REGION_DATA_FILE" "$script_output_file" "$AI_SUPPLEMENT_FILE" "$DIRECT_SUPPLEMENT_FILE" "$YOUTUBE_SUPPLEMENT_FILE"
+build_script_artifact "$SOURCE_FILE" "$REGION_DATA_FILE" "$script_output_file" "$AI_SUPPLEMENT_FILE" "$DIRECT_SUPPLEMENT_FILE"
 
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
