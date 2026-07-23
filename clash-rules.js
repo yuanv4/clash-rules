@@ -1,0 +1,235 @@
+// ===========================
+// VPN规则覆写脚本 V4.0
+// ===========================
+
+// ===========================
+// 第一部分：分流组与节点筛选
+// ===========================
+const groupNames = {
+  select: "🚀 节点选择",
+  auto: "♻️ 自动选择",
+  streaming: "🎬 流媒体",
+  microsoft: "Ⓜ️ Microsoft",
+  fallback: "🐟 漏网之鱼",
+  ai: "🤖 AI",
+  cloudflare: "☁️ Cloudflare",
+};
+
+const DEFAULT_COMMUNITY_RULE_BASE = "https://ruleset.skk.moe/Clash";
+const CLOUDFLARE_RULE_URL = "https://rules.kr328.app/cloudflare.yaml";
+const HEALTH_CHECK_URL = "https://cp.cloudflare.com/";
+
+// 地区筛选数据在构建阶段从独立文件注入，最终发布产物仍保持单文件。
+const regionSpecs = ({
+  jp: {
+    codes: ["JP", "JPN"],
+    airports: ["TYO", "NRT", "HND", "KIX"],
+    names: ["日本", "Japan"],
+    cities: ["东京", "大阪", "Tokyo", "Osaka"],
+    emoji: ["🇯🇵"],
+  },
+});
+
+const buildRegionFilter = (groupKeys) => {
+  const pattern = groupKeys.flatMap((key) => {
+    const spec = regionSpecs[key] || {};
+    const bounded = [...(spec.codes || []), ...(spec.airports || [])].map(
+      (code) => `(?:^|[\\s\\-_|\\[\\]().])${code}(?:$|[\\s\\-_|\\[\\]().])`
+    );
+    return [...bounded, ...(spec.names || []), ...(spec.cities || []), ...(spec.aliases || []), ...(spec.emoji || [])];
+  }).join("|");
+  return `(?i)^.*(?:${pattern}).*$`;
+};
+
+// 为每个地区生成独立的故障转移筛选器。
+const regionFilters = {};
+for (const key of Object.keys(regionSpecs)) {
+  regionFilters[key] = buildRegionFilter([key]);
+}
+
+// ===========================
+// 第二部分：规则集提供者
+// ===========================
+const getScriptArguments = () =>
+  typeof $arguments === "object" && $arguments ? $arguments : {};
+
+const trimTrailingSlash = (value) => `${value || ""}`.replace(/\/+$/, "");
+
+const getProviderUrl = (base, file) => `${trimTrailingSlash(base)}/${file}`;
+const getSukkaProviderUrl = (base, kind, file) => getProviderUrl(base, `${kind}/${file}`);
+
+const makeHttpProvider = (name, url, behavior = "classical", format = "yaml") => ({
+  type: "http",
+  behavior,
+  format,
+  interval: 86400,
+  url,
+  path: `./ruleset/${name}.${format === "text" ? "txt" : "yaml"}`,
+});
+
+const makeSukkaProvider = (name, kind, file, behavior = "classical") => {
+  const args = getScriptArguments();
+  return makeHttpProvider(
+    `community/${name}`,
+    getSukkaProviderUrl(args.communityBase || DEFAULT_COMMUNITY_RULE_BASE, kind, file),
+    behavior,
+    "text"
+  );
+};
+
+const buildRuleProviders = () => {
+  const args = getScriptArguments();
+
+  return {
+    cloudflare: makeHttpProvider("community/cloudflare", CLOUDFLARE_RULE_URL),
+    lan_non_ip: makeSukkaProvider("lan_non_ip", "non_ip", "lan.txt"),
+    lan_ip: makeSukkaProvider("lan_ip", "ip", "lan.txt"),
+    reject_non_ip: makeSukkaProvider("reject_non_ip", "non_ip", "reject.txt"),
+    reject_ip: makeSukkaProvider("reject_ip", "ip", "reject.txt"),
+    ai_non_ip: makeSukkaProvider("ai_non_ip", "non_ip", "ai.txt"),
+    apple_intelligence_non_ip: makeSukkaProvider("apple_intelligence_non_ip", "non_ip", "apple_intelligence.txt"),
+    stream_non_ip: makeSukkaProvider("stream_non_ip", "non_ip", "stream.txt"),
+    stream_ip: makeSukkaProvider("stream_ip", "ip", "stream.txt"),
+    apple_cdn: makeSukkaProvider("apple_cdn", "non_ip", "apple_cdn.txt"),
+    apple_services: makeSukkaProvider("apple_services", "non_ip", "apple_services.txt"),
+    microsoft_cdn: makeSukkaProvider("microsoft_cdn", "non_ip", "microsoft_cdn.txt"),
+    microsoft_services: makeSukkaProvider("microsoft_services", "non_ip", "microsoft.txt"),
+    domestic_non_ip: makeSukkaProvider("domestic_non_ip", "non_ip", "domestic.txt"),
+    direct_non_ip: makeSukkaProvider("direct_non_ip", "non_ip", "direct.txt"),
+    domestic_ip: makeSukkaProvider("domestic_ip", "ip", "domestic.txt"),
+  };
+};
+
+const compactUnique = (items) => [...new Set(items.filter(Boolean))];
+
+const INFO_PROXY_KEYWORDS = [
+  "套餐到期", "套餐重置", "订阅获取", "订阅到期", "订阅链接",
+  "剩余流量", "流量重置", "流量购买", "流量剩余", "官网地址",
+  "网址", "到期时间", "重置日期", "获取时间", "剩余天数",
+  "Expire", "Traffic", "Reset", "Subscribe", "Website",
+];
+const isInfoProxy = (p) => {
+  if (!p || !p.name) return true;
+  const name = p.name.toLowerCase();
+  return INFO_PROXY_KEYWORDS.some((kw) => name.includes(kw.toLowerCase()));
+};
+
+// ===========================
+// 第三部分：主函数
+// ===========================
+function main(config) {
+  if (!config) throw new Error("配置对象为空");
+
+  const proxyCount = (config.proxies && config.proxies.length) || 0;
+  const proxyProviderCount = config["proxy-providers"]
+    ? Object.keys(config["proxy-providers"]).length
+    : 0;
+
+  if (proxyCount === 0 && proxyProviderCount === 0) {
+    throw new Error("配置文件中未找到任何代理节点");
+  }
+
+  if (Array.isArray(config.proxies)) {
+    config.proxies = config.proxies.filter((p) => !isInfoProxy(p));
+  }
+
+  const proxyNames = Array.isArray(config.proxies)
+    ? config.proxies.map((p) => p.name)
+    : [];
+  const providerNames = config["proxy-providers"]
+    ? Object.keys(config["proxy-providers"])
+    : [];
+  const hasLocalProxies = proxyNames.length > 0;
+  const hasProxyProviders = providerNames.length > 0;
+  const selectableProxies = compactUnique([
+    groupNames.auto,
+    "DIRECT",
+    ...proxyNames,
+  ]);
+
+  const withProxySources = (group, fallbackProxies = proxyNames) => ({
+    ...group,
+    ...(hasLocalProxies && { proxies: compactUnique(fallbackProxies) }),
+    ...(hasProxyProviders && { use: providerNames }),
+  });
+
+  const makeGroup = (name, filter) => {
+    const matcher = new RegExp(filter.replace(/^\(\?i\)/, ""), "i");
+    const candidates = compactUnique(proxyNames.filter((n) => matcher.test(n)));
+    return withProxySources({
+      name,
+      type: "fallback",
+      hidden: false,
+      url: HEALTH_CHECK_URL,
+      interval: 300,
+      "expected-status": 204,
+      filter,
+    }, candidates.length > 0 ? candidates : proxyNames);
+  };
+
+  const tunDefaults = ({
+  stack: "system",
+  "strict-route": false,
+  "auto-route": true,
+  "auto-detect-interface": true,
+  "exclude-interface": ["tailscale0"],
+  "route-exclude-address": ["100.64.0.0/10", "fd7a:115c:a1e0::/48", "43.161.214.253/32"],
+});
+
+  const mergedArray = (existing, items) => {
+    const set = new Set(Array.isArray(existing) ? existing : []);
+    for (const item of items) set.add(item);
+    return [...set];
+  };
+
+  config.tun = {
+    ...(config.tun || {}),
+    "stack": config.tun?.["stack"] ?? tunDefaults.stack,
+    "strict-route": config.tun?.["strict-route"] ?? tunDefaults["strict-route"],
+    "auto-route": config.tun?.["auto-route"] ?? tunDefaults["auto-route"],
+    "auto-detect-interface": config.tun?.["auto-detect-interface"] ?? tunDefaults["auto-detect-interface"],
+    "exclude-interface": mergedArray(config.tun?.["exclude-interface"], tunDefaults["exclude-interface"]),
+    "route-exclude-address": mergedArray(config.tun?.["route-exclude-address"], tunDefaults["route-exclude-address"]),
+  };
+
+  config["proxy-groups"] = [
+    withProxySources({
+      name: groupNames.select,
+      type: "select",
+    }, selectableProxies),
+    withProxySources({
+      name: groupNames.auto,
+      type: "url-test",
+      url: HEALTH_CHECK_URL,
+      interval: 300,
+      tolerance: 50,
+    }),
+    withProxySources({
+      name: groupNames.streaming,
+      type: "select",
+    }, selectableProxies),
+    withProxySources({
+      name: groupNames.microsoft,
+      type: "select",
+    }, ["DIRECT", groupNames.select, groupNames.auto, ...proxyNames]),
+    withProxySources({
+      name: groupNames.cloudflare,
+      type: "select",
+    }, ["DIRECT", groupNames.select, groupNames.auto, ...proxyNames]),
+    makeGroup(groupNames.ai, regionFilters["jp"]),
+    withProxySources({
+      name: groupNames.fallback,
+      type: "select",
+    }, selectableProxies),
+  ];
+
+  config["rule-providers"] = buildRuleProviders();
+  config.rules = ["DOMAIN-SUFFIX,tailscale.com,DIRECT","DOMAIN-SUFFIX,ts.net,DIRECT","IP-CIDR,100.64.0.0/10,DIRECT,no-resolve","IP-CIDR6,fd7a:115c:a1e0::/48,DIRECT,no-resolve","PROCESS-NAME,tailscale,DIRECT","PROCESS-NAME,tailscaled,DIRECT","PROCESS-NAME,tailscale.exe,DIRECT","PROCESS-NAME,tailscaled.exe,DIRECT","DOMAIN-SUFFIX,chatgpt.com,🤖 AI","DOMAIN-SUFFIX,oaiusercontent.com,🤖 AI","DOMAIN-SUFFIX,claude.ai,🤖 AI","DOMAIN-SUFFIX,claudeusercontent.com,🤖 AI","DOMAIN-SUFFIX,claudemcpclient.com,🤖 AI","DOMAIN-SUFFIX,code.claude.com,🤖 AI","DOMAIN-SUFFIX,platform.claude.com,🤖 AI","DOMAIN-SUFFIX,anthropic.com,🤖 AI","DOMAIN-SUFFIX,gemini.google.com,🤖 AI","DOMAIN-SUFFIX,ai.google.dev,🤖 AI","DOMAIN-SUFFIX,generativelanguage.googleapis.com,🤖 AI","RULE-SET,cloudflare,☁️ Cloudflare","RULE-SET,lan_non_ip,DIRECT","RULE-SET,lan_ip,DIRECT,no-resolve","RULE-SET,reject_non_ip,REJECT","RULE-SET,reject_ip,REJECT,no-resolve","RULE-SET,ai_non_ip,🤖 AI","RULE-SET,apple_intelligence_non_ip,🤖 AI","RULE-SET,stream_non_ip,🎬 流媒体","RULE-SET,stream_ip,🎬 流媒体,no-resolve","RULE-SET,microsoft_cdn,Ⓜ️ Microsoft","RULE-SET,microsoft_services,Ⓜ️ Microsoft","RULE-SET,domestic_non_ip,DIRECT","RULE-SET,direct_non_ip,DIRECT","RULE-SET,domestic_ip,DIRECT,no-resolve","GEOIP,CN,DIRECT","MATCH,🐟 漏网之鱼"];
+
+  return config;
+}
+
+// Node.js 环境支持
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = main;
+}
