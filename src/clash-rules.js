@@ -198,6 +198,8 @@ function main(config) {
 
   config.tun = {
     ...(config.tun || {}),
+    "auto-route": config.tun?.["auto-route"] ?? true,
+    "auto-detect-interface": config.tun?.["auto-detect-interface"] ?? true,
     "exclude-interface": mergedArray(config.tun?.["exclude-interface"], ["tailscale0"]),
     "route-exclude-address": mergedArray(config.tun?.["route-exclude-address"], TAILSCALE_CIDRS),
   };
