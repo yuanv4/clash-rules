@@ -80,8 +80,7 @@ fi
 [[ -f "scripts/publish.sh" ]] || fail "required script missing: scripts/publish.sh"
 [[ -f "scripts/lib/rules.sh" ]] || fail "required script missing: scripts/lib/rules.sh"
 [[ -f "scripts/lib/artifacts.sh" ]] || fail "required script missing: scripts/lib/artifacts.sh"
-[[ -f "rules/ai/manual.txt" ]] || fail "required rule file missing: rules/ai/manual.txt"
-[[ -f "rules/direct/manual.txt" ]] || fail "required rule file missing: rules/direct/manual.txt"
+[[ -f "rules/routes.txt" ]] || fail "required rule file missing: rules/routes.txt"
 
 command -v node >/dev/null 2>&1 || fail "node command not found"
 
@@ -128,7 +127,7 @@ if node - "$OUTPUT_DIR/clash-rules.js" <<'NODE'
 const fs = require("fs");
 const content = fs.readFileSync(process.argv[2], "utf8");
 const placeholders = [
-  "__REGION_SPECS__", "__AI_SUPPLEMENT_RULES__", "__DIRECT_SUPPLEMENT_RULES__",
+  "__REGION_SPECS__", "__ROUTING_RULES__",
   "__TUN_CONFIG__",
 ];
 process.exit(placeholders.some((placeholder) => content.includes(placeholder)) ? 0 : 1);
@@ -137,36 +136,106 @@ then
   fail "artifact still contains unresolved placeholder: $OUTPUT_DIR/clash-rules.js"
 fi
 
-node - "$OUTPUT_DIR/clash-rules.js" <<'NODE'
+node - "$OUTPUT_DIR/clash-rules.js" "rules/routes.txt" <<'NODE'
+const fs = require("fs");
+const net = require("net");
 const path = require("path");
 const main = require(path.resolve(process.argv[2]));
-const builtins = new Set(["DIRECT", "REJECT", "REJECT-DROP", "PASS", "MATCH"]);
-const requiredGroups = [];
+const routesPath = process.argv[3];
+const builtins = new Set(["DIRECT", "REJECT", "REJECT-DROP", "PASS"]);
+const allowedTypes = new Set([
+  "DOMAIN", "DOMAIN-SUFFIX", "DOMAIN-KEYWORD", "PROCESS-NAME",
+  "IP-CIDR", "IP-CIDR6", "RULE-SET", "GEOIP", "MATCH",
+]);
+
+const readRuleFile = (filePath) => fs.readFileSync(filePath, "utf8")
+  .split(/\r?\n/)
+  .map((line) => line.trim())
+  .filter((line) => line && !line.startsWith("#") && !line.startsWith(";"));
+
+const routes = readRuleFile(routesPath);
+
+const validCidr = (value, expectedVersion = null) => {
+  const parts = value.split("/");
+  if (parts.length !== 2 || !/^(0|[1-9][0-9]*)$/.test(parts[1])) return false;
+  const version = net.isIP(parts[0]);
+  if (version === 0 || (expectedVersion !== null && version !== expectedVersion)) return false;
+  const prefix = Number(parts[1]);
+  const width = version === 4 ? 32 : 128;
+  return prefix >= 0 && prefix <= width;
+};
+
+const isIpProvider = (name, provider) =>
+  /(?:^|_)ip$/.test(name) || Boolean(provider && /\/ip\//.test(provider.url || ""));
+
+const validateRoutes = (label, result) => {
+  const groups = new Set((result["proxy-groups"] || []).map((group) => group.name));
+  const providers = result["rule-providers"] || {};
+  const providerNames = new Set(Object.keys(providers));
+  const proxyNames = new Set((result.proxies || []).map((proxy) => proxy.name));
+  const validTargets = new Set([...groups, ...builtins, ...proxyNames]);
+  let matchCount = 0;
+
+  for (let index = 0; index < routes.length; index += 1) {
+    const rule = routes[index];
+    const fields = rule.split(",");
+    const type = fields[0];
+    if (!allowedTypes.has(type)) throw new Error(`${label}: unsupported route type ${type}`);
+    if (fields.some((field) => field === "")) throw new Error(`${label}: empty route field at ${index + 1}`);
+
+    let target;
+    if (["DOMAIN", "DOMAIN-SUFFIX", "DOMAIN-KEYWORD", "PROCESS-NAME"].includes(type)) {
+      if (fields.length !== 3) throw new Error(`${label}: ${type} requires 3 fields`);
+      target = fields[2];
+    } else if (type === "IP-CIDR" || type === "IP-CIDR6") {
+      if (fields.length !== 4 || fields[3] !== "no-resolve") {
+        throw new Error(`${label}: ${type} must end with no-resolve`);
+      }
+      if (!validCidr(fields[1], type === "IP-CIDR6" ? 6 : null)) {
+        const family = type === "IP-CIDR6" ? "IPv6" : "IPv4 or IPv6";
+        throw new Error(`${label}: invalid ${type} ${family} CIDR ${fields[1]}`);
+      }
+      target = fields[2];
+    } else if (type === "RULE-SET") {
+      if (!providerNames.has(fields[1])) throw new Error(`${label}: missing provider ${fields[1]}`);
+      const ipProvider = isIpProvider(fields[1], providers[fields[1]]);
+      if ((ipProvider && (fields.length !== 4 || fields[3] !== "no-resolve")) ||
+          (!ipProvider && fields.length !== 3)) {
+        throw new Error(`${label}: invalid RULE-SET options for ${fields[1]}`);
+      }
+      target = fields[2];
+    } else if (type === "GEOIP") {
+      if (fields.length !== 3 && (fields.length !== 4 || fields[3] !== "no-resolve")) {
+        throw new Error(`${label}: GEOIP requires target and optional no-resolve`);
+      }
+      target = fields[2];
+    } else {
+      if (fields.length !== 2) throw new Error(`${label}: MATCH requires 2 fields`);
+      target = fields[1];
+      matchCount += 1;
+      if (index !== routes.length - 1) throw new Error(`${label}: MATCH must be last`);
+    }
+
+    if (!validTargets.has(target)) throw new Error(`${label}: dangling route target ${target}`);
+  }
+
+  if (matchCount !== 1) throw new Error(`${label}: expected exactly one MATCH, got ${matchCount}`);
+  if (JSON.stringify(result.rules || []) !== JSON.stringify(routes)) {
+    throw new Error(`${label}: generated rules differ from routes.txt or changed order`);
+  }
+};
 
 const check = (label, config) => {
   const result = main(config);
   const groups = new Set((result["proxy-groups"] || []).map((group) => group.name));
-  const providers = new Set(Object.keys(result["rule-providers"] || {}));
   const proxyNames = new Set((config.proxies || []).map((proxy) => proxy.name));
   const validTargets = new Set([...groups, ...builtins, ...proxyNames]);
-  for (const group of requiredGroups) {
-    if (!groups.has(group)) throw new Error(`${label}: missing group ${group}`);
-  }
   for (const group of result["proxy-groups"] || []) {
     for (const candidate of group.proxies || []) {
       if (!validTargets.has(candidate)) throw new Error(`${label}: dangling group candidate ${candidate}`);
     }
   }
-  for (const rule of result.rules || []) {
-    const fields = rule.split(",");
-    if (fields[0] === "RULE-SET" && !providers.has(fields[1])) throw new Error(`${label}: missing provider ${fields[1]}`);
-    let target = null;
-    if (fields[0] === "RULE-SET") target = fields[2];
-    else if (fields[0] === "GEOIP") target = fields[2];
-    else if (fields[0] === "MATCH") target = fields[1];
-    else if (fields.length >= 2) target = fields[fields.length - 1];
-    if (target && !validTargets.has(target)) throw new Error(`${label}: dangling rule target ${target}`);
-  }
+  validateRoutes(label, result);
 };
 
 check("inline", {
