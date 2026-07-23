@@ -10,3 +10,5 @@ IP-CIDR,100.64.0.0/10
 IP-CIDR,fd7a:115c:a1e0::/48
 PROCESS-NAME,tailscale
 PROCESS-NAME,tailscaled
+PROCESS-NAME,tailscale.exe
+PROCESS-NAME,tailscaled.exe
