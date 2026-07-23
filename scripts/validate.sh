@@ -76,6 +76,7 @@ fi
 
 [[ -f "src/clash-rules.js" ]] || fail "required source file missing: src/clash-rules.js"
 [[ -f "src/data/regions.js" ]] || fail "required source file missing: src/data/regions.js"
+[[ -f "src/data/tun.js" ]] || fail "required source file missing: src/data/tun.js"
 [[ -f "scripts/publish.sh" ]] || fail "required script missing: scripts/publish.sh"
 [[ -f "scripts/lib/rules.sh" ]] || fail "required script missing: scripts/lib/rules.sh"
 [[ -f "scripts/lib/artifacts.sh" ]] || fail "required script missing: scripts/lib/artifacts.sh"
@@ -86,6 +87,7 @@ command -v node >/dev/null 2>&1 || fail "node command not found"
 
 node --check "src/clash-rules.js" >/dev/null
 node --check "src/data/regions.js" >/dev/null
+node --check "src/data/tun.js" >/dev/null
 bash -n "scripts/publish.sh" "scripts/lib/rules.sh" "scripts/lib/artifacts.sh" >/dev/null
 
 if [[ -z "$OUTPUT_DIR" ]]; then
@@ -127,6 +129,7 @@ const fs = require("fs");
 const content = fs.readFileSync(process.argv[2], "utf8");
 const placeholders = [
   "__REGION_SPECS__", "__AI_SUPPLEMENT_RULES__", "__DIRECT_SUPPLEMENT_RULES__",
+  "__TUN_CONFIG__",
 ];
 process.exit(placeholders.some((placeholder) => content.includes(placeholder)) ? 0 : 1);
 NODE
