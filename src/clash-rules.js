@@ -188,7 +188,7 @@ function main(config) {
     }, candidates.length > 0 ? candidates : proxyNames);
   };
 
-  const TAILSCALE_CIDRS = ["100.64.0.0/10", "fd7a:115c:a1e0::/48", "43.161.214.253/32"];
+  const tunDefaults = __TUN_CONFIG__;
 
   const mergedArray = (existing, items) => {
     const set = new Set(Array.isArray(existing) ? existing : []);
@@ -198,12 +198,12 @@ function main(config) {
 
   config.tun = {
     ...(config.tun || {}),
-    "stack": config.tun?.["stack"] ?? "system",
-    "strict-route": config.tun?.["strict-route"] ?? false,
-    "auto-route": config.tun?.["auto-route"] ?? true,
-    "auto-detect-interface": config.tun?.["auto-detect-interface"] ?? true,
-    "exclude-interface": mergedArray(config.tun?.["exclude-interface"], ["tailscale0"]),
-    "route-exclude-address": mergedArray(config.tun?.["route-exclude-address"], TAILSCALE_CIDRS),
+    "stack": config.tun?.["stack"] ?? tunDefaults.stack,
+    "strict-route": config.tun?.["strict-route"] ?? tunDefaults["strict-route"],
+    "auto-route": config.tun?.["auto-route"] ?? tunDefaults["auto-route"],
+    "auto-detect-interface": config.tun?.["auto-detect-interface"] ?? tunDefaults["auto-detect-interface"],
+    "exclude-interface": mergedArray(config.tun?.["exclude-interface"], tunDefaults["exclude-interface"]),
+    "route-exclude-address": mergedArray(config.tun?.["route-exclude-address"], tunDefaults["route-exclude-address"]),
   };
 
   config["proxy-groups"] = [
