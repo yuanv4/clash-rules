@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 
 import { promises as fs } from "node:fs";
 import http from "node:http";
@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(SCRIPT_DIR, "..");
 const SOURCE_CONFIG_PATH = path.join(ROOT_DIR, "sources.json");
-const DEFAULT_OUTPUT_DIR = path.join(ROOT_DIR, "dist", "rules");
+const DEFAULT_OUTPUT_DIR = path.join(ROOT_DIR, "dist");
 const FETCH_TIMEOUT_MS = 30_000;
 const FETCH_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 300;
@@ -17,8 +17,8 @@ const MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
 
 const usage = () => {
   process.stdout.write(
-    "Usage: node scripts/build.mjs [--output-dir DIR]\n\n" +
-      "Build rule-provider YAML files. DIR defaults to dist/rules.\n"
+    "Usage: bun scripts/build.mjs [--output-dir DIR]\n\n" +
+      "Build the complete publication directory. DIR defaults to dist.\n"
   );
 };
 
@@ -68,6 +68,23 @@ const loadConfiguration = async () => {
   if (configuration.source_repository !== "boweic/ruleset.bowei.co") {
     throw new Error("sources.json must identify boweic/ruleset.bowei.co as the source repository");
   }
+  assertSafeText(configuration.release_base_url, "release_base_url");
+  assertSafeText(configuration.proxy_group, "proxy_group");
+
+  let releaseBaseUrl;
+  try {
+    releaseBaseUrl = new URL(configuration.release_base_url);
+  } catch (error) {
+    throw new Error(`Invalid release_base_url: ${error.message}`);
+  }
+  if (
+    releaseBaseUrl.protocol !== "https:" ||
+    releaseBaseUrl.search ||
+    releaseBaseUrl.hash ||
+    configuration.release_base_url.endsWith("/")
+  ) {
+    throw new Error("release_base_url must be an HTTPS URL without query/hash and not ending with '/'");
+  }
   if (!Array.isArray(configuration.sources) || configuration.sources.length !== 1) {
     throw new Error("sources.json must contain exactly one upstream source");
   }
@@ -111,7 +128,7 @@ const loadConfiguration = async () => {
     }
   }
 
-  return { configuration, source };
+  return { configuration, releaseBaseUrl: releaseBaseUrl.toString().replace(/\/$/u, ""), source };
 };
 
 const requestText = (urlString) =>
@@ -333,6 +350,48 @@ const renderYaml = (configuration, source, rule, sourceUrl, rules) => {
   return `${header.concat(entries).join("\n")}\n`;
 };
 
+const renderOverrideYaml = (configuration, source, releaseBaseUrl) => {
+  const lines = [
+    "# 自动生成：由 scripts/build.mjs 生成，请勿手动编辑。",
+    "# Bind this URL in Clash Party to load these rule providers and rules.",
+    "rule-providers:",
+  ];
+
+  for (const rule of source.rules) {
+    const providerUrl = `${releaseBaseUrl}/rules/${rule.name}.yaml`;
+    lines.push(
+      `  ${rule.name}:`,
+      "    type: http",
+      "    behavior: classical",
+      "    format: yaml",
+      "    interval: 86400",
+      `    path: ./rules/${rule.name}.yaml`,
+      `    url: ${JSON.stringify(providerUrl)}`,
+      `    proxy: ${JSON.stringify(configuration.proxy_group)}`
+    );
+  }
+
+  lines.push("+rules:");
+  for (const rule of source.rules) {
+    const target = [
+      "ai_non_ip",
+      "apple_intelligence_non_ip",
+      "stream_non_ip",
+      "stream_ip",
+      "microsoft_cdn",
+      "microsoft_services",
+    ].includes(rule.name)
+      ? configuration.proxy_group
+      : ["reject_non_ip", "reject_ip"].includes(rule.name)
+        ? "REJECT"
+        : "DIRECT";
+    const noResolve = rule.name.endsWith("_ip") ? ",no-resolve" : "";
+    lines.push(`  - RULE-SET,${rule.name},${target}${noResolve}`);
+  }
+
+  return `${lines.join("\n")}\n`;
+};
+
 const pathExists = async (target) => {
   try {
     await fs.lstat(target);
@@ -383,28 +442,43 @@ const replaceOutputDirectory = async (stagingDir, outputDir) => {
 };
 
 const build = async (outputDir) => {
-  const { configuration, source } = await loadConfiguration();
+  const { configuration, releaseBaseUrl, source } = await loadConfiguration();
   await fs.mkdir(path.dirname(outputDir), { recursive: true });
   const stagingDir = await fs.mkdtemp(path.join(path.dirname(outputDir), `.${path.basename(outputDir)}-staging-`));
   let outputCommitted = false;
 
   try {
+    const stagingRulesDir = path.join(stagingDir, "rules");
+    await fs.mkdir(stagingRulesDir);
     for (const rule of source.rules) {
       const sourceUrl = new URL(rule.path, source.base_url).toString();
       const sourceText = await fetchSource(sourceUrl);
       const rules = parseRules(sourceText, sourceUrl);
       const yaml = renderYaml(configuration, source, rule, sourceUrl, rules);
-      await fs.writeFile(path.join(stagingDir, `${rule.name}.yaml`), yaml, "utf8");
+      await fs.writeFile(path.join(stagingRulesDir, `${rule.name}.yaml`), yaml, "utf8");
     }
 
-    const stagedFiles = await fs.readdir(stagingDir);
-    if (stagedFiles.length !== source.rules.length || stagedFiles.some((file) => !file.endsWith(".yaml"))) {
-      throw new Error("Staging directory does not contain exactly the configured YAML rule sets");
+    await fs.writeFile(
+      path.join(stagingDir, "clash-party-override.yaml"),
+      renderOverrideYaml(configuration, source, releaseBaseUrl),
+      "utf8"
+    );
+
+    const stagedRootEntries = await fs.readdir(stagingDir);
+    const stagedProviderFiles = await fs.readdir(stagingRulesDir);
+    if (
+      stagedRootEntries.length !== 2 ||
+      !stagedRootEntries.includes("rules") ||
+      !stagedRootEntries.includes("clash-party-override.yaml") ||
+      stagedProviderFiles.length !== source.rules.length ||
+      stagedProviderFiles.some((file) => !file.endsWith(".yaml"))
+    ) {
+      throw new Error("Staging directory does not contain exactly the configured publication artifacts");
     }
 
     await replaceOutputDirectory(stagingDir, outputDir);
     outputCommitted = true;
-    process.stdout.write(`Built ${stagedFiles.length} rule providers in ${outputDir}\n`);
+    process.stdout.write(`Built ${stagedProviderFiles.length} rule providers and Clash Party override in ${outputDir}\n`);
   } finally {
     if (!outputCommitted) {
       await fs.rm(stagingDir, { recursive: true, force: true });
