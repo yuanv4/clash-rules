@@ -55,25 +55,19 @@ const assertSafeText = (value, label) => {
 };
 
 const loadConfiguration = async () => {
-  let configuration;
+  let config;
   try {
-    configuration = JSON.parse(await fs.readFile(SOURCE_CONFIG_PATH, "utf8"));
+    config = JSON.parse(await fs.readFile(SOURCE_CONFIG_PATH, "utf8"));
   } catch (error) {
     throw new Error(`Unable to read ${SOURCE_CONFIG_PATH}: ${error.message}`);
   }
 
-  if (configuration.license !== "AGPL-3.0") {
-    throw new Error("sources.json must record license AGPL-3.0");
-  }
-  if (configuration.source_repository !== "boweic/ruleset.bowei.co") {
-    throw new Error("sources.json must identify boweic/ruleset.bowei.co as the source repository");
-  }
-  assertSafeText(configuration.release_base_url, "release_base_url");
-  assertSafeText(configuration.proxy_group, "proxy_group");
+  assertSafeText(config.release_base_url, "release_base_url");
+  assertSafeText(config.proxy_group, "proxy_group");
 
   let releaseBaseUrl;
   try {
-    releaseBaseUrl = new URL(configuration.release_base_url);
+    releaseBaseUrl = new URL(config.release_base_url);
   } catch (error) {
     throw new Error(`Invalid release_base_url: ${error.message}`);
   }
@@ -81,54 +75,94 @@ const loadConfiguration = async () => {
     releaseBaseUrl.protocol !== "https:" ||
     releaseBaseUrl.search ||
     releaseBaseUrl.hash ||
-    configuration.release_base_url.endsWith("/")
+    config.release_base_url.endsWith("/")
   ) {
     throw new Error("release_base_url must be an HTTPS URL without query/hash and not ending with '/'");
   }
-  if (!Array.isArray(configuration.sources) || configuration.sources.length !== 1) {
-    throw new Error("sources.json must contain exactly one upstream source");
+
+  if (!Array.isArray(config.sources) || config.sources.length === 0) {
+    throw new Error("sources.json must contain at least one upstream source");
   }
 
-  const [source] = configuration.sources;
-  if (!source || source.name !== "boweic/ruleset.bowei.co") {
-    throw new Error("sources.json contains an unexpected upstream source");
-  }
-  assertSafeText(source.repository, "source.repository");
-  assertSafeText(source.base_url, "source.base_url");
+  const sourceNames = new Set();
+  const providerNames = new Set();
+  const providers = [];
 
-  let baseUrl;
-  try {
-    baseUrl = new URL(source.base_url);
-  } catch (error) {
-    throw new Error(`Invalid source.base_url: ${error.message}`);
-  }
-  if (baseUrl.protocol !== "https:" || !source.base_url.endsWith("/")) {
-    throw new Error("source.base_url must be an HTTPS URL ending with '/'");
-  }
-
-  if (!Array.isArray(source.rules) || source.rules.length !== 13) {
-    throw new Error("sources.json must contain exactly 13 rule sets");
-  }
-
-  const names = new Set();
-  for (const rule of source.rules) {
-    if (!rule || typeof rule.name !== "string" || !/^[A-Za-z0-9_-]+$/u.test(rule.name)) {
-      throw new Error("Every rule set needs a safe name");
+  for (const source of config.sources) {
+    assertSafeText(source.name, "source.name");
+    if (sourceNames.has(source.name)) {
+      throw new Error(`Duplicate source name: ${source.name}`);
     }
-    if (names.has(rule.name)) {
-      throw new Error(`Duplicate rule set name: ${rule.name}`);
+    sourceNames.add(source.name);
+
+    assertSafeText(source.repository, "source.repository");
+    assertSafeText(source.base_url, "source.base_url");
+
+    let baseUrl;
+    try {
+      baseUrl = new URL(source.base_url);
+    } catch (error) {
+      throw new Error(`Invalid source.base_url for ${source.name}: ${error.message}`);
     }
-    names.add(rule.name);
-    if (rule.behavior !== "classical") {
-      throw new Error(`Rule set ${rule.name} must use behavior classical`);
+    if (baseUrl.protocol !== "https:" || !source.base_url.endsWith("/")) {
+      throw new Error(`Source ${source.name}: base_url must be an HTTPS URL ending with '/'`);
     }
-    assertSafeText(rule.path, `rule ${rule.name} path`);
-    if (path.posix.isAbsolute(rule.path) || rule.path.includes("\\") || rule.path.split("/").includes("..")) {
-      throw new Error(`Rule set ${rule.name} has an unsafe source path`);
+
+    if (!source.license || typeof source.license.id !== "string" || source.license.id.length === 0) {
+      throw new Error(`Source ${source.name} must have a license with an id`);
+    }
+    assertSafeText(source.license.url ?? "", `source ${source.name} license url`);
+
+    const sourceInputFormat = source.input_format ?? "raw-list";
+    if (!["raw-list", "clash-yaml"].includes(sourceInputFormat)) {
+      throw new Error(`Source ${source.name}: unsupported input_format ${JSON.stringify(sourceInputFormat)}`);
+    }
+
+    if (!Array.isArray(source.rules) || source.rules.length === 0) {
+      throw new Error(`Source ${source.name} must have at least one rule`);
+    }
+
+    for (const rule of source.rules) {
+      if (!rule || typeof rule.name !== "string" || !/^[A-Za-z0-9_-]+$/u.test(rule.name)) {
+        throw new Error("Every rule set needs a safe name");
+      }
+      if (providerNames.has(rule.name)) {
+        throw new Error(`Duplicate rule set name: ${rule.name}`);
+      }
+      providerNames.add(rule.name);
+      if (rule.behavior !== undefined && rule.behavior !== "classical") {
+        throw new Error(`Rule set ${rule.name} must use behavior classical`);
+      }
+      assertSafeText(rule.path, `rule ${rule.name} path`);
+      if (path.posix.isAbsolute(rule.path) || rule.path.includes("\\") || rule.path.split("/").includes("..")) {
+        throw new Error(`Rule set ${rule.name} has an unsafe source path`);
+      }
+
+      if (typeof rule.target !== "string" || rule.target.length === 0) {
+        throw new Error(`Rule set ${rule.name} must have a target`);
+      }
+
+      const sourceUrl = new URL(rule.path, source.base_url).toString();
+      const inputFormat = rule.input_format ?? sourceInputFormat;
+      if (!["raw-list", "clash-yaml"].includes(inputFormat)) {
+        throw new Error(`Rule set ${rule.name}: unsupported input_format ${JSON.stringify(inputFormat)}`);
+      }
+
+      providers.push({
+        name: rule.name,
+        target: rule.target,
+        noResolve: rule.no_resolve === true,
+        inputFormat,
+        behavior: "classical",
+        sourceUrl,
+        sourceName: source.name,
+        sourceRepository: source.repository,
+        license: { id: source.license.id, url: source.license.url ?? "" },
+      });
     }
   }
 
-  return { configuration, releaseBaseUrl: releaseBaseUrl.toString().replace(/\/$/u, ""), source };
+  return { releaseBaseUrl: releaseBaseUrl.toString().replace(/\/$/u, ""), proxyGroup: config.proxy_group, providers };
 };
 
 const requestText = (urlString) =>
@@ -333,16 +367,16 @@ const parseRules = (text, url) => {
   return rules;
 };
 
-const renderYaml = (configuration, source, rule, sourceUrl, rules) => {
+const renderYaml = (provider, rules) => {
   const header = [
     "# Generated by scripts/build.mjs; do not edit.",
-    `# Source: ${source.repository} (${sourceUrl})`,
-    `# License: ${configuration.license}`,
+    `# Source: ${provider.sourceRepository} (${provider.sourceUrl})`,
+    `# License: ${provider.license.id} (${provider.license.url})`,
     "payload:",
   ];
   const entries = rules.map((value) => {
     if (/\r|\n|[\u2028\u2029]/u.test(value)) {
-      throw new Error(`Unsafe multi-line rule for ${rule.name}`);
+      throw new Error(`Unsafe multi-line rule for ${provider.name}`);
     }
     const serialized = JSON.stringify(value);
     return `  - ${serialized}`;
@@ -350,20 +384,33 @@ const renderYaml = (configuration, source, rule, sourceUrl, rules) => {
   return `${header.concat(entries).join("\n")}\n`;
 };
 
-const renderOverrideYaml = (configuration, source, releaseBaseUrl) => {
+const renderOverrideYaml = (providers, releaseBaseUrl, proxyGroup) => {
   const automaticGroup = "⚡ 自动选择";
   const aiGroup = "🤖 AI";
   const microsoftGroup = "🪟 Microsoft";
   const streamingGroup = "📺 流媒体";
+  const appleGroup = "🍎 Apple";
+  const googleGroup = "🔍 Google";
+  const socialGroup = "💬 社交媒体";
   const unmatchedGroup = "🐟 漏网之鱼";
   const testUrl = "https://www.gstatic.com/generate_204";
   const japanNodeFilter =
     "(?i)(?:^|[\\s_\\-\\[])(?:JP|JPN|Japan|日本|Tokyo|東京|Osaka|大阪|🇯🇵)(?:$|[\\s_\\-\\]\\)])";
+
+  const domainSelectGroup = (name) => [
+    `  - name: ${JSON.stringify(name)}`,
+    "    type: select",
+    "    proxies:",
+    `      - ${JSON.stringify(automaticGroup)}`,
+    '      - "DIRECT"',
+    "    include-all: true",
+  ];
+
   const lines = [
     "# 自动生成：由 scripts/build.mjs 生成，请勿手动编辑。",
     "# Bind this URL in Clash Party to load these rule providers and rules.",
     "proxy-groups:",
-    `  - name: ${JSON.stringify(configuration.proxy_group)}`,
+    `  - name: ${JSON.stringify(proxyGroup)}`,
     "    type: select",
     "    include-all: true",
     `  - name: ${JSON.stringify(automaticGroup)}`,
@@ -379,18 +426,11 @@ const renderOverrideYaml = (configuration, source, releaseBaseUrl) => {
     "    include-all: true",
     `    filter: ${JSON.stringify(japanNodeFilter)}`,
     '    empty-fallback: "REJECT"',
-    `  - name: ${JSON.stringify(microsoftGroup)}`,
-    "    type: select",
-    "    proxies:",
-    `      - ${JSON.stringify(automaticGroup)}`,
-    '      - "DIRECT"',
-    "    include-all: true",
-    `  - name: ${JSON.stringify(streamingGroup)}`,
-    "    type: select",
-    "    proxies:",
-    `      - ${JSON.stringify(automaticGroup)}`,
-    '      - "DIRECT"',
-    "    include-all: true",
+    ...domainSelectGroup(microsoftGroup),
+    ...domainSelectGroup(streamingGroup),
+    ...domainSelectGroup(appleGroup),
+    ...domainSelectGroup(googleGroup),
+    ...domainSelectGroup(socialGroup),
     `  - name: ${JSON.stringify(unmatchedGroup)}`,
     "    type: select",
     "    proxies:",
@@ -400,39 +440,24 @@ const renderOverrideYaml = (configuration, source, releaseBaseUrl) => {
     "rule-providers!:",
   ];
 
-  for (const rule of source.rules) {
-    const providerUrl = `${releaseBaseUrl}/rules/${rule.name}.yaml`;
+  for (const provider of providers) {
+    const providerUrl = `${releaseBaseUrl}/rules/${provider.name}.yaml`;
     lines.push(
-      `  ${rule.name}:`,
+      `  ${provider.name}:`,
       "    type: http",
       "    behavior: classical",
       "    format: yaml",
       "    interval: 86400",
-      `    path: ./rules/${rule.name}.yaml`,
+      `    path: ./rules/${provider.name}.yaml`,
       `    url: ${JSON.stringify(providerUrl)}`,
       `    proxy: ${JSON.stringify(automaticGroup)}`
     );
   }
 
   lines.push("rules:");
-  for (const rule of source.rules) {
-    const target = [
-      "ai_non_ip",
-      "apple_intelligence_non_ip",
-    ].includes(rule.name)
-      ? aiGroup
-      : [
-          "stream_non_ip",
-          "stream_ip",
-        ].includes(rule.name)
-        ? streamingGroup
-        : ["microsoft_cdn", "microsoft_services"].includes(rule.name)
-          ? microsoftGroup
-          : ["reject_non_ip", "reject_ip"].includes(rule.name)
-            ? "REJECT"
-            : "DIRECT";
-    const noResolve = rule.name.endsWith("_ip") ? ",no-resolve" : "";
-    lines.push(`  - RULE-SET,${rule.name},${target}${noResolve}`);
+  for (const provider of providers) {
+    const noResolve = provider.noResolve ? ",no-resolve" : "";
+    lines.push(`  - RULE-SET,${provider.name},${provider.target}${noResolve}`);
   }
   lines.push(`  - MATCH,${unmatchedGroup}`);
 
@@ -489,7 +514,7 @@ const replaceOutputDirectory = async (stagingDir, outputDir) => {
 };
 
 const build = async (outputDir) => {
-  const { configuration, releaseBaseUrl, source } = await loadConfiguration();
+  const { releaseBaseUrl, proxyGroup, providers } = await loadConfiguration();
   await fs.mkdir(path.dirname(outputDir), { recursive: true });
   const stagingDir = await fs.mkdtemp(path.join(path.dirname(outputDir), `.${path.basename(outputDir)}-staging-`));
   let outputCommitted = false;
@@ -497,17 +522,16 @@ const build = async (outputDir) => {
   try {
     const stagingRulesDir = path.join(stagingDir, "rules");
     await fs.mkdir(stagingRulesDir);
-    for (const rule of source.rules) {
-      const sourceUrl = new URL(rule.path, source.base_url).toString();
-      const sourceText = await fetchSource(sourceUrl);
-      const rules = parseRules(sourceText, sourceUrl);
-      const yaml = renderYaml(configuration, source, rule, sourceUrl, rules);
-      await fs.writeFile(path.join(stagingRulesDir, `${rule.name}.yaml`), yaml, "utf8");
+    for (const provider of providers) {
+      const sourceText = await fetchSource(provider.sourceUrl);
+      const rules = parseRules(sourceText, provider.sourceUrl);
+      const yaml = renderYaml(provider, rules);
+      await fs.writeFile(path.join(stagingRulesDir, `${provider.name}.yaml`), yaml, "utf8");
     }
 
     await fs.writeFile(
       path.join(stagingDir, "clash-party-override.yaml"),
-      renderOverrideYaml(configuration, source, releaseBaseUrl),
+      renderOverrideYaml(providers, releaseBaseUrl, proxyGroup),
       "utf8"
     );
 
@@ -517,7 +541,7 @@ const build = async (outputDir) => {
       stagedRootEntries.length !== 2 ||
       !stagedRootEntries.includes("rules") ||
       !stagedRootEntries.includes("clash-party-override.yaml") ||
-      stagedProviderFiles.length !== source.rules.length ||
+      stagedProviderFiles.length !== providers.length ||
       stagedProviderFiles.some((file) => !file.endsWith(".yaml"))
     ) {
       throw new Error("Staging directory does not contain exactly the configured publication artifacts");
