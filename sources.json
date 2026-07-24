@@ -1,80 +1,48 @@
 {
-  "license": "AGPL-3.0",
-  "source_repository": "boweic/ruleset.bowei.co",
   "release_base_url": "https://raw.githubusercontent.com/yuanv4/clash-rules/release",
   "proxy_group": "🚀 节点选择",
   "sources": [
     {
       "name": "boweic/ruleset.bowei.co",
-      "type": "github-raw",
       "repository": "https://github.com/boweic/ruleset.bowei.co",
       "base_url": "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/",
+      "license": {
+        "id": "AGPL-3.0",
+        "url": "https://github.com/boweic/ruleset.bowei.co/blob/master/LICENSE"
+      },
+      "input_format": "raw-list",
       "rules": [
-        {
-          "name": "lan_non_ip",
-          "path": "Clash/non_ip/lan.txt",
-          "behavior": "classical"
-        },
-        {
-          "name": "lan_ip",
-          "path": "Clash/ip/lan.txt",
-          "behavior": "classical"
-        },
-        {
-          "name": "reject_non_ip",
-          "path": "Clash/non_ip/reject.txt",
-          "behavior": "classical"
-        },
-        {
-          "name": "reject_ip",
-          "path": "Clash/ip/reject.txt",
-          "behavior": "classical"
-        },
-        {
-          "name": "ai_non_ip",
-          "path": "Clash/non_ip/ai.txt",
-          "behavior": "classical"
-        },
-        {
-          "name": "apple_intelligence_non_ip",
-          "path": "Clash/non_ip/apple_intelligence.txt",
-          "behavior": "classical"
-        },
-        {
-          "name": "stream_non_ip",
-          "path": "Clash/non_ip/stream.txt",
-          "behavior": "classical"
-        },
-        {
-          "name": "stream_ip",
-          "path": "Clash/ip/stream.txt",
-          "behavior": "classical"
-        },
-        {
-          "name": "microsoft_cdn",
-          "path": "Clash/non_ip/microsoft_cdn.txt",
-          "behavior": "classical"
-        },
-        {
-          "name": "microsoft_services",
-          "path": "Clash/non_ip/microsoft.txt",
-          "behavior": "classical"
-        },
-        {
-          "name": "domestic_non_ip",
-          "path": "Clash/non_ip/domestic.txt",
-          "behavior": "classical"
-        },
-        {
-          "name": "domestic_ip",
-          "path": "Clash/ip/domestic.txt",
-          "behavior": "classical"
-        },
-        {
-          "name": "direct_non_ip",
-          "path": "Clash/non_ip/direct.txt",
-          "behavior": "classical"
-        }
+        {"name": "lan_non_ip", "path": "Clash/non_ip/lan.txt", "target": "DIRECT", "no_resolve": true},
+        {"name": "lan_ip", "path": "Clash/ip/lan.txt", "target": "DIRECT", "no_resolve": true},
+        {"name": "reject_non_ip", "path": "Clash/non_ip/reject.txt", "target": "REJECT", "no_resolve": true},
+        {"name": "reject_ip", "path": "Clash/ip/reject.txt", "target": "REJECT", "no_resolve": true},
+        {"name": "ai_non_ip", "path": "Clash/non_ip/ai.txt", "target": "🤖 AI", "no_resolve": true},
+        {"name": "apple_intelligence_non_ip", "path": "Clash/non_ip/apple_intelligence.txt", "target": "🤖 AI", "no_resolve": true},
+        {"name": "stream_non_ip", "path": "Clash/non_ip/stream.txt", "target": "📺 流媒体", "no_resolve": true},
+        {"name": "stream_ip", "path": "Clash/ip/stream.txt", "target": "📺 流媒体", "no_resolve": true},
+        {"name": "microsoft_cdn", "path": "Clash/non_ip/microsoft_cdn.txt", "target": "🪟 Microsoft", "no_resolve": false},
+        {"name": "microsoft_services", "path": "Clash/non_ip/microsoft.txt", "target": "🪟 Microsoft", "no_resolve": false},
+        {"name": "domestic_non_ip", "path": "Clash/non_ip/domestic.txt", "target": "DIRECT", "no_resolve": true},
+        {"name": "domestic_ip", "path": "Clash/ip/domestic.txt", "target": "DIRECT", "no_resolve": true},
+        {"name": "direct_non_ip", "path": "Clash/non_ip/direct.txt", "target": "DIRECT", "no_resolve": true}
+      ]
+    },
+    {
+      "name": "blackmatrix7/ios_rule_script",
+      "repository": "https://github.com/blackmatrix7/ios_rule_script",
+      "base_url": "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/",
+      "license": {
+        "id": "MIT",
+        "url": "https://github.com/blackmatrix7/ios_rule_script/blob/master/LICENSE"
+      },
+      "input_format": "raw-list",
+      "rules": [
+        {"name": "apple", "path": "rule/Clash/Apple/Apple.list", "target": "🍎 Apple", "no_resolve": false},
+        {"name": "google", "path": "rule/Clash/Google/Google.list", "target": "🔍 Google", "no_resolve": false},
+        {"name": "telegram", "path": "rule/Clash/Telegram/Telegram.list", "target": "💬 社交媒体", "no_resolve": false},
+        {"name": "twitter", "path": "rule/Clash/Twitter/Twitter.list", "target": "💬 社交媒体", "no_resolve": false},
+        {"name": "facebook", "path": "rule/Clash/Facebook/Facebook.list", "target": "💬 社交媒体", "no_resolve": false},
+        {"name": "instagram", "path": "rule/Clash/Instagram/Instagram.list", "target": "💬 社交媒体", "no_resolve": false}
       ]
     }
   ]
