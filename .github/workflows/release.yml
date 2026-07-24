@@ -1,4 +1,4 @@
-name: Build And Publish Raw Files
+name: Build And Publish Rule Providers
 
 on:
   workflow_dispatch:
@@ -6,8 +6,10 @@ on:
     branches:
       - main
       - master
-    paths-ignore:
-      - "**/README.md"
+    paths:
+      - ".github/workflows/release.yml"
+      - "scripts/build.mjs"
+      - "sources.json"
   schedule:
     - cron: "30 22 * * *"
 
@@ -25,36 +27,52 @@ jobs:
     steps:
       - name: Checkout source branch
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Build all publish artifacts
-        shell: bash
-        run: ./scripts/publish.sh
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.14.0"
 
-      - name: Validate publish artifacts
-        shell: bash
-        run: ./scripts/validate.sh --output-dir dist --no-build
+      - name: Build rule providers
+        run: node scripts/build.mjs
 
-      - name: Prepare publish directory
-        shell: bash
-        run: |
-          mkdir -p publish
-          cp dist/clash-rules.js publish/
-          cp dist/metadata.json publish/
-          cp dist/rules-metadata.json publish/
-
-      - name: Push artifacts to release branch
+      - name: Sync release branch
         shell: bash
         run: |
-          cd publish
-          git init
-          git config --local user.name "github-actions[bot]"
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -b release
-          git add .
-          if git diff --cached --quiet; then
+          set -euo pipefail
+          git fetch origin release
+          release_worktree="${RUNNER_TEMP}/clash-rules-release"
+          git worktree add --detach "$release_worktree" origin/release
+          trap 'git worktree remove --force "$release_worktree"' EXIT
+
+          git -C "$release_worktree" rm -r -- .
+          mkdir -p "$release_worktree/rules"
+          cp -- dist/rules/*.yaml "$release_worktree/rules/"
+
+          git -C "$release_worktree" add -A
+          mapfile -d '' -t tracked_files < <(git -C "$release_worktree" ls-files --cached -z)
+          if [[ "${#tracked_files[@]}" -ne 13 ]]; then
+            echo "Expected exactly 13 tracked YAML artifacts, found ${#tracked_files[@]}." >&2
+            exit 1
+          fi
+          for tracked_file in "${tracked_files[@]}"; do
+            case "$tracked_file" in
+              rules/*.yaml) ;;
+              *)
+                echo "Unexpected tracked release artifact: $tracked_file" >&2
+                exit 1
+                ;;
+            esac
+          done
+
+          if git -C "$release_worktree" diff --cached --quiet; then
             echo "No artifact changes to publish."
             exit 0
           fi
-          git commit -m "Publish raw files for run ${{ github.run_number }}"
-          git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
-          git push -f origin release
+
+          git -C "$release_worktree" config user.name "github-actions[bot]"
+          git -C "$release_worktree" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$release_worktree" commit -m "Publish rule providers for run ${{ github.run_number }}"
+          git -C "$release_worktree" push origin HEAD:release
