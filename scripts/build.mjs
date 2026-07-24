@@ -395,7 +395,7 @@ const renderOverrideYaml = (providers, releaseBaseUrl, proxyGroup) => {
   const unmatchedGroup = "🐟 漏网之鱼";
   const testUrl = "https://www.gstatic.com/generate_204";
   const japanNodeFilter =
-    "(?i)(?:^|[\\s_\\-\\[])(?:JP|JPN|Japan|日本|Tokyo|東京|Osaka|大阪|🇯🇵)(?:$|[\\s_\\-\\]\\)])";
+    "(?i)(?:JP|JPN|Japan|日本|Tokyo|東京|Osaka|大阪|🇯🇵)";
 
   const domainSelectGroup = (name) => [
     `  - name: ${JSON.stringify(name)}`,
