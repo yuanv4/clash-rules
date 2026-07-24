@@ -11,12 +11,8 @@ proxy-groups:
     tolerance: 50
     include-all: true
   - name: "🤖 AI"
-    type: fallback
-    url: "https://www.gstatic.com/generate_204"
-    interval: 300
+    type: select
     include-all: true
-    filter: "(?i)(?:^|[\\s_\\-\\[])(?:JP|JPN|Japan|日本|Tokyo|東京|Osaka|大阪|🇯🇵)(?:$|[\\s_\\-\\]\\)])"
-    empty-fallback: "REJECT"
   - name: "🪟 Microsoft"
     type: select
     proxies:
