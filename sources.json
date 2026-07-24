@@ -1,0 +1,79 @@
+{
+  "license": "AGPL-3.0",
+  "source_repository": "boweic/ruleset.bowei.co",
+  "sources": [
+    {
+      "name": "boweic/ruleset.bowei.co",
+      "type": "github-raw",
+      "repository": "https://github.com/boweic/ruleset.bowei.co",
+      "base_url": "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/",
+      "rules": [
+        {
+          "name": "lan_non_ip",
+          "path": "Clash/non_ip/lan.txt",
+          "behavior": "classical"
+        },
+        {
+          "name": "lan_ip",
+          "path": "Clash/ip/lan.txt",
+          "behavior": "classical"
+        },
+        {
+          "name": "reject_non_ip",
+          "path": "Clash/non_ip/reject.txt",
+          "behavior": "classical"
+        },
+        {
+          "name": "reject_ip",
+          "path": "Clash/ip/reject.txt",
+          "behavior": "classical"
+        },
+        {
+          "name": "ai_non_ip",
+          "path": "Clash/non_ip/ai.txt",
+          "behavior": "classical"
+        },
+        {
+          "name": "apple_intelligence_non_ip",
+          "path": "Clash/non_ip/apple_intelligence.txt",
+          "behavior": "classical"
+        },
+        {
+          "name": "stream_non_ip",
+          "path": "Clash/non_ip/stream.txt",
+          "behavior": "classical"
+        },
+        {
+          "name": "stream_ip",
+          "path": "Clash/ip/stream.txt",
+          "behavior": "classical"
+        },
+        {
+          "name": "microsoft_cdn",
+          "path": "Clash/non_ip/microsoft_cdn.txt",
+          "behavior": "classical"
+        },
+        {
+          "name": "microsoft_services",
+          "path": "Clash/non_ip/microsoft.txt",
+          "behavior": "classical"
+        },
+        {
+          "name": "domestic_non_ip",
+          "path": "Clash/non_ip/domestic.txt",
+          "behavior": "classical"
+        },
+        {
+          "name": "domestic_ip",
+          "path": "Clash/ip/domestic.txt",
+          "behavior": "classical"
+        },
+        {
+          "name": "direct_non_ip",
+          "path": "Clash/non_ip/direct.txt",
+          "behavior": "classical"
+        }
+      ]
+    }
+  ]
+}
