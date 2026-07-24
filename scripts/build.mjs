@@ -394,8 +394,6 @@ const renderOverrideYaml = (providers, releaseBaseUrl, proxyGroup) => {
   const socialGroup = "💬 社交媒体";
   const unmatchedGroup = "🐟 漏网之鱼";
   const testUrl = "https://www.gstatic.com/generate_204";
-  const japanNodeFilter =
-    "(?i)(?:^|[\\s_\\-\\[])(?:JP|JPN|Japan|日本|Tokyo|東京|Osaka|大阪|🇯🇵)(?:$|[\\s_\\-\\]\\)])";
 
   const domainSelectGroup = (name) => [
     `  - name: ${JSON.stringify(name)}`,
@@ -420,12 +418,8 @@ const renderOverrideYaml = (providers, releaseBaseUrl, proxyGroup) => {
     "    tolerance: 50",
     "    include-all: true",
     `  - name: ${JSON.stringify(aiGroup)}`,
-    "    type: fallback",
-    `    url: ${JSON.stringify(testUrl)}`,
-    "    interval: 300",
+    "    type: select",
     "    include-all: true",
-    `    filter: ${JSON.stringify(japanNodeFilter)}`,
-    '    empty-fallback: "REJECT"',
     ...domainSelectGroup(microsoftGroup),
     ...domainSelectGroup(streamingGroup),
     ...domainSelectGroup(appleGroup),
