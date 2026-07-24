@@ -29,6 +29,24 @@ proxy-groups:
       - "⚡ 自动选择"
       - "DIRECT"
     include-all: true
+  - name: "🍎 Apple"
+    type: select
+    proxies:
+      - "⚡ 自动选择"
+      - "DIRECT"
+    include-all: true
+  - name: "🔍 Google"
+    type: select
+    proxies:
+      - "⚡ 自动选择"
+      - "DIRECT"
+    include-all: true
+  - name: "💬 社交媒体"
+    type: select
+    proxies:
+      - "⚡ 自动选择"
+      - "DIRECT"
+    include-all: true
   - name: "🐟 漏网之鱼"
     type: select
     proxies:
@@ -140,6 +158,54 @@ rule-providers!:
     path: ./rules/direct_non_ip.yaml
     url: "https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/direct_non_ip.yaml"
     proxy: "⚡ 自动选择"
+  apple:
+    type: http
+    behavior: classical
+    format: yaml
+    interval: 86400
+    path: ./rules/apple.yaml
+    url: "https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/apple.yaml"
+    proxy: "⚡ 自动选择"
+  google:
+    type: http
+    behavior: classical
+    format: yaml
+    interval: 86400
+    path: ./rules/google.yaml
+    url: "https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/google.yaml"
+    proxy: "⚡ 自动选择"
+  telegram:
+    type: http
+    behavior: classical
+    format: yaml
+    interval: 86400
+    path: ./rules/telegram.yaml
+    url: "https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/telegram.yaml"
+    proxy: "⚡ 自动选择"
+  twitter:
+    type: http
+    behavior: classical
+    format: yaml
+    interval: 86400
+    path: ./rules/twitter.yaml
+    url: "https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/twitter.yaml"
+    proxy: "⚡ 自动选择"
+  facebook:
+    type: http
+    behavior: classical
+    format: yaml
+    interval: 86400
+    path: ./rules/facebook.yaml
+    url: "https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/facebook.yaml"
+    proxy: "⚡ 自动选择"
+  instagram:
+    type: http
+    behavior: classical
+    format: yaml
+    interval: 86400
+    path: ./rules/instagram.yaml
+    url: "https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/instagram.yaml"
+    proxy: "⚡ 自动选择"
 rules:
   - RULE-SET,lan_non_ip,DIRECT,no-resolve
   - RULE-SET,lan_ip,DIRECT,no-resolve
@@ -154,4 +220,10 @@ rules:
   - RULE-SET,domestic_non_ip,DIRECT,no-resolve
   - RULE-SET,domestic_ip,DIRECT,no-resolve
   - RULE-SET,direct_non_ip,DIRECT,no-resolve
+  - RULE-SET,apple,🍎 Apple
+  - RULE-SET,google,🔍 Google
+  - RULE-SET,telegram,💬 社交媒体
+  - RULE-SET,twitter,💬 社交媒体
+  - RULE-SET,facebook,💬 社交媒体
+  - RULE-SET,instagram,💬 社交媒体
   - MATCH,🐟 漏网之鱼
