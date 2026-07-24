@@ -351,10 +351,53 @@ const renderYaml = (configuration, source, rule, sourceUrl, rules) => {
 };
 
 const renderOverrideYaml = (configuration, source, releaseBaseUrl) => {
+  const automaticGroup = "⚡ 自动选择";
+  const aiGroup = "🤖 AI";
+  const microsoftGroup = "🪟 Microsoft";
+  const streamingGroup = "📺 流媒体";
+  const unmatchedGroup = "🐟 漏网之鱼";
+  const testUrl = "https://www.gstatic.com/generate_204";
+  const japanNodeFilter =
+    "(?i)(?:^|[\\s_\\-\\[])(?:JP|JPN|Japan|日本|Tokyo|東京|Osaka|大阪|🇯🇵)(?:$|[\\s_\\-\\]\\)])";
   const lines = [
     "# 自动生成：由 scripts/build.mjs 生成，请勿手动编辑。",
     "# Bind this URL in Clash Party to load these rule providers and rules.",
-    "rule-providers:",
+    "proxy-groups:",
+    `  - name: ${JSON.stringify(configuration.proxy_group)}`,
+    "    type: select",
+    "    include-all: true",
+    `  - name: ${JSON.stringify(automaticGroup)}`,
+    "    type: url-test",
+    `    url: ${JSON.stringify(testUrl)}`,
+    "    interval: 300",
+    "    tolerance: 50",
+    "    include-all: true",
+    `  - name: ${JSON.stringify(aiGroup)}`,
+    "    type: fallback",
+    `    url: ${JSON.stringify(testUrl)}`,
+    "    interval: 300",
+    "    include-all: true",
+    `    filter: ${JSON.stringify(japanNodeFilter)}`,
+    '    empty-fallback: "REJECT"',
+    `  - name: ${JSON.stringify(microsoftGroup)}`,
+    "    type: select",
+    "    proxies:",
+    `      - ${JSON.stringify(automaticGroup)}`,
+    '      - "DIRECT"',
+    "    include-all: true",
+    `  - name: ${JSON.stringify(streamingGroup)}`,
+    "    type: select",
+    "    proxies:",
+    `      - ${JSON.stringify(automaticGroup)}`,
+    '      - "DIRECT"',
+    "    include-all: true",
+    `  - name: ${JSON.stringify(unmatchedGroup)}`,
+    "    type: select",
+    "    proxies:",
+    `      - ${JSON.stringify(automaticGroup)}`,
+    '      - "DIRECT"',
+    "    include-all: true",
+    "rule-providers!:",
   ];
 
   for (const rule of source.rules) {
@@ -367,27 +410,31 @@ const renderOverrideYaml = (configuration, source, releaseBaseUrl) => {
       "    interval: 86400",
       `    path: ./rules/${rule.name}.yaml`,
       `    url: ${JSON.stringify(providerUrl)}`,
-      `    proxy: ${JSON.stringify(configuration.proxy_group)}`
+      `    proxy: ${JSON.stringify(automaticGroup)}`
     );
   }
 
-  lines.push("+rules:");
+  lines.push("rules:");
   for (const rule of source.rules) {
     const target = [
       "ai_non_ip",
       "apple_intelligence_non_ip",
-      "stream_non_ip",
-      "stream_ip",
-      "microsoft_cdn",
-      "microsoft_services",
     ].includes(rule.name)
-      ? configuration.proxy_group
-      : ["reject_non_ip", "reject_ip"].includes(rule.name)
-        ? "REJECT"
-        : "DIRECT";
+      ? aiGroup
+      : [
+          "stream_non_ip",
+          "stream_ip",
+        ].includes(rule.name)
+        ? streamingGroup
+        : ["microsoft_cdn", "microsoft_services"].includes(rule.name)
+          ? microsoftGroup
+          : ["reject_non_ip", "reject_ip"].includes(rule.name)
+            ? "REJECT"
+            : "DIRECT";
     const noResolve = rule.name.endsWith("_ip") ? ",no-resolve" : "";
     lines.push(`  - RULE-SET,${rule.name},${target}${noResolve}`);
   }
+  lines.push(`  - MATCH,${unmatchedGroup}`);
 
   return `${lines.join("\n")}\n`;
 };
