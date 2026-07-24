@@ -30,13 +30,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: "22.14.0"
+          bun-version: "1.1.38"
 
       - name: Build rule providers
-        run: node scripts/build.mjs
+        run: bun scripts/build.mjs
 
       - name: Sync release branch
         shell: bash
@@ -50,16 +50,18 @@ jobs:
           git -C "$release_worktree" rm -r -- .
           mkdir -p "$release_worktree/rules"
           cp -- dist/rules/*.yaml "$release_worktree/rules/"
+          cp -- dist/clash-party-override.yaml "$release_worktree/"
 
           git -C "$release_worktree" add -A
           mapfile -d '' -t tracked_files < <(git -C "$release_worktree" ls-files --cached -z)
-          if [[ "${#tracked_files[@]}" -ne 13 ]]; then
-            echo "Expected exactly 13 tracked YAML artifacts, found ${#tracked_files[@]}." >&2
+          if [[ "${#tracked_files[@]}" -ne 14 ]]; then
+            echo "Expected exactly 14 tracked publication artifacts, found ${#tracked_files[@]}." >&2
             exit 1
           fi
           for tracked_file in "${tracked_files[@]}"; do
             case "$tracked_file" in
               rules/*.yaml) ;;
+              clash-party-override.yaml) ;;
               *)
                 echo "Unexpected tracked release artifact: $tracked_file" >&2
                 exit 1
