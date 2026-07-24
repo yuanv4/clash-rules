@@ -1,0 +1,121 @@
+# 自动生成：由 scripts/build.mjs 生成，请勿手动编辑。
+# Bind this URL in Clash Party to load these rule providers and rules.
+rule-providers:
+  lan_non_ip:
+    type: http
+    behavior: classical
+    format: yaml
+    interval: 86400
+    path: ./rules/lan_non_ip.yaml
+    url: "https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/lan_non_ip.yaml"
+    proxy: "🚀 节点选择"
+  lan_ip:
+    type: http
+    behavior: classical
+    format: yaml
+    interval: 86400
+    path: ./rules/lan_ip.yaml
+    url: "https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/lan_ip.yaml"
+    proxy: "🚀 节点选择"
+  reject_non_ip:
+    type: http
+    behavior: classical
+    format: yaml
+    interval: 86400
+    path: ./rules/reject_non_ip.yaml
+    url: "https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/reject_non_ip.yaml"
+    proxy: "🚀 节点选择"
+  reject_ip:
+    type: http
+    behavior: classical
+    format: yaml
+    interval: 86400
+    path: ./rules/reject_ip.yaml
+    url: "https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/reject_ip.yaml"
+    proxy: "🚀 节点选择"
+  ai_non_ip:
+    type: http
+    behavior: classical
+    format: yaml
+    interval: 86400
+    path: ./rules/ai_non_ip.yaml
+    url: "https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/ai_non_ip.yaml"
+    proxy: "🚀 节点选择"
+  apple_intelligence_non_ip:
+    type: http
+    behavior: classical
+    format: yaml
+    interval: 86400
+    path: ./rules/apple_intelligence_non_ip.yaml
+    url: "https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/apple_intelligence_non_ip.yaml"
+    proxy: "🚀 节点选择"
+  stream_non_ip:
+    type: http
+    behavior: classical
+    format: yaml
+    interval: 86400
+    path: ./rules/stream_non_ip.yaml
+    url: "https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/stream_non_ip.yaml"
+    proxy: "🚀 节点选择"
+  stream_ip:
+    type: http
+    behavior: classical
+    format: yaml
+    interval: 86400
+    path: ./rules/stream_ip.yaml
+    url: "https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/stream_ip.yaml"
+    proxy: "🚀 节点选择"
+  microsoft_cdn:
+    type: http
+    behavior: classical
+    format: yaml
+    interval: 86400
+    path: ./rules/microsoft_cdn.yaml
+    url: "https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/microsoft_cdn.yaml"
+    proxy: "🚀 节点选择"
+  microsoft_services:
+    type: http
+    behavior: classical
+    format: yaml
+    interval: 86400
+    path: ./rules/microsoft_services.yaml
+    url: "https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/microsoft_services.yaml"
+    proxy: "🚀 节点选择"
+  domestic_non_ip:
+    type: http
+    behavior: classical
+    format: yaml
+    interval: 86400
+    path: ./rules/domestic_non_ip.yaml
+    url: "https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/domestic_non_ip.yaml"
+    proxy: "🚀 节点选择"
+  domestic_ip:
+    type: http
+    behavior: classical
+    format: yaml
+    interval: 86400
+    path: ./rules/domestic_ip.yaml
+    url: "https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/domestic_ip.yaml"
+    proxy: "🚀 节点选择"
+  direct_non_ip:
+    type: http
+    behavior: classical
+    format: yaml
+    interval: 86400
+    path: ./rules/direct_non_ip.yaml
+    url: "https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/direct_non_ip.yaml"
+    proxy: "🚀 节点选择"
++rules:
+  - RULE-SET,lan_non_ip,DIRECT,no-resolve
+  - RULE-SET,lan_ip,DIRECT,no-resolve
+  - RULE-SET,reject_non_ip,REJECT,no-resolve
+  - RULE-SET,reject_ip,REJECT,no-resolve
+  - RULE-SET,ai_non_ip,🚀 节点选择,no-resolve
+  - RULE-SET,apple_intelligence_non_ip,🚀 节点选择,no-resolve
+  - RULE-SET,stream_non_ip,🚀 节点选择,no-resolve
+  - RULE-SET,stream_ip,🚀 节点选择,no-resolve
+  - RULE-SET,microsoft_cdn,🚀 节点选择
+  - RULE-SET,microsoft_services,🚀 节点选择
+  - RULE-SET,domestic_non_ip,DIRECT,no-resolve
+  - RULE-SET,domestic_ip,DIRECT,no-resolve
+  - RULE-SET,direct_non_ip,DIRECT,no-resolve
