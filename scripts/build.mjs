@@ -5,6 +5,8 @@ import http from "node:http";
 import https from "node:https";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { renderClashPartyOverride } from "./render-clash-party-override.mjs";
+import { renderFlclashOverride } from "./render-flclash-override.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(SCRIPT_DIR, "..");
@@ -384,86 +386,6 @@ const renderYaml = (provider, rules) => {
   return `${header.concat(entries).join("\n")}\n`;
 };
 
-const renderOverrideYaml = (providers, releaseBaseUrl, proxyGroup) => {
-  const automaticGroup = "⚡ 自动选择";
-  const aiGroup = "🤖 AI";
-  const microsoftGroup = "🪟 Microsoft";
-  const streamingGroup = "📺 流媒体";
-  const appleGroup = "🍎 Apple";
-  const googleGroup = "🔍 Google";
-  const socialGroup = "💬 社交媒体";
-  const unmatchedGroup = "🐟 漏网之鱼";
-  const testUrl = "https://www.gstatic.com/generate_204";
-  const japanNodeFilter =
-    "(?i)(?:JP|JPN|Japan|日本|Tokyo|東京|Osaka|大阪|🇯🇵)";
-
-  const domainSelectGroup = (name) => [
-    `  - name: ${JSON.stringify(name)}`,
-    "    type: select",
-    "    proxies:",
-    `      - ${JSON.stringify(automaticGroup)}`,
-    '      - "DIRECT"',
-    "    include-all: true",
-  ];
-
-  const lines = [
-    "# 自动生成：由 scripts/build.mjs 生成，请勿手动编辑。",
-    "# Bind this URL in Clash Party to load these rule providers and rules.",
-    "proxy-groups:",
-    `  - name: ${JSON.stringify(proxyGroup)}`,
-    "    type: select",
-    "    include-all: true",
-    `  - name: ${JSON.stringify(automaticGroup)}`,
-    "    type: url-test",
-    `    url: ${JSON.stringify(testUrl)}`,
-    "    interval: 300",
-    "    tolerance: 50",
-    "    include-all: true",
-    `  - name: ${JSON.stringify(aiGroup)}`,
-    "    type: fallback",
-    `    url: ${JSON.stringify(testUrl)}`,
-    "    interval: 300",
-    "    include-all: true",
-    `    filter: ${JSON.stringify(japanNodeFilter)}`,
-    '    empty-fallback: "REJECT"',
-    ...domainSelectGroup(microsoftGroup),
-    ...domainSelectGroup(streamingGroup),
-    ...domainSelectGroup(appleGroup),
-    ...domainSelectGroup(googleGroup),
-    ...domainSelectGroup(socialGroup),
-    `  - name: ${JSON.stringify(unmatchedGroup)}`,
-    "    type: select",
-    "    proxies:",
-    `      - ${JSON.stringify(automaticGroup)}`,
-    '      - "DIRECT"',
-    "    include-all: true",
-    "rule-providers!:",
-  ];
-
-  for (const provider of providers) {
-    const providerUrl = `${releaseBaseUrl}/rules/${provider.name}.yaml`;
-    lines.push(
-      `  ${provider.name}:`,
-      "    type: http",
-      "    behavior: classical",
-      "    format: yaml",
-      "    interval: 86400",
-      `    path: ./rules/${provider.name}.yaml`,
-      `    url: ${JSON.stringify(providerUrl)}`,
-      `    proxy: ${JSON.stringify(automaticGroup)}`
-    );
-  }
-
-  lines.push("rules:");
-  for (const provider of providers) {
-    const noResolve = provider.noResolve ? ",no-resolve" : "";
-    lines.push(`  - RULE-SET,${provider.name},${provider.target}${noResolve}`);
-  }
-  lines.push(`  - MATCH,${unmatchedGroup}`);
-
-  return `${lines.join("\n")}\n`;
-};
-
 const pathExists = async (target) => {
   try {
     await fs.lstat(target);
@@ -531,16 +453,23 @@ const build = async (outputDir) => {
 
     await fs.writeFile(
       path.join(stagingDir, "clash-party-override.yaml"),
-      renderOverrideYaml(providers, releaseBaseUrl, proxyGroup),
+      renderClashPartyOverride(providers, releaseBaseUrl, proxyGroup),
+      "utf8"
+    );
+
+    await fs.writeFile(
+      path.join(stagingDir, "flclash-override.js"),
+      renderFlclashOverride(providers, releaseBaseUrl, proxyGroup),
       "utf8"
     );
 
     const stagedRootEntries = await fs.readdir(stagingDir);
     const stagedProviderFiles = await fs.readdir(stagingRulesDir);
     if (
-      stagedRootEntries.length !== 2 ||
+      stagedRootEntries.length !== 3 ||
       !stagedRootEntries.includes("rules") ||
       !stagedRootEntries.includes("clash-party-override.yaml") ||
+      !stagedRootEntries.includes("flclash-override.js") ||
       stagedProviderFiles.length !== providers.length ||
       stagedProviderFiles.some((file) => !file.endsWith(".yaml"))
     ) {
@@ -549,7 +478,9 @@ const build = async (outputDir) => {
 
     await replaceOutputDirectory(stagingDir, outputDir);
     outputCommitted = true;
-    process.stdout.write(`Built ${stagedProviderFiles.length} rule providers and Clash Party override in ${outputDir}\n`);
+    process.stdout.write(
+      `Built ${stagedProviderFiles.length} rule providers, Clash Party override, and FLClash override in ${outputDir}\n`
+    );
   } finally {
     if (!outputCommitted) {
       await fs.rm(stagingDir, { recursive: true, force: true });
