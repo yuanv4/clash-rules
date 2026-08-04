@@ -81,6 +81,7 @@ payload:
   - "DOMAIN-SUFFIX,cloudappsecurity.com"
   - "DOMAIN-SUFFIX,sharepointonline.com"
   - "DOMAIN-SUFFIX,skypeforbusiness.com"
+  - "DOMAIN-SUFFIX,powershellgallery.com"
   - "DOMAIN-SUFFIX,yammerusercontent.com"
   - "DOMAIN-KEYWORD,1drv"
   - "DOMAIN-KEYWORD,microsoft"
