@@ -9,6 +9,7 @@ on:
     paths:
       - ".github/workflows/release.yml"
       - "scripts/build.mjs"
+      - "scripts/render-*.mjs"
       - "sources.json"
   schedule:
     - cron: "30 22 * * *"
