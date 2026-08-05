@@ -117289,7 +117289,7 @@ payload:
   - "IP-CIDR6,2c0f:f7a8:9020::/48"
   - "IP-CIDR6,2c0f:f7a8:9041::/48"
   - "IP-CIDR6,2c0f:f7a8:9220::/48"
-  - "DOMAIN,7h15_ru1353t_1s_m4d3_by_5ukk4w.skk.moe"
+  - "DOMAIN,7h15.ru1353t.1s.m4d3.by.5ukk4w.skk.moe"
   - "DOMAIN-SUFFIX,lan"
   - "DOMAIN-SUFFIX,m2m"
   - "DOMAIN-SUFFIX,home"
