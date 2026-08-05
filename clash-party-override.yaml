@@ -86,13 +86,13 @@ rule-providers!:
     path: ./rules/reject_ip.yaml
     url: "https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/reject_ip.yaml"
     proxy: "⚡ 自动选择"
-  ai_non_ip:
+  ai:
     type: http
     behavior: classical
     format: yaml
     interval: 86400
-    path: ./rules/ai_non_ip.yaml
-    url: "https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/ai_non_ip.yaml"
+    path: ./rules/ai.yaml
+    url: "https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/ai.yaml"
     proxy: "⚡ 自动选择"
   apple_intelligence_non_ip:
     type: http
@@ -211,7 +211,7 @@ rules:
   - RULE-SET,lan_ip,DIRECT,no-resolve
   - RULE-SET,reject_non_ip,REJECT,no-resolve
   - RULE-SET,reject_ip,REJECT,no-resolve
-  - RULE-SET,ai_non_ip,🤖 AI,no-resolve
+  - RULE-SET,ai,🤖 AI,no-resolve
   - RULE-SET,apple_intelligence_non_ip,🤖 AI,no-resolve
   - RULE-SET,stream_non_ip,📺 流媒体,no-resolve
   - RULE-SET,stream_ip,📺 流媒体,no-resolve
