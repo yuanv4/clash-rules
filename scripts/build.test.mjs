@@ -166,19 +166,64 @@ test("normalizes merge-ready provider views and preserves ordered provenance", (
   assert.doesNotMatch(singleSourceRendered, /# Source 1/);
 });
 
-test("migrated sources.json keeps provider order and replaces only the legacy AI view", async () => {
+test("migrated sources.json keeps the seven merged providers and ordered provenance", async () => {
   const config = await Bun.file(new URL("../sources.json", import.meta.url)).json();
   const normalized = normalizeConfiguration(config);
   const providerNames = normalized.providers.map((provider) => provider.name);
-  const aiProvider = normalized.providers.find((provider) => provider.name === "ai");
+  assert.deepEqual(providerNames, [
+    "lan_non_ip",
+    "lan_ip",
+    "reject_non_ip",
+    "reject_ip",
+    "ai",
+    "direct",
+    "foreign",
+  ]);
 
-  assert.equal(normalized.providers.length, 19);
-  assert.equal(providerNames[4], "ai");
-  assert.equal(providerNames.includes("ai_non_ip"), false);
+  const aiProvider = normalized.providers[4];
   assert.deepEqual(aiProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/global.yaml",
+    "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/non_ip/apple_intelligence.txt",
   ]);
-  assert.equal(aiProvider.inputs[0].inputFormat, "clash-yaml");
+  assert.deepEqual(aiProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "raw-list"]);
+
+  const directProvider = normalized.providers[5];
+  assert.deepEqual(directProvider.inputs.map((input) => input.sourceUrl), [
+    "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/direct.txt",
+    "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/cncidr.txt",
+    "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/non_ip/direct.txt",
+  ]);
+
+  const foreignProvider = normalized.providers[6];
+  assert.deepEqual(foreignProvider.inputs.map((input) => input.sourceUrl), [
+    "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/non_ip/stream.txt",
+    "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/ip/stream.txt",
+    "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/non_ip/microsoft_cdn.txt",
+    "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/non_ip/microsoft.txt",
+    "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Apple/Apple.list",
+    "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Google/Google.list",
+    "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Telegram/Telegram.list",
+    "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Twitter/Twitter.list",
+    "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Facebook/Facebook.list",
+    "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Instagram/Instagram.list",
+    "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/tld-not-cn.txt",
+  ]);
+
+  const aiRendered = renderYaml(aiProvider, []);
+  assert.ok(aiRendered.includes("# Source 1 [VPSDance/ai-proxy-rules]:"));
+  assert.ok(aiRendered.includes("# License 1 [VPSDance/ai-proxy-rules]: MIT (https://github.com/VPSDance/ai-proxy-rules/blob/main/LICENSE)"));
+  assert.ok(aiRendered.includes("# Source 2 [boweic/ruleset.bowei.co]:"));
+  assert.ok(aiRendered.includes("# License 2 [boweic/ruleset.bowei.co]: AGPL-3.0 (https://github.com/boweic/ruleset.bowei.co/blob/master/LICENSE)"));
+
+  const directRendered = renderYaml(directProvider, []);
+  assert.ok(directRendered.includes("# Source 1 [Loyalsoldier/clash-rules]:"));
+  assert.ok(directRendered.includes("# Source 2 [Loyalsoldier/clash-rules]:"));
+  assert.ok(directRendered.includes("# Source 3 [boweic/ruleset.bowei.co]:"));
+
+  const foreignRendered = renderYaml(foreignProvider, []);
+  assert.ok(foreignRendered.includes("# License 5 [blackmatrix7/ios_rule_script]: GPL-2.0 (https://github.com/blackmatrix7/ios_rule_script/blob/master/LICENSE)"));
+  assert.ok(foreignRendered.includes("# Source 11 [Loyalsoldier/clash-rules]:"));
+  assert.ok(foreignRendered.includes("# License 11 [Loyalsoldier/clash-rules]: MIT (https://github.com/Loyalsoldier/clash-rules/blob/release/LICENSE)"));
 });
 
 test("merges inputs with first-occurrence canonical deduplication", () => {
