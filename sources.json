@@ -1,7 +1,7 @@
 {
   "release_base_url": "https://raw.githubusercontent.com/yuanv4/clash-rules/release",
   "proxy_group": "🚀 节点选择",
-  "sources": [
+  "inputs": [
     {
       "name": "boweic/ruleset.bowei.co",
       "repository": "https://github.com/boweic/ruleset.bowei.co",
@@ -10,22 +10,7 @@
         "id": "AGPL-3.0",
         "url": "https://github.com/boweic/ruleset.bowei.co/blob/master/LICENSE"
       },
-      "input_format": "raw-list",
-      "rules": [
-        {"name": "lan_non_ip", "path": "Clash/non_ip/lan.txt", "target": "DIRECT", "no_resolve": true},
-        {"name": "lan_ip", "path": "Clash/ip/lan.txt", "target": "DIRECT", "no_resolve": true},
-        {"name": "reject_non_ip", "path": "Clash/non_ip/reject.txt", "target": "REJECT", "no_resolve": true},
-        {"name": "reject_ip", "path": "Clash/ip/reject.txt", "target": "REJECT", "no_resolve": true},
-        {"name": "ai_non_ip", "path": "Clash/non_ip/ai.txt", "target": "🤖 AI", "no_resolve": true},
-        {"name": "apple_intelligence_non_ip", "path": "Clash/non_ip/apple_intelligence.txt", "target": "🤖 AI", "no_resolve": true},
-        {"name": "stream_non_ip", "path": "Clash/non_ip/stream.txt", "target": "📺 流媒体", "no_resolve": true},
-        {"name": "stream_ip", "path": "Clash/ip/stream.txt", "target": "📺 流媒体", "no_resolve": true},
-        {"name": "microsoft_cdn", "path": "Clash/non_ip/microsoft_cdn.txt", "target": "🪟 Microsoft", "no_resolve": false},
-        {"name": "microsoft_services", "path": "Clash/non_ip/microsoft.txt", "target": "🪟 Microsoft", "no_resolve": false},
-        {"name": "domestic_non_ip", "path": "Clash/non_ip/domestic.txt", "target": "DIRECT", "no_resolve": true},
-        {"name": "domestic_ip", "path": "Clash/ip/domestic.txt", "target": "DIRECT", "no_resolve": true},
-        {"name": "direct_non_ip", "path": "Clash/non_ip/direct.txt", "target": "DIRECT", "no_resolve": true}
-      ]
+      "input_format": "raw-list"
     },
     {
       "name": "blackmatrix7/ios_rule_script",
@@ -35,15 +20,133 @@
         "id": "MIT",
         "url": "https://github.com/blackmatrix7/ios_rule_script/blob/master/LICENSE"
       },
-      "input_format": "raw-list",
-      "rules": [
-        {"name": "apple", "path": "rule/Clash/Apple/Apple.list", "target": "🍎 Apple", "no_resolve": false},
-        {"name": "google", "path": "rule/Clash/Google/Google.list", "target": "🔍 Google", "no_resolve": false},
-        {"name": "telegram", "path": "rule/Clash/Telegram/Telegram.list", "target": "💬 社交媒体", "no_resolve": false},
-        {"name": "twitter", "path": "rule/Clash/Twitter/Twitter.list", "target": "💬 社交媒体", "no_resolve": false},
-        {"name": "facebook", "path": "rule/Clash/Facebook/Facebook.list", "target": "💬 社交媒体", "no_resolve": false},
-        {"name": "instagram", "path": "rule/Clash/Instagram/Instagram.list", "target": "💬 社交媒体", "no_resolve": false}
-      ]
+      "input_format": "raw-list"
+    },
+    {
+      "name": "VPSDance/ai-proxy-rules",
+      "repository": "https://github.com/VPSDance/ai-proxy-rules",
+      "base_url": "https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/",
+      "license": {
+        "id": "MIT",
+        "url": "https://github.com/VPSDance/ai-proxy-rules/blob/main/LICENSE"
+      },
+      "input_format": "clash-yaml"
+    }
+  ],
+  "providers": [
+    {
+      "name": "lan_non_ip",
+      "target": "DIRECT",
+      "no_resolve": true,
+      "inputs": [{"input": "boweic/ruleset.bowei.co", "path": "Clash/non_ip/lan.txt"}]
+    },
+    {
+      "name": "lan_ip",
+      "target": "DIRECT",
+      "no_resolve": true,
+      "inputs": [{"input": "boweic/ruleset.bowei.co", "path": "Clash/ip/lan.txt"}]
+    },
+    {
+      "name": "reject_non_ip",
+      "target": "REJECT",
+      "no_resolve": true,
+      "inputs": [{"input": "boweic/ruleset.bowei.co", "path": "Clash/non_ip/reject.txt"}]
+    },
+    {
+      "name": "reject_ip",
+      "target": "REJECT",
+      "no_resolve": true,
+      "inputs": [{"input": "boweic/ruleset.bowei.co", "path": "Clash/ip/reject.txt"}]
+    },
+    {
+      "name": "ai",
+      "target": "🤖 AI",
+      "no_resolve": true,
+      "inputs": [{"input": "VPSDance/ai-proxy-rules", "path": "rules/clash/global.yaml"}]
+    },
+    {
+      "name": "apple_intelligence_non_ip",
+      "target": "🤖 AI",
+      "no_resolve": true,
+      "inputs": [{"input": "boweic/ruleset.bowei.co", "path": "Clash/non_ip/apple_intelligence.txt"}]
+    },
+    {
+      "name": "stream_non_ip",
+      "target": "📺 流媒体",
+      "no_resolve": true,
+      "inputs": [{"input": "boweic/ruleset.bowei.co", "path": "Clash/non_ip/stream.txt"}]
+    },
+    {
+      "name": "stream_ip",
+      "target": "📺 流媒体",
+      "no_resolve": true,
+      "inputs": [{"input": "boweic/ruleset.bowei.co", "path": "Clash/ip/stream.txt"}]
+    },
+    {
+      "name": "microsoft_cdn",
+      "target": "🪟 Microsoft",
+      "no_resolve": false,
+      "inputs": [{"input": "boweic/ruleset.bowei.co", "path": "Clash/non_ip/microsoft_cdn.txt"}]
+    },
+    {
+      "name": "microsoft_services",
+      "target": "🪟 Microsoft",
+      "no_resolve": false,
+      "inputs": [{"input": "boweic/ruleset.bowei.co", "path": "Clash/non_ip/microsoft.txt"}]
+    },
+    {
+      "name": "domestic_non_ip",
+      "target": "DIRECT",
+      "no_resolve": true,
+      "inputs": [{"input": "boweic/ruleset.bowei.co", "path": "Clash/non_ip/domestic.txt"}]
+    },
+    {
+      "name": "domestic_ip",
+      "target": "DIRECT",
+      "no_resolve": true,
+      "inputs": [{"input": "boweic/ruleset.bowei.co", "path": "Clash/ip/domestic.txt"}]
+    },
+    {
+      "name": "direct_non_ip",
+      "target": "DIRECT",
+      "no_resolve": true,
+      "inputs": [{"input": "boweic/ruleset.bowei.co", "path": "Clash/non_ip/direct.txt"}]
+    },
+    {
+      "name": "apple",
+      "target": "🍎 Apple",
+      "no_resolve": false,
+      "inputs": [{"input": "blackmatrix7/ios_rule_script", "path": "rule/Clash/Apple/Apple.list"}]
+    },
+    {
+      "name": "google",
+      "target": "🔍 Google",
+      "no_resolve": false,
+      "inputs": [{"input": "blackmatrix7/ios_rule_script", "path": "rule/Clash/Google/Google.list"}]
+    },
+    {
+      "name": "telegram",
+      "target": "💬 社交媒体",
+      "no_resolve": false,
+      "inputs": [{"input": "blackmatrix7/ios_rule_script", "path": "rule/Clash/Telegram/Telegram.list"}]
+    },
+    {
+      "name": "twitter",
+      "target": "💬 社交媒体",
+      "no_resolve": false,
+      "inputs": [{"input": "blackmatrix7/ios_rule_script", "path": "rule/Clash/Twitter/Twitter.list"}]
+    },
+    {
+      "name": "facebook",
+      "target": "💬 社交媒体",
+      "no_resolve": false,
+      "inputs": [{"input": "blackmatrix7/ios_rule_script", "path": "rule/Clash/Facebook/Facebook.list"}]
+    },
+    {
+      "name": "instagram",
+      "target": "💬 社交媒体",
+      "no_resolve": false,
+      "inputs": [{"input": "blackmatrix7/ios_rule_script", "path": "rule/Clash/Instagram/Instagram.list"}]
     }
   ]
 }
