@@ -318,7 +318,7 @@ export const normalizeConfiguration = (config) => {
     });
   }
 
-  return { releaseBaseUrl: releaseBaseUrl.toString().replace(/\/$/u, ""), proxyGroup: config.proxy_group, providers };
+  return { releaseBaseUrl: releaseBaseUrl.toString().replace(/\/$/u, ""), providers };
 };
 
 const loadConfiguration = async () => {
@@ -595,7 +595,15 @@ const parseClashYamlRules = (text, url) => {
     if (typeof value !== "string" || value.trim().length === 0) {
       throw new Error(`Invalid Clash YAML payload at ${url}: payload[${index}] must be a non-empty string`);
     }
-    const line = value.trim();
+    const payloadValue = value.trim();
+    const bareValue = payloadValue.startsWith("+.") ? payloadValue.slice(2) : payloadValue;
+    const line = payloadValue.includes(",")
+      ? payloadValue
+      : isValidCidr(bareValue, 4)
+        ? `IP-CIDR,${bareValue}`
+        : isValidCidr(bareValue, 6)
+          ? `IP-CIDR6,${bareValue}`
+          : `DOMAIN-SUFFIX,${bareValue}`;
     assertSafeRuleLine(line, url, `payload[${index}]`);
     return { line, location: `payload[${index}]` };
   });
@@ -705,7 +713,7 @@ const replaceOutputDirectory = async (stagingDir, outputDir) => {
 };
 
 const build = async (outputDir) => {
-  const { releaseBaseUrl, proxyGroup, providers } = await loadConfiguration();
+  const { releaseBaseUrl, providers } = await loadConfiguration();
   await fs.mkdir(path.dirname(outputDir), { recursive: true });
   const stagingDir = await fs.mkdtemp(path.join(path.dirname(outputDir), `.${path.basename(outputDir)}-staging-`));
   let outputCommitted = false;
@@ -726,13 +734,13 @@ const build = async (outputDir) => {
 
     await fs.writeFile(
       path.join(stagingDir, "clash-party-override.yaml"),
-      renderClashPartyOverride(providers, releaseBaseUrl, proxyGroup),
+      renderClashPartyOverride(providers, releaseBaseUrl),
       "utf8"
     );
 
     await fs.writeFile(
       path.join(stagingDir, "flclash-override.js"),
-      renderFlclashOverride(providers, releaseBaseUrl, proxyGroup),
+      renderFlclashOverride(providers, releaseBaseUrl),
       "utf8"
     );
 
