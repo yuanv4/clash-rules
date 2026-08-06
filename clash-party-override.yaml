@@ -14,11 +14,16 @@ proxy-groups:
     include-all: true
     filter: "(?i)(?:JP|JPN|Japan|日本|Tokyo|東京|Osaka|大阪|🇯🇵)"
     empty-fallback: "REJECT"
-  - name: "🌐 国外"
+  - name: "🌐 国内"
     type: select
     proxies:
       - "⚡ 自动选择"
     include-all: true
+  - name: "🐟 漏网之鱼"
+    type: select
+    proxies:
+      - "⚡ 自动选择"
+      - "DIRECT"
 rule-providers!:
   lan_non_ip:
     type: http
@@ -82,6 +87,6 @@ rules:
   - RULE-SET,reject_non_ip,REJECT,no-resolve
   - RULE-SET,reject_ip,REJECT,no-resolve
   - RULE-SET,ai,🤖 AI,no-resolve
-  - RULE-SET,direct,DIRECT,no-resolve
-  - RULE-SET,foreign,🌐 国外
-  - MATCH,DIRECT
+  - RULE-SET,direct,🌐 国内,no-resolve
+  - RULE-SET,foreign,⚡ 自动选择
+  - MATCH,🐟 漏网之鱼
