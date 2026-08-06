@@ -28,8 +28,7 @@ export const renderFlclashOverride = (providers, releaseBaseUrl) => {
     {
       name: domesticGroup,
       type: "select",
-      proxies: [automaticGroup],
-      "include-all": true,
+      proxies: [automaticGroup, "DIRECT"],
     },
     {
       name: fallbackGroup,

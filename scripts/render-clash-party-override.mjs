@@ -28,7 +28,7 @@ export const renderClashPartyOverride = (providers, releaseBaseUrl) => {
     "    type: select",
     "    proxies:",
     `      - ${JSON.stringify(automaticGroup)}`,
-    "    include-all: true",
+    '      - "DIRECT"',
     `  - name: ${JSON.stringify(fallbackGroup)}`,
     "    type: select",
     "    proxies:",
