@@ -3,7 +3,7 @@ export const renderClashPartyOverride = (providers, releaseBaseUrl) => {
   const aiGroup = "🤖 AI";
   const domesticGroup = "🌐 国内";
   const fallbackGroup = "🐟 漏网之鱼";
-  const testUrl = "https://www.gstatic.com/generate_204";
+  const testUrl = "https://cp.cloudflare.com/generate_204";
   const japanNodeFilter =
     "(?i)(?:JP|JPN|Japan|日本|Tokyo|東京|Osaka|大阪|🇯🇵)";
 
