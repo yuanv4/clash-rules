@@ -3,13 +3,13 @@
 proxy-groups:
   - name: "⚡ 自动选择"
     type: url-test
-    url: "https://www.gstatic.com/generate_204"
+    url: "https://cp.cloudflare.com/generate_204"
     interval: 300
     tolerance: 50
     include-all: true
   - name: "🤖 AI"
     type: fallback
-    url: "https://www.gstatic.com/generate_204"
+    url: "https://cp.cloudflare.com/generate_204"
     interval: 300
     include-all: true
     filter: "(?i)(?:JP|JPN|Japan|日本|Tokyo|東京|Osaka|大阪|🇯🇵)"
