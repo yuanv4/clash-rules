@@ -1,7 +1,8 @@
 export const renderClashPartyOverride = (providers, releaseBaseUrl) => {
   const automaticGroup = "⚡ 自动选择";
   const aiGroup = "🤖 AI";
-  const foreignGroup = "🌐 国外";
+  const domesticGroup = "🌐 国内";
+  const fallbackGroup = "🐟 漏网之鱼";
   const testUrl = "https://www.gstatic.com/generate_204";
   const japanNodeFilter =
     "(?i)(?:JP|JPN|Japan|日本|Tokyo|東京|Osaka|大阪|🇯🇵)";
@@ -23,11 +24,16 @@ export const renderClashPartyOverride = (providers, releaseBaseUrl) => {
     "    include-all: true",
     `    filter: ${JSON.stringify(japanNodeFilter)}`,
     '    empty-fallback: "REJECT"',
-    `  - name: ${JSON.stringify(foreignGroup)}`,
+    `  - name: ${JSON.stringify(domesticGroup)}`,
     "    type: select",
     "    proxies:",
     `      - ${JSON.stringify(automaticGroup)}`,
     "    include-all: true",
+    `  - name: ${JSON.stringify(fallbackGroup)}`,
+    "    type: select",
+    "    proxies:",
+    `      - ${JSON.stringify(automaticGroup)}`,
+    '      - "DIRECT"',
     "rule-providers!:",
   ];
 
@@ -50,7 +56,7 @@ export const renderClashPartyOverride = (providers, releaseBaseUrl) => {
     const noResolve = provider.noResolve ? ",no-resolve" : "";
     lines.push(`  - RULE-SET,${provider.name},${provider.target}${noResolve}`);
   }
-  lines.push("  - MATCH,DIRECT");
+  lines.push(`  - MATCH,${fallbackGroup}`);
 
   return `${lines.join("\n")}\n`;
 };

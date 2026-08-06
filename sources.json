@@ -79,7 +79,7 @@
     },
     {
       "name": "direct",
-      "target": "DIRECT",
+      "target": "🌐 国内",
       "no_resolve": true,
       "inputs": [
         {"input": "Loyalsoldier/clash-rules", "path": "direct.txt"},
@@ -89,7 +89,7 @@
     },
     {
       "name": "foreign",
-      "target": "🌐 国外",
+      "target": "⚡ 自动选择",
       "no_resolve": false,
       "inputs": [
         {"input": "boweic/ruleset.bowei.co", "path": "Clash/non_ip/stream.txt"},

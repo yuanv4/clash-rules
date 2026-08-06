@@ -1,7 +1,8 @@
 export const renderFlclashOverride = (providers, releaseBaseUrl) => {
   const automaticGroup = "⚡ 自动选择";
   const aiGroup = "🤖 AI";
-  const foreignGroup = "🌐 国外";
+  const domesticGroup = "🌐 国内";
+  const fallbackGroup = "🐟 漏网之鱼";
   const testUrl = "https://www.gstatic.com/generate_204";
   const japanNodeFilter =
     "(?i)(?:JP|JPN|Japan|日本|Tokyo|東京|Osaka|大阪|🇯🇵)";
@@ -25,10 +26,15 @@ export const renderFlclashOverride = (providers, releaseBaseUrl) => {
       "empty-fallback": "REJECT",
     },
     {
-      name: foreignGroup,
+      name: domesticGroup,
       type: "select",
       proxies: [automaticGroup],
       "include-all": true,
+    },
+    {
+      name: fallbackGroup,
+      type: "select",
+      proxies: [automaticGroup, "DIRECT"],
     },
   ];
 
@@ -51,7 +57,7 @@ export const renderFlclashOverride = (providers, releaseBaseUrl) => {
       const noResolve = provider.noResolve ? ",no-resolve" : "";
       return `RULE-SET,${provider.name},${provider.target}${noResolve}`;
     }),
-    "MATCH,DIRECT",
+    `MATCH,${fallbackGroup}`,
   ];
   const generatedGroupNames = groups.map((group) => group.name);
   const staleGeneratedGroupNames = [
@@ -61,7 +67,6 @@ export const renderFlclashOverride = (providers, releaseBaseUrl) => {
     "🍎 Apple",
     "🔍 Google",
     "💬 社交媒体",
-    "🐟 漏网之鱼",
   ];
 
   return [
