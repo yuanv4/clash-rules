@@ -18,7 +18,7 @@ proxy-groups:
     type: select
     proxies:
       - "⚡ 自动选择"
-    include-all: true
+      - "DIRECT"
   - name: "🐟 漏网之鱼"
     type: select
     proxies:
