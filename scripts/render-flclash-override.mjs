@@ -18,12 +18,12 @@ export const renderFlclashOverride = (providers, releaseBaseUrl) => {
     },
     {
       name: aiGroup,
-      type: "fallback",
+      type: "url-test",
       url: testUrl,
       interval: 300,
+      tolerance: 50,
       "include-all": true,
       filter: japanNodeFilter,
-      "empty-fallback": "REJECT",
     },
     {
       name: domesticGroup,
