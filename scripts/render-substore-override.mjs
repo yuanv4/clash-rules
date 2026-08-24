@@ -62,7 +62,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl) => {
     "  config['proxy-groups'] = [",
     `    { name: '${automaticGroup}', type: 'url-test', url: '${testUrl}', interval: 300, tolerance: 50, proxies: names.slice() },`,
     `    { name: '${aiGroup}', type: 'url-test', url: '${testUrl}', interval: 300, tolerance: 50, proxies: aiNames },`,
-    `    { name: '${domesticGroup}', type: 'select', proxies: ['${automaticGroup}', 'DIRECT'] },`,
+    `    { name: '${domesticGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'] },`,
     `    { name: '${fallbackGroup}', type: 'select', proxies: ['${automaticGroup}', 'DIRECT'] },`,
     "  ];",
     "",
