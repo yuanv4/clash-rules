@@ -41,6 +41,16 @@
         "url": "https://github.com/VPSDance/ai-proxy-rules/blob/main/LICENSE"
       },
       "input_format": "clash-yaml"
+    },
+    {
+      "name": "custom/tag",
+      "repository": "https://github.com/yuanv4/clash-rules",
+      "base_url": "https://raw.githubusercontent.com/yuanv4/clash-rules/main/",
+      "license": {
+        "id": "MIT",
+        "url": "https://github.com/yuanv4/clash-rules"
+      },
+      "input_format": "raw-list"
     }
   ],
   "providers": [
@@ -85,6 +95,14 @@
         {"input": "Loyalsoldier/clash-rules", "path": "direct.txt"},
         {"input": "Loyalsoldier/clash-rules", "path": "cncidr.txt"},
         {"input": "boweic/ruleset.bowei.co", "path": "Clash/non_ip/direct.txt"}
+      ]
+    },
+    {
+      "name": "tag",
+      "target": "🌐 国内",
+      "no_resolve": true,
+      "inputs": [
+        {"input": "custom/tag", "path": "custom/tag.txt"}
       ]
     },
     {

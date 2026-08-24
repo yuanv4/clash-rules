@@ -166,7 +166,7 @@ test("normalizes merge-ready provider views and preserves ordered provenance", (
   assert.doesNotMatch(singleSourceRendered, /# Source 1/);
 });
 
-test("migrated sources.json keeps the seven merged providers and ordered provenance", async () => {
+test("migrated sources.json keeps the eight merged providers and ordered provenance", async () => {
   const config = await Bun.file(new URL("../sources.json", import.meta.url)).json();
   const normalized = normalizeConfiguration(config);
   const providerNames = normalized.providers.map((provider) => provider.name);
@@ -177,6 +177,7 @@ test("migrated sources.json keeps the seven merged providers and ordered provena
     "reject_ip",
     "ai",
     "direct",
+    "tag",
     "foreign",
   ]);
 
@@ -194,7 +195,17 @@ test("migrated sources.json keeps the seven merged providers and ordered provena
     "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/non_ip/direct.txt",
   ]);
 
-  const foreignProvider = normalized.providers[6];
+  const tagProvider = normalized.providers[6];
+  assert.equal(tagProvider.target, "🌐 国内");
+  assert.equal(tagProvider.noResolve, true);
+  assert.deepEqual(tagProvider.inputs.map((input) => input.sourceUrl), [
+    "https://raw.githubusercontent.com/yuanv4/clash-rules/main/custom/tag.txt",
+  ]);
+  const tagRendered = renderYaml(tagProvider, []);
+  assert.ok(tagRendered.includes("# Source: https://github.com/yuanv4/clash-rules (https://raw.githubusercontent.com/yuanv4/clash-rules/main/custom/tag.txt)"));
+  assert.ok(tagRendered.includes("# License: MIT (https://github.com/yuanv4/clash-rules)"));
+
+  const foreignProvider = normalized.providers[7];
   assert.deepEqual(foreignProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/non_ip/stream.txt",
     "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/ip/stream.txt",

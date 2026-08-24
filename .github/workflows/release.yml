@@ -12,6 +12,7 @@ on:
       - "scripts/build.test.mjs"
       - "scripts/render-*.mjs"
       - "sources.json"
+      - "custom/**"
   schedule:
     - cron: "30 22 * * *"
 
