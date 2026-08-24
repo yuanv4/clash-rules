@@ -329,3 +329,73 @@ test("accepts ordinary percent-encoded paths and rejects over-limit nested encod
     /encoding did not stabilize after/,
   );
 });
+
+test("renders a sub-store override with Singapore-only AI group and generated rules", async () => {
+  const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
+  const providers = [
+    { name: "ai", target: "🤖 AI", noResolve: true },
+    { name: "foreign", target: "⚡ 自动选择", noResolve: false },
+  ];
+  const releaseBaseUrl = "https://raw.githubusercontent.com/yuanv4/clash-rules/release";
+  const script = renderSubstoreOverride(providers, releaseBaseUrl);
+
+  assert.match(script, /async function main\(config = \{\}\)/);
+  assert.match(script, /\(?:SG\|SGP\|Singapore\|新加坡\|🇸🇬\)/i);
+  assert.doesNotMatch(script, /JP\|JPN\|Japan|日本/);
+  assert.match(script, /produceArtifact\(\{ type: 'file', name: 'cloud-hk-node' \}\)/);
+  assert.match(script, /produceArtifact\(\{ type: 'file', name: 'tailscale-secret' \}\)/);
+  assert.match(script, /config\['rule-providers'\] = \{"ai":\{"type":"http"/);
+  assert.match(script, /RULE-SET,ai,🤖 AI,no-resolve/);
+  assert.match(script, /RULE-SET,foreign,⚡ 自动选择/);
+  assert.match(script, /MATCH,🐟 漏网之鱼/);
+
+  // 沙箱执行:模拟 sub-store 运行时环境
+  const files = {
+    "cloud-hk-node": JSON.stringify({
+      name: "cloud-hk 香港",
+      type: "vless",
+      server: "example.test",
+      port: 8081,
+    }),
+    "tailscale-secret": JSON.stringify({
+      hostname: "flclash-android",
+      "auth-key": "tskey-test",
+      "control-url": "https://controlplane.tailscale.com",
+      "state-dir": "./tailscale",
+      ephemeral: false,
+      udp: true,
+      "accept-routes": true,
+      "ip-version": "ipv4-prefer",
+    }),
+  };
+  const makeEnv = (fileName) => ({
+    produceArtifact: async ({ name }) => files[name],
+    $file: { name: fileName },
+  });
+
+  const buildConfig = async (env, proxies) => {
+    const fn = new Function(
+      "produceArtifact",
+      "$file",
+      `${script}\nreturn main;`,
+    )(env.produceArtifact, env.$file);
+    return fn({
+      proxies: proxies.map((name) => ({ name })),
+    });
+  };
+
+  const plain = await buildConfig(makeEnv("yuanv4"), [
+    { name: "🇯🇵 日本01" },
+    { name: "🇸🇬 新加坡01" },
+  ].map((p) => p.name));
+  const aiNames = plain["proxy-groups"].find((g) => g.name === "🤖 AI").proxies;
+  assert.deepEqual(aiNames, ["🇸🇬 新加坡01"]);
+  assert.equal(plain.mode, "Rule");
+  assert.deepEqual(plain.rules[0], "RULE-SET,ai,🤖 AI,no-resolve");
+  assert.equal(plain.proxies.at(-1).name, "cloud-hk 香港");
+
+  const withTs = await buildConfig(makeEnv("yuanv4-with-tailscale"), ["🇸🇬 新加坡01"]);
+  assert.equal(withTs.proxies[0].name, "TAILSCALE");
+  assert.equal(withTs["proxy-groups"][0].name, "Tailscale");
+  assert.match(withTs.rules[0], /IP-CIDR,100\.64\.0\.0\/10,Tailscale,no-resolve/);
+});
