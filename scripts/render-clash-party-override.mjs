@@ -4,8 +4,8 @@ export const renderClashPartyOverride = (providers, releaseBaseUrl) => {
   const domesticGroup = "🌐 国内";
   const fallbackGroup = "🐟 漏网之鱼";
   const testUrl = "https://cp.cloudflare.com/generate_204";
-  const japanNodeFilter =
-    "(?i)(?:JP|JPN|Japan|日本|Tokyo|東京|Osaka|大阪|🇯🇵)";
+  const singaporeNodeFilter =
+    "(?i)(?:SG|SGP|Singapore|新加坡|🇸🇬)";
 
   const lines = [
     "# 自动生成：由 scripts/build.mjs 生成，请勿手动编辑。",
@@ -23,7 +23,7 @@ export const renderClashPartyOverride = (providers, releaseBaseUrl) => {
     "    interval: 300",
     "    tolerance: 50",
     "    include-all: true",
-    `    filter: ${JSON.stringify(japanNodeFilter)}`,
+    `    filter: ${JSON.stringify(singaporeNodeFilter)}`,
     `  - name: ${JSON.stringify(domesticGroup)}`,
     "    type: select",
     "    proxies:",
