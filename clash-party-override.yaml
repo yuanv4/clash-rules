@@ -13,7 +13,7 @@ proxy-groups:
     interval: 300
     tolerance: 50
     include-all: true
-    filter: "(?i)(?:JP|JPN|Japan|日本|Tokyo|東京|Osaka|大阪|🇯🇵)"
+    filter: "(?i)(?:SG|SGP|Singapore|新加坡|🇸🇬)"
   - name: "🌐 国内"
     type: select
     proxies:
