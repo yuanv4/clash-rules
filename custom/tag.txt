@@ -1,0 +1,12 @@
+# TAG 机场 (tagss) — 官网/用户面板/订阅域名，需走国内网络访问
+# 规则集来源: 官方站 tagss4.com、tagss09.pro、tagss10.pro、tagss02.pro、
+# tagss11.pro、tagss12.pro（跳转确认）及镜像 tagjichang.lat
+# 机场会轮换 tagss 前缀镜像域名，DOMAIN-KEYWORD,tagss 可自动覆盖未来新镜像
+DOMAIN-SUFFIX,tagss4.com
+DOMAIN-SUFFIX,tagss02.pro
+DOMAIN-SUFFIX,tagss09.pro
+DOMAIN-SUFFIX,tagss10.pro
+DOMAIN-SUFFIX,tagss11.pro
+DOMAIN-SUFFIX,tagss12.pro
+DOMAIN-SUFFIX,tagjichang.lat
+DOMAIN-KEYWORD,tagss
