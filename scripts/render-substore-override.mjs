@@ -4,9 +4,13 @@
  * The output is a standalone `async function main(config = {}) { ... }` JS
  * file consumed by sub-store's mihomoConfig "Script Operator" (mode=link).
  *
- * Unlike the Clash Party / FlClash overrides (which run inside mihomo and can
- * use runtime `include-all` + `filter`), this script runs inside sub-store and
- * must build STATIC proxy lists for each group from the parsed nodes.
+ * Because this script runs inside sub-store (not inside mihomo), it cannot
+ * use runtime `include-all` + `filter` and must build STATIC proxy lists
+ * for each group from the parsed nodes.
+ *
+ * Every subscription gets the Tailscale proxy group and routing rules; the
+ * TAILSCALE node itself is only injected when the subscription name contains
+ * "tailscale". Without the node the group falls back to DIRECT only.
  *
  * Secrets (cloud-hk node, tailscale auth-key) stay in sub-store local files
  * and are referenced by name via `produceArtifact`; nothing secret is embedded.
@@ -85,10 +89,9 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl) => {
     "      'accept-routes': secret['accept-routes'] !== false,",
     "      'ip-version': secret['ip-version'] || 'ipv4-prefer',",
     "    });",
-    "    config['proxy-groups'] = config['proxy-groups'].filter((g) => !(g && g.name === 'Tailscale'));",
-    "    config['proxy-groups'].unshift({ name: 'Tailscale', type: 'select', proxies: ['TAILSCALE', 'DIRECT'] });",
-    `    config.rules = ${JSON.stringify(tailscaleRules)}.concat(config.rules);`,
     "  }",
+    "  config['proxy-groups'].unshift({ name: 'Tailscale', type: 'select', proxies: withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT'] });",
+    `  config.rules = ${JSON.stringify(tailscaleRules)}.concat(config.rules);`,
     "",
     "  return config;",
     "}",

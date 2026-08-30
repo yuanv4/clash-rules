@@ -406,38 +406,21 @@ test("renders a sub-store override with Singapore-only AI group and generated ru
     ["DIRECT", "⚡ 自动选择"]
   );
   assert.equal(plain.mode, "Rule");
-  assert.deepEqual(plain.rules[0], "RULE-SET,ai,🤖 AI,no-resolve");
+  assert.equal(plain["proxy-groups"][0].name, "Tailscale");
+  assert.deepEqual(plain["proxy-groups"][0].proxies, ["DIRECT"]);
+  assert.deepEqual(plain.rules.slice(0, 3), [
+    "IP-CIDR,100.64.0.0/10,Tailscale,no-resolve",
+    "IP-CIDR,100.100.100.100/32,Tailscale,no-resolve",
+    "DOMAIN-SUFFIX,ts.net,Tailscale",
+  ]);
+  assert.equal(plain.rules[3], "RULE-SET,ai,🤖 AI,no-resolve");
+  assert.ok(!plain.proxies.some((p) => p && p.name === "TAILSCALE"), "plain subscription must not contain the TAILSCALE node");
   assert.equal(plain.proxies.at(-1).name, "cloud-hk 香港");
 
   const withTs = await buildConfig(makeEnv("yuanv4-with-tailscale"), ["🇸🇬 新加坡01"]);
   assert.equal(withTs.proxies[0].name, "TAILSCALE");
   assert.equal(withTs["proxy-groups"][0].name, "Tailscale");
+  assert.deepEqual(withTs["proxy-groups"][0].proxies, ["TAILSCALE", "DIRECT"]);
   assert.match(withTs.rules[0], /IP-CIDR,100\.64\.0\.0\/10,Tailscale,no-resolve/);
 });
 
-test("renders Clash Party and FlClash overrides with domestic group defaulting to DIRECT", async () => {
-  const { renderClashPartyOverride } = await import("./render-clash-party-override.mjs");
-  const { renderFlclashOverride } = await import("./render-flclash-override.mjs");
-  const providers = [
-    { name: "direct", target: "🌐 国内", noResolve: true },
-    { name: "tag", target: "🌐 国内", noResolve: true },
-  ];
-  const releaseBaseUrl = "https://raw.githubusercontent.com/yuanv4/clash-rules/release";
-
-  const clashParty = renderClashPartyOverride(providers, releaseBaseUrl);
-  const clashPartyDomesticIndex = clashParty.indexOf('- name: "🌐 国内"');
-  assert.ok(clashPartyDomesticIndex !== -1, "Clash Party override must contain the domestic group");
-  const clashPartyBlock = clashParty.slice(clashPartyDomesticIndex, clashPartyDomesticIndex + 120);
-  assert.ok(
-    clashPartyBlock.indexOf('      - "DIRECT"') < clashPartyBlock.indexOf('      - "⚡ 自动选择"'),
-    "domestic group must default to DIRECT"
-  );
-  assert.match(clashParty, /- RULE-SET,tag,🌐 国内,no-resolve/);
-
-  const flclash = renderFlclashOverride(providers, releaseBaseUrl);
-  assert.ok(
-    flclash.includes('{"name":"🌐 国内","type":"select","proxies":["DIRECT","⚡ 自动选择"]}'),
-    "FlClash domestic group must default to DIRECT"
-  );
-  assert.match(flclash, /RULE-SET,tag,🌐 国内,no-resolve/);
-});
