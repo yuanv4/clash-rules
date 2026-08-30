@@ -38,10 +38,9 @@ async function main(config = {}) {
       'accept-routes': secret['accept-routes'] !== false,
       'ip-version': secret['ip-version'] || 'ipv4-prefer',
     });
-    config['proxy-groups'] = config['proxy-groups'].filter((g) => !(g && g.name === 'Tailscale'));
-    config['proxy-groups'].unshift({ name: 'Tailscale', type: 'select', proxies: ['TAILSCALE', 'DIRECT'] });
-    config.rules = ["IP-CIDR,100.64.0.0/10,Tailscale,no-resolve","IP-CIDR,100.100.100.100/32,Tailscale,no-resolve","DOMAIN-SUFFIX,ts.net,Tailscale"].concat(config.rules);
   }
+  config['proxy-groups'].unshift({ name: 'Tailscale', type: 'select', proxies: withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT'] });
+  config.rules = ["IP-CIDR,100.64.0.0/10,Tailscale,no-resolve","IP-CIDR,100.100.100.100/32,Tailscale,no-resolve","DOMAIN-SUFFIX,ts.net,Tailscale"].concat(config.rules);
 
   return config;
 }
