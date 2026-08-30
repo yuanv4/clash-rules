@@ -56,14 +56,12 @@ jobs:
           git -C "$release_worktree" rm -r -- .
           mkdir -p "$release_worktree/rules"
           cp -- dist/rules/*.yaml "$release_worktree/rules/"
-          cp -- dist/clash-party-override.yaml "$release_worktree/"
-          cp -- dist/flclash-override.js "$release_worktree/"
           cp -- dist/sub-store-override.js "$release_worktree/"
 
           git -C "$release_worktree" add -A
           mapfile -d '' -t tracked_files < <(git -C "$release_worktree" ls-files --cached -z)
           provider_count=$(ls -1 "$release_worktree/rules/"*.yaml | wc -l)
-          expected_count=$((provider_count + 3))
+          expected_count=$((provider_count + 1))
           if [[ "${#tracked_files[@]}" -ne $expected_count ]]; then
             echo "Expected exactly ${expected_count} tracked publication artifacts, found ${#tracked_files[@]}." >&2
             exit 1
@@ -71,8 +69,6 @@ jobs:
           for tracked_file in "${tracked_files[@]}"; do
             case "$tracked_file" in
               rules/*.yaml) ;;
-              clash-party-override.yaml) ;;
-              flclash-override.js) ;;
               sub-store-override.js) ;;
               *)
                 echo "Unexpected tracked release artifact: $tracked_file" >&2
