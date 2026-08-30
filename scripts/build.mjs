@@ -5,8 +5,6 @@ import http from "node:http";
 import https from "node:https";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { renderClashPartyOverride } from "./render-clash-party-override.mjs";
-import { renderFlclashOverride } from "./render-flclash-override.mjs";
 import { renderSubstoreOverride } from "./render-substore-override.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -734,18 +732,6 @@ const build = async (outputDir) => {
     }
 
     await fs.writeFile(
-      path.join(stagingDir, "clash-party-override.yaml"),
-      renderClashPartyOverride(providers, releaseBaseUrl),
-      "utf8"
-    );
-
-    await fs.writeFile(
-      path.join(stagingDir, "flclash-override.js"),
-      renderFlclashOverride(providers, releaseBaseUrl),
-      "utf8"
-    );
-
-    await fs.writeFile(
       path.join(stagingDir, "sub-store-override.js"),
       renderSubstoreOverride(providers, releaseBaseUrl),
       "utf8"
@@ -754,10 +740,8 @@ const build = async (outputDir) => {
     const stagedRootEntries = await fs.readdir(stagingDir);
     const stagedProviderFiles = await fs.readdir(stagingRulesDir);
     if (
-      stagedRootEntries.length !== 4 ||
+      stagedRootEntries.length !== 2 ||
       !stagedRootEntries.includes("rules") ||
-      !stagedRootEntries.includes("clash-party-override.yaml") ||
-      !stagedRootEntries.includes("flclash-override.js") ||
       !stagedRootEntries.includes("sub-store-override.js") ||
       stagedProviderFiles.length !== providers.length ||
       stagedProviderFiles.some((file) => !file.endsWith(".yaml"))
@@ -768,7 +752,7 @@ const build = async (outputDir) => {
     await replaceOutputDirectory(stagingDir, outputDir);
     outputCommitted = true;
     process.stdout.write(
-      `Built ${stagedProviderFiles.length} rule providers, Clash Party override, FLClash override, and sub-store override in ${outputDir}\n`
+      `Built ${stagedProviderFiles.length} rule providers and sub-store override in ${outputDir}\n`
     );
   } finally {
     if (!outputCommitted) {
