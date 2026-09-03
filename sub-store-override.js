@@ -4,13 +4,14 @@ async function main(config = {}) {
   const withTailscale = ($file && ($file.name || '').indexOf('tailscale') !== -1);
 
   const names = config.proxies.map((p) => p.name);
-  const aiRule = /(?:SG|SGP|Singapore|新加坡|🇸🇬)/i;
-  const aiNames = names.filter((n) => aiRule.test(n));
+  const regionNames = Object.fromEntries(Object.entries({"🇭🇰 香港":"(?:HK|HKG|Hong Kong|香港|🇭🇰)","🇯🇵 日本":"(?:JP|JPN|Japan|日本|🇯🇵)","🇸🇬 新加坡":"(?:SG|SGP|Singapore|新加坡|🇸🇬)","🇺🇸 美西":"(?:US(?: |-|_)?(?:West|W)|USA(?: |-|_)?(?:West|W)|美(?:国)?西|洛杉矶|Los Angeles|San Jose|Seattle|LAX|SJC|SEA)"}).map(([region, filter]) => [region, names.filter((name) => new RegExp(filter, 'i').test(name))]));
   config['proxy-groups'] = [
     { name: '⚡ 自动选择', type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies: names.slice() },
-    { name: '🤖 AI', type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies: aiNames },
-    { name: '🌐 国内', type: 'select', proxies: ['DIRECT', '⚡ 自动选择'] },
-    { name: '🐟 漏网之鱼', type: 'select', proxies: ['⚡ 自动选择', 'DIRECT'] },
+    { name: '🤖 AI', type: 'select', proxies: ['🇸🇬 新加坡'] },
+    ...Object.entries(regionNames).map(([name, proxies]) => ({ name, type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies })),
+    { name: '🚀 节点选择', type: 'select', proxies: ['🇭🇰 香港', '🇯🇵 日本', '🇸🇬 新加坡', '🇺🇸 美西'] },
+    { name: '🌐 国内', type: 'select', proxies: ['DIRECT', '🚀 节点选择'] },
+    { name: '🐟 漏网之鱼', type: 'select', proxies: ['🚀 节点选择', 'DIRECT'] },
   ];
 
   config.mode = 'Rule';
