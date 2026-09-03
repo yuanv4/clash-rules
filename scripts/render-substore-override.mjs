@@ -12,8 +12,8 @@
  * TAILSCALE node itself is only injected when the subscription name contains
  * "tailscale". Without the node the group falls back to DIRECT only.
  *
- * Secrets (cloud-hk node, tailscale auth-key) stay in sub-store local files
- * and are referenced by name via `produceArtifact`; nothing secret is embedded.
+ * The Tailscale auth-key stays in a local sub-store file and is referenced by
+ * name via `produceArtifact`; nothing secret is embedded.
  */
 export const renderSubstoreOverride = (providers, releaseBaseUrl) => {
   const automaticGroup = "⚡ 自动选择";
@@ -53,12 +53,6 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl) => {
     "// Consumed by the DS420 sub-store mihomoConfig override (Script Operator, mode=link).",
     "async function main(config = {}) {",
     "  const withTailscale = ($file && ($file.name || '').indexOf('tailscale') !== -1);",
-    "",
-    "  // cloud-hk 节点:去重 + 追加末尾。凭据存于 sub-store 本地文件,不进入仓库。",
-    "  const cloudHk = JSON.parse(await produceArtifact({ type: 'file', name: 'cloud-hk-node' }));",
-    "  config.proxies = config.proxies || [];",
-    "  config.proxies = config.proxies.filter((p) => !(p && p.name === cloudHk.name));",
-    "  config.proxies.push(cloudHk);",
     "",
     "  const names = config.proxies.map((p) => p.name);",
     `  const aiRule = /${singaporeNodeFilter}/i;`,
