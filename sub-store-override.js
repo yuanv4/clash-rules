@@ -3,12 +3,6 @@
 async function main(config = {}) {
   const withTailscale = ($file && ($file.name || '').indexOf('tailscale') !== -1);
 
-  // cloud-hk 节点:去重 + 追加末尾。凭据存于 sub-store 本地文件,不进入仓库。
-  const cloudHk = JSON.parse(await produceArtifact({ type: 'file', name: 'cloud-hk-node' }));
-  config.proxies = config.proxies || [];
-  config.proxies = config.proxies.filter((p) => !(p && p.name === cloudHk.name));
-  config.proxies.push(cloudHk);
-
   const names = config.proxies.map((p) => p.name);
   const aiRule = /(?:SG|SGP|Singapore|新加坡|🇸🇬)/i;
   const aiNames = names.filter((n) => aiRule.test(n));
