@@ -96,6 +96,7 @@ payload:
   - "DOMAIN-SUFFIX,civitai.com"
   - "DOMAIN-SUFFIX,cline.bot"
   - "DOMAIN-SUFFIX,clipdrop.co"
+  - "DOMAIN,api.cloudflare.com"
   - "DOMAIN-SUFFIX,ai.cloudflare.com"
   - "DOMAIN-SUFFIX,coderabbit.ai"
   - "DOMAIN-SUFFIX,cohere.ai"
