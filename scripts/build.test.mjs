@@ -353,7 +353,7 @@ test("renders a sub-store override with Singapore-only AI group and generated ru
   assert.match(script, /async function main\(config = \{\}\)/);
   assert.match(script, /\(?:SG\|SGP\|Singapore\|新加坡\|🇸🇬\)/i);
   assert.doesNotMatch(script, /JP\|JPN\|Japan|日本/);
-  assert.match(script, /produceArtifact\(\{ type: 'file', name: 'cloud-hk-node' \}\)/);
+  assert.doesNotMatch(script, /cloud-hk-node/);
   assert.match(script, /produceArtifact\(\{ type: 'file', name: 'tailscale-secret' \}\)/);
   assert.match(script, /config\['rule-providers'\] = \{"ai":\{"type":"http"/);
   assert.match(script, /RULE-SET,ai,🤖 AI,no-resolve/);
@@ -362,12 +362,6 @@ test("renders a sub-store override with Singapore-only AI group and generated ru
 
   // 沙箱执行:模拟 sub-store 运行时环境
   const files = {
-    "cloud-hk-node": JSON.stringify({
-      name: "cloud-hk 香港",
-      type: "vless",
-      server: "example.test",
-      port: 8081,
-    }),
     "tailscale-secret": JSON.stringify({
       hostname: "flclash-android",
       "auth-key": "tskey-test",
@@ -415,7 +409,7 @@ test("renders a sub-store override with Singapore-only AI group and generated ru
   ]);
   assert.equal(plain.rules[3], "RULE-SET,ai,🤖 AI,no-resolve");
   assert.ok(!plain.proxies.some((p) => p && p.name === "TAILSCALE"), "plain subscription must not contain the TAILSCALE node");
-  assert.equal(plain.proxies.at(-1).name, "cloud-hk 香港");
+  assert.deepEqual(plain.proxies.map((p) => p.name), ["🇯🇵 日本01", "🇸🇬 新加坡01"]);
 
   const withTs = await buildConfig(makeEnv("yuanv4-with-tailscale"), ["🇸🇬 新加坡01"]);
   assert.equal(withTs.proxies[0].name, "TAILSCALE");
