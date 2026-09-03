@@ -15,14 +15,20 @@
  * The Tailscale auth-key stays in a local sub-store file and is referenced by
  * name via `produceArtifact`; nothing secret is embedded.
  */
-export const renderSubstoreOverride = (providers, releaseBaseUrl) => {
+export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) => {
   const automaticGroup = "⚡ 自动选择";
   const aiGroup = "🤖 AI";
   const domesticGroup = "🌐 国内";
   const fallbackGroup = "🐟 漏网之鱼";
   const testUrl = "https://cp.cloudflare.com/generate_204";
   // JS 环境正则:不含 (?i) 前缀(那是 Go/RE2 语法),使用 /i 标志。
-  const singaporeNodeFilter = "(?:SG|SGP|Singapore|新加坡|🇸🇬)";
+  const regionNodeFilters = {
+    "🇭🇰 香港": "(?:HK|HKG|Hong Kong|香港|🇭🇰)",
+    "🇯🇵 日本": "(?:JP|JPN|Japan|日本|🇯🇵)",
+    "🇸🇬 新加坡": "(?:SG|SGP|Singapore|新加坡|🇸🇬)",
+    "🇺🇸 美西": "(?:US(?: |-|_)?(?:West|W)|USA(?: |-|_)?(?:West|W)|美(?:国)?西|洛杉矶|Los Angeles|San Jose|Seattle|LAX|SJC|SEA)",
+  };
+  const regionGroups = Object.keys(regionNodeFilters);
 
   const ruleProviders = Object.fromEntries(
     providers.map((provider) => [
@@ -55,13 +61,14 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl) => {
     "  const withTailscale = ($file && ($file.name || '').indexOf('tailscale') !== -1);",
     "",
     "  const names = config.proxies.map((p) => p.name);",
-    `  const aiRule = /${singaporeNodeFilter}/i;`,
-    "  const aiNames = names.filter((n) => aiRule.test(n));",
+    `  const regionNames = Object.fromEntries(Object.entries(${JSON.stringify(regionNodeFilters)}).map(([region, filter]) => [region, names.filter((name) => new RegExp(filter, 'i').test(name))]));`,
     "  config['proxy-groups'] = [",
     `    { name: '${automaticGroup}', type: 'url-test', url: '${testUrl}', interval: 300, tolerance: 50, proxies: names.slice() },`,
-    `    { name: '${aiGroup}', type: 'url-test', url: '${testUrl}', interval: 300, tolerance: 50, proxies: aiNames },`,
-    `    { name: '${domesticGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'] },`,
-    `    { name: '${fallbackGroup}', type: 'select', proxies: ['${automaticGroup}', 'DIRECT'] },`,
+    `    { name: '${aiGroup}', type: 'select', proxies: ['🇸🇬 新加坡'] },`,
+    "    ...Object.entries(regionNames).map(([name, proxies]) => ({ name, type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies })),",
+    `    { name: '${proxyGroup}', type: 'select', proxies: [${regionGroups.map((name) => `'${name}'`).join(", ")}] },`,
+    `    { name: '${domesticGroup}', type: 'select', proxies: ['DIRECT', '${proxyGroup}'] },`,
+    `    { name: '${fallbackGroup}', type: 'select', proxies: ['${proxyGroup}', 'DIRECT'] },`,
     "  ];",
     "",
     "  config.mode = 'Rule';",

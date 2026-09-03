@@ -141,6 +141,7 @@ const makeConfig = () => ({
 test("normalizes merge-ready provider views and preserves ordered provenance", () => {
   const config = normalizeConfiguration(makeConfig());
   const provider = config.providers[0];
+  assert.equal(config.proxyGroup, "🚀 Nodes");
 
   assert.deepEqual(provider.inputs.map((input) => input.inputFormat), ["raw-list", "raw-list"]);
   assert.deepEqual(provider.inputs.map((input) => input.sourceUrl), [
@@ -341,18 +342,21 @@ test("accepts ordinary percent-encoded paths and rejects over-limit nested encod
   );
 });
 
-test("renders a sub-store override with Singapore-only AI group and generated rules", async () => {
+test("renders a sub-store override with regional auto-selection groups and generated rules", async () => {
   const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
   const providers = [
     { name: "ai", target: "🤖 AI", noResolve: true },
     { name: "foreign", target: "⚡ 自动选择", noResolve: false },
   ];
   const releaseBaseUrl = "https://raw.githubusercontent.com/yuanv4/clash-rules/release";
-  const script = renderSubstoreOverride(providers, releaseBaseUrl);
+  const proxyGroup = "🚀 节点选择";
+  const script = renderSubstoreOverride(providers, releaseBaseUrl, proxyGroup);
 
   assert.match(script, /async function main\(config = \{\}\)/);
+  assert.match(script, /\(?:HK\|HKG\|Hong Kong\|香港\|🇭🇰\)/i);
+  assert.match(script, /\(?:JP\|JPN\|Japan\|日本\|🇯🇵\)/i);
   assert.match(script, /\(?:SG\|SGP\|Singapore\|新加坡\|🇸🇬\)/i);
-  assert.doesNotMatch(script, /JP\|JPN\|Japan|日本/);
+  assert.match(script, /US\(\?: \|-\|_\)\?\(\?:West\|W\)/i);
   assert.doesNotMatch(script, /cloud-hk-node/);
   assert.match(script, /produceArtifact\(\{ type: 'file', name: 'tailscale-secret' \}\)/);
   assert.match(script, /config\['rule-providers'\] = \{"ai":\{"type":"http"/);
@@ -390,15 +394,22 @@ test("renders a sub-store override with Singapore-only AI group and generated ru
   };
 
   const plain = await buildConfig(makeEnv("yuanv4"), [
+    { name: "🇭🇰 香港01" },
     { name: "🇯🇵 日本01" },
     { name: "🇸🇬 新加坡01" },
+    { name: "US-West 01" },
+    { name: "Los Angeles 01" },
+    { name: "🇺🇸 美国东部01" },
   ].map((p) => p.name));
-  const aiNames = plain["proxy-groups"].find((g) => g.name === "🤖 AI").proxies;
-  assert.deepEqual(aiNames, ["🇸🇬 新加坡01"]);
-  assert.deepEqual(
-    plain["proxy-groups"].find((g) => g.name === "🌐 国内").proxies,
-    ["DIRECT", "⚡ 自动选择"]
-  );
+  const regionalGroup = (name) => plain["proxy-groups"].find((g) => g.name === name).proxies;
+  assert.deepEqual(regionalGroup("🇭🇰 香港"), ["🇭🇰 香港01"]);
+  assert.deepEqual(regionalGroup("🇯🇵 日本"), ["🇯🇵 日本01"]);
+  assert.deepEqual(regionalGroup("🇸🇬 新加坡"), ["🇸🇬 新加坡01"]);
+  assert.deepEqual(regionalGroup("🇺🇸 美西"), ["US-West 01", "Los Angeles 01"]);
+  assert.deepEqual(regionalGroup("🤖 AI"), ["🇸🇬 新加坡"]);
+  assert.deepEqual(regionalGroup(proxyGroup), ["🇭🇰 香港", "🇯🇵 日本", "🇸🇬 新加坡", "🇺🇸 美西"]);
+  assert.deepEqual(regionalGroup("🌐 国内"), ["DIRECT", proxyGroup]);
+  assert.deepEqual(regionalGroup("🐟 漏网之鱼"), [proxyGroup, "DIRECT"]);
   assert.equal(plain.mode, "Rule");
   assert.equal(plain["proxy-groups"][0].name, "Tailscale");
   assert.deepEqual(plain["proxy-groups"][0].proxies, ["DIRECT"]);
@@ -409,7 +420,7 @@ test("renders a sub-store override with Singapore-only AI group and generated ru
   ]);
   assert.equal(plain.rules[3], "RULE-SET,ai,🤖 AI,no-resolve");
   assert.ok(!plain.proxies.some((p) => p && p.name === "TAILSCALE"), "plain subscription must not contain the TAILSCALE node");
-  assert.deepEqual(plain.proxies.map((p) => p.name), ["🇯🇵 日本01", "🇸🇬 新加坡01"]);
+  assert.deepEqual(plain.proxies.map((p) => p.name), ["🇭🇰 香港01", "🇯🇵 日本01", "🇸🇬 新加坡01", "US-West 01", "Los Angeles 01", "🇺🇸 美国东部01"]);
 
   const withTs = await buildConfig(makeEnv("yuanv4-with-tailscale"), ["🇸🇬 新加坡01"]);
   assert.equal(withTs.proxies[0].name, "TAILSCALE");
