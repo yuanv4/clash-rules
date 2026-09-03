@@ -317,7 +317,7 @@ export const normalizeConfiguration = (config) => {
     });
   }
 
-  return { releaseBaseUrl: releaseBaseUrl.toString().replace(/\/$/u, ""), providers };
+  return { releaseBaseUrl: releaseBaseUrl.toString().replace(/\/$/u, ""), proxyGroup: config.proxy_group, providers };
 };
 
 const loadConfiguration = async () => {
@@ -712,7 +712,7 @@ const replaceOutputDirectory = async (stagingDir, outputDir) => {
 };
 
 const build = async (outputDir) => {
-  const { releaseBaseUrl, providers } = await loadConfiguration();
+  const { releaseBaseUrl, proxyGroup, providers } = await loadConfiguration();
   await fs.mkdir(path.dirname(outputDir), { recursive: true });
   const stagingDir = await fs.mkdtemp(path.join(path.dirname(outputDir), `.${path.basename(outputDir)}-staging-`));
   let outputCommitted = false;
@@ -733,7 +733,7 @@ const build = async (outputDir) => {
 
     await fs.writeFile(
       path.join(stagingDir, "sub-store-override.js"),
-      renderSubstoreOverride(providers, releaseBaseUrl),
+      renderSubstoreOverride(providers, releaseBaseUrl, proxyGroup),
       "utf8"
     );
 
