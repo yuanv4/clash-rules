@@ -4,14 +4,16 @@ async function main(config = {}) {
   const withTailscale = ($file && ($file.name || '').indexOf('tailscale') !== -1);
 
   const names = config.proxies.map((p) => p.name);
-  const regionNames = Object.fromEntries(Object.entries({"🇭🇰 香港":"(?:HK|HKG|Hong Kong|香港|🇭🇰)","🇯🇵 日本":"(?:JP|JPN|Japan|日本|🇯🇵)","🇸🇬 新加坡":"(?:SG|SGP|Singapore|新加坡|🇸🇬)","🇺🇸 美西":"(?:US(?: |-|_)?(?:West|W)|USA(?: |-|_)?(?:West|W)|美(?:国)?西|洛杉矶|Los Angeles|San Jose|Seattle|LAX|SJC|SEA)"}).map(([region, filter]) => [region, names.filter((name) => new RegExp(filter, 'i').test(name))]));
+  const regionNames = Object.fromEntries(Object.entries({"🇭🇰 香港":"(?:HK|HKG|Hong Kong|香港|🇭🇰)","🇯🇵 日本":"(?:JP|JPN|Japan|日本|🇯🇵)","🇸🇬 新加坡":"(?:SG|SGP|Singapore|新加坡|🇸🇬)","🇺🇸 美西":"(?:US(?: |-|_)?(?:West|W)|USA(?: |-|_)?(?:West|W)|美(?:国)?西|洛杉矶|Los Angeles|San Jose|Seattle|LAX|SJC|SEA)"}).map(([region, filter]) => [region, names.filter((name) => new RegExp(filter, 'i').test(name))]).filter(([, proxies]) => proxies.length));
+  const regionGroups = Object.keys(regionNames);
+  const aiProxies = regionNames['🇸🇬 新加坡'] ? ['🇸🇬 新加坡', '⚡ 自动选择', ...regionGroups.filter((name) => name !== '🇸🇬 新加坡')] : ['⚡ 自动选择', ...regionGroups];
   config['proxy-groups'] = [
     { name: '⚡ 自动选择', type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies: names.slice() },
-    { name: '🤖 AI', type: 'select', proxies: ['🇸🇬 新加坡'] },
-    ...Object.entries(regionNames).map(([name, proxies]) => ({ name, type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies })),
-    { name: '🚀 节点选择', type: 'select', proxies: ['🇭🇰 香港', '🇯🇵 日本', '🇸🇬 新加坡', '🇺🇸 美西'] },
-    { name: '🌐 国内', type: 'select', proxies: ['DIRECT', '🚀 节点选择'] },
-    { name: '🐟 漏网之鱼', type: 'select', proxies: ['🚀 节点选择', 'DIRECT'] },
+    { name: '🤖 AI', type: 'select', proxies: aiProxies },
+    ...regionGroups.map((name) => ({ name, type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies: regionNames[name] })),
+    { name: '🚀 节点选择', type: 'select', proxies: ['⚡ 自动选择', ...regionGroups] },
+    { name: '🌐 国内', type: 'select', proxies: ['DIRECT'] },
+    { name: '🐟 漏网之鱼', type: 'select', proxies: ['⚡ 自动选择'] },
   ];
 
   config.mode = 'Rule';
@@ -33,9 +35,9 @@ async function main(config = {}) {
       'accept-routes': secret['accept-routes'] !== false,
       'ip-version': secret['ip-version'] || 'ipv4-prefer',
     });
+    config['proxy-groups'].unshift({ name: 'Tailscale', type: 'select', proxies: ['TAILSCALE'] });
+    config.rules = ["IP-CIDR,100.64.0.0/10,Tailscale,no-resolve","IP-CIDR,100.100.100.100/32,Tailscale,no-resolve","DOMAIN-SUFFIX,ts.net,Tailscale"].concat(config.rules);
   }
-  config['proxy-groups'].unshift({ name: 'Tailscale', type: 'select', proxies: withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT'] });
-  config.rules = ["IP-CIDR,100.64.0.0/10,Tailscale,no-resolve","IP-CIDR,100.100.100.100/32,Tailscale,no-resolve","DOMAIN-SUFFIX,ts.net,Tailscale"].concat(config.rules);
 
   return config;
 }
