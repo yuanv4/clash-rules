@@ -7,6 +7,8 @@
 # License 3 [MetaCubeX/meta-rules-dat]: GPL-3.0 (https://github.com/MetaCubeX/meta-rules-dat/blob/master/LICENSE)
 # Source 4 [MetaCubeX/meta-rules-dat]: https://github.com/MetaCubeX/meta-rules-dat (https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/cn.yaml)
 # License 4 [MetaCubeX/meta-rules-dat]: GPL-3.0 (https://github.com/MetaCubeX/meta-rules-dat/blob/master/LICENSE)
+# Source 5 [custom/tag]: https://github.com/yuanv4/clash-rules (https://raw.githubusercontent.com/yuanv4/clash-rules/main/custom/tag.txt)
+# License 5 [custom/tag]: MIT (https://github.com/yuanv4/clash-rules)
 payload:
   - "DOMAIN-SUFFIX,2mdn-cn.net"
   - "DOMAIN-SUFFIX,2mdn.net"
@@ -122664,3 +122666,11 @@ payload:
   - "DOMAIN-SUFFIX,ctrip.co.th"
   - "DOMAIN-SUFFIX,uat1.bfsspadserver.8le8le.com"
   - "DOMAIN-SUFFIX,qsb.browser.miui.srv"
+  - "DOMAIN-SUFFIX,tagss4.com"
+  - "DOMAIN-SUFFIX,tagss02.pro"
+  - "DOMAIN-SUFFIX,tagss09.pro"
+  - "DOMAIN-SUFFIX,tagss10.pro"
+  - "DOMAIN-SUFFIX,tagss11.pro"
+  - "DOMAIN-SUFFIX,tagss12.pro"
+  - "DOMAIN-SUFFIX,tagjichang.lat"
+  - "DOMAIN-KEYWORD,tagss"
