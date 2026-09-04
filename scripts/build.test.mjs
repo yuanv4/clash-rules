@@ -406,26 +406,22 @@ test("renders a sub-store override with regional auto-selection groups and gener
   assert.deepEqual(regionalGroup("🇯🇵 日本"), ["🇯🇵 日本01"]);
   assert.deepEqual(regionalGroup("🇸🇬 新加坡"), ["🇸🇬 新加坡01"]);
   assert.deepEqual(regionalGroup("🇺🇸 美西"), ["US-West 01", "Los Angeles 01"]);
-  assert.deepEqual(regionalGroup("🤖 AI"), ["🇸🇬 新加坡"]);
-  assert.deepEqual(regionalGroup(proxyGroup), ["🇭🇰 香港", "🇯🇵 日本", "🇸🇬 新加坡", "🇺🇸 美西"]);
-  assert.deepEqual(regionalGroup("🌐 国内"), ["DIRECT", proxyGroup]);
-  assert.deepEqual(regionalGroup("🐟 漏网之鱼"), [proxyGroup, "DIRECT"]);
+  assert.deepEqual(regionalGroup("🤖 AI"), ["🇸🇬 新加坡", "⚡ 自动选择", "🇭🇰 香港", "🇯🇵 日本", "🇺🇸 美西"]);
+  assert.deepEqual(regionalGroup(proxyGroup), ["⚡ 自动选择", "🇭🇰 香港", "🇯🇵 日本", "🇸🇬 新加坡", "🇺🇸 美西"]);
+  assert.deepEqual(regionalGroup("🌐 国内"), ["DIRECT"]);
+  assert.deepEqual(regionalGroup("🐟 漏网之鱼"), ["⚡ 自动选择"]);
   assert.equal(plain.mode, "Rule");
-  assert.equal(plain["proxy-groups"][0].name, "Tailscale");
-  assert.deepEqual(plain["proxy-groups"][0].proxies, ["DIRECT"]);
-  assert.deepEqual(plain.rules.slice(0, 3), [
-    "IP-CIDR,100.64.0.0/10,Tailscale,no-resolve",
-    "IP-CIDR,100.100.100.100/32,Tailscale,no-resolve",
-    "DOMAIN-SUFFIX,ts.net,Tailscale",
-  ]);
-  assert.equal(plain.rules[3], "RULE-SET,ai,🤖 AI,no-resolve");
+  assert.ok(!plain["proxy-groups"].some((g) => g.name === "Tailscale"));
+  assert.equal(plain.rules[0], "RULE-SET,ai,🤖 AI,no-resolve");
   assert.ok(!plain.proxies.some((p) => p && p.name === "TAILSCALE"), "plain subscription must not contain the TAILSCALE node");
   assert.deepEqual(plain.proxies.map((p) => p.name), ["🇭🇰 香港01", "🇯🇵 日本01", "🇸🇬 新加坡01", "US-West 01", "Los Angeles 01", "🇺🇸 美国东部01"]);
 
   const withTs = await buildConfig(makeEnv("yuanv4-with-tailscale"), ["🇸🇬 新加坡01"]);
   assert.equal(withTs.proxies[0].name, "TAILSCALE");
   assert.equal(withTs["proxy-groups"][0].name, "Tailscale");
-  assert.deepEqual(withTs["proxy-groups"][0].proxies, ["TAILSCALE", "DIRECT"]);
+  assert.deepEqual(withTs["proxy-groups"][0].proxies, ["TAILSCALE"]);
   assert.match(withTs.rules[0], /IP-CIDR,100\.64\.0\.0\/10,Tailscale,no-resolve/);
+  assert.ok(!withTs["proxy-groups"].some((g) => g.name === "🇭🇰 香港"));
+  assert.deepEqual(withTs["proxy-groups"].find((g) => g.name === "🇸🇬 新加坡").proxies, ["🇸🇬 新加坡01"]);
 });
 

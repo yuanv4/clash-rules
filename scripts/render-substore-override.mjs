@@ -8,9 +8,8 @@
  * use runtime `include-all` + `filter` and must build STATIC proxy lists
  * for each group from the parsed nodes.
  *
- * Every subscription gets the Tailscale proxy group and routing rules; the
- * TAILSCALE node itself is only injected when the subscription name contains
- * "tailscale". Without the node the group falls back to DIRECT only.
+ * The Tailscale proxy group, routing rules, and node are injected only when
+ * the subscription name contains "tailscale".
  *
  * The Tailscale auth-key stays in a local sub-store file and is referenced by
  * name via `produceArtifact`; nothing secret is embedded.
@@ -28,7 +27,6 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     "🇸🇬 新加坡": "(?:SG|SGP|Singapore|新加坡|🇸🇬)",
     "🇺🇸 美西": "(?:US(?: |-|_)?(?:West|W)|USA(?: |-|_)?(?:West|W)|美(?:国)?西|洛杉矶|Los Angeles|San Jose|Seattle|LAX|SJC|SEA)",
   };
-  const regionGroups = Object.keys(regionNodeFilters);
 
   const ruleProviders = Object.fromEntries(
     providers.map((provider) => [
@@ -61,14 +59,16 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     "  const withTailscale = ($file && ($file.name || '').indexOf('tailscale') !== -1);",
     "",
     "  const names = config.proxies.map((p) => p.name);",
-    `  const regionNames = Object.fromEntries(Object.entries(${JSON.stringify(regionNodeFilters)}).map(([region, filter]) => [region, names.filter((name) => new RegExp(filter, 'i').test(name))]));`,
+    `  const regionNames = Object.fromEntries(Object.entries(${JSON.stringify(regionNodeFilters)}).map(([region, filter]) => [region, names.filter((name) => new RegExp(filter, 'i').test(name))]).filter(([, proxies]) => proxies.length));`,
+    "  const regionGroups = Object.keys(regionNames);",
+    `  const aiProxies = regionNames['🇸🇬 新加坡'] ? ['🇸🇬 新加坡', '${automaticGroup}', ...regionGroups.filter((name) => name !== '🇸🇬 新加坡')] : ['${automaticGroup}', ...regionGroups];`,
     "  config['proxy-groups'] = [",
     `    { name: '${automaticGroup}', type: 'url-test', url: '${testUrl}', interval: 300, tolerance: 50, proxies: names.slice() },`,
-    `    { name: '${aiGroup}', type: 'select', proxies: ['🇸🇬 新加坡'] },`,
-    "    ...Object.entries(regionNames).map(([name, proxies]) => ({ name, type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies })),",
-    `    { name: '${proxyGroup}', type: 'select', proxies: [${regionGroups.map((name) => `'${name}'`).join(", ")}] },`,
-    `    { name: '${domesticGroup}', type: 'select', proxies: ['DIRECT', '${proxyGroup}'] },`,
-    `    { name: '${fallbackGroup}', type: 'select', proxies: ['${proxyGroup}', 'DIRECT'] },`,
+    `    { name: '${aiGroup}', type: 'select', proxies: aiProxies },`,
+    "    ...regionGroups.map((name) => ({ name, type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies: regionNames[name] })),",
+    `    { name: '${proxyGroup}', type: 'select', proxies: ['${automaticGroup}', ...regionGroups] },`,
+    `    { name: '${domesticGroup}', type: 'select', proxies: ['DIRECT'] },`,
+    `    { name: '${fallbackGroup}', type: 'select', proxies: ['${automaticGroup}'] },`,
     "  ];",
     "",
     "  config.mode = 'Rule';",
@@ -90,9 +90,9 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     "      'accept-routes': secret['accept-routes'] !== false,",
     "      'ip-version': secret['ip-version'] || 'ipv4-prefer',",
     "    });",
+    "    config['proxy-groups'].unshift({ name: 'Tailscale', type: 'select', proxies: ['TAILSCALE'] });",
+    `    config.rules = ${JSON.stringify(tailscaleRules)}.concat(config.rules);`,
     "  }",
-    "  config['proxy-groups'].unshift({ name: 'Tailscale', type: 'select', proxies: withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT'] });",
-    `  config.rules = ${JSON.stringify(tailscaleRules)}.concat(config.rules);`,
     "",
     "  return config;",
     "}",
