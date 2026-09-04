@@ -8,8 +8,8 @@
  * use runtime `include-all` + `filter` and must build STATIC proxy lists
  * for each group from the parsed nodes.
  *
- * The Tailscale proxy group, routing rules, and node are injected only when
- * the subscription name contains "tailscale".
+ * The Tailscale group is always present; its node and routing rules are
+ * enabled when the subscription name contains "tailscale".
  *
  * The Tailscale auth-key stays in a local sub-store file and is referenced by
  * name via `produceArtifact`; nothing secret is embedded.
@@ -17,16 +17,13 @@
 export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) => {
   const automaticGroup = "⚡ 自动选择";
   const domesticAiGroup = "🤖 国内 AI";
-  const foreignAiGroup = "🤖 国外 AI";
-  const domesticGroup = "🌐 国内";
-  const fallbackGroup = "🐟 漏网之鱼";
+  const foreignAiGroup = "🤖 国际 AI";
+  const tailscaleGroup = "Tailscale";
   const testUrl = "https://cp.cloudflare.com/generate_204";
   // JS 环境正则:不含 (?i) 前缀(那是 Go/RE2 语法),使用 /i 标志。
   const regionNodeFilters = {
     "🇭🇰 香港": "(?:HK|HKG|Hong Kong|香港|🇭🇰)",
-    "🇯🇵 日本": "(?:JP|JPN|Japan|日本|🇯🇵)",
     "🇸🇬 新加坡": "(?:SG|SGP|Singapore|新加坡|🇸🇬)",
-    "🇺🇸 美西": "(?:US(?: |-|_)?(?:West|W)|USA(?: |-|_)?(?:West|W)|美(?:国)?西|洛杉矶|Los Angeles|San Jose|Seattle|LAX|SJC|SEA)",
   };
 
   const ruleProviders = Object.fromEntries(
@@ -45,7 +42,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     const noResolve = provider.noResolve ? ",no-resolve" : "";
     return `RULE-SET,${provider.name},${provider.target}${noResolve}`;
   });
-  rules.push(`MATCH,${fallbackGroup}`);
+  rules.push(`MATCH,${proxyGroup}`);
 
   const tailscaleRules = [
     "IP-CIDR,100.64.0.0/10,Tailscale,no-resolve",
@@ -62,15 +59,15 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     "  const names = config.proxies.map((p) => p.name);",
     `  const regionNames = Object.fromEntries(Object.entries(${JSON.stringify(regionNodeFilters)}).map(([region, filter]) => [region, names.filter((name) => new RegExp(filter, 'i').test(name))]).filter(([, proxies]) => proxies.length));`,
     "  const regionGroups = Object.keys(regionNames);",
-    `  const aiProxies = regionNames['🇸🇬 新加坡'] ? ['🇸🇬 新加坡', '${automaticGroup}', ...regionGroups.filter((name) => name !== '🇸🇬 新加坡')] : ['${automaticGroup}', ...regionGroups];`,
+    "  const singaporeProxies = regionNames['🇸🇬 新加坡'] ? ['🇸🇬 新加坡'] : [];",
+    "  const tailscaleProxies = withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT'];",
     "  config['proxy-groups'] = [",
     `    { name: '${automaticGroup}', type: 'url-test', url: '${testUrl}', interval: 300, tolerance: 50, proxies: names.slice() },`,
-    `    { name: '${domesticAiGroup}', type: 'select', proxies: ['DIRECT'] },`,
-    `    { name: '${foreignAiGroup}', type: 'select', proxies: aiProxies },`,
+    `    { name: '${domesticAiGroup}', type: 'select', proxies: ['DIRECT', '${proxyGroup}'], 'default-selected': 'DIRECT' },`,
+    `    { name: '${foreignAiGroup}', type: 'select', proxies: singaporeProxies, 'empty-fallback': 'REJECT' },`,
     "    ...regionGroups.map((name) => ({ name, type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies: regionNames[name] })),",
     `    { name: '${proxyGroup}', type: 'select', proxies: ['${automaticGroup}', ...regionGroups] },`,
-    `    { name: '${domesticGroup}', type: 'select', proxies: ['DIRECT'] },`,
-    `    { name: '${fallbackGroup}', type: 'select', proxies: ['${automaticGroup}'] },`,
+    `    { name: '${tailscaleGroup}', type: 'select', proxies: tailscaleProxies, 'default-selected': withTailscale ? 'TAILSCALE' : 'DIRECT' },`,
     "  ];",
     "",
     "  config.mode = 'Rule';",
@@ -92,7 +89,6 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     "      'accept-routes': secret['accept-routes'] !== false,",
     "      'ip-version': secret['ip-version'] || 'ipv4-prefer',",
     "    });",
-    "    config['proxy-groups'].unshift({ name: 'Tailscale', type: 'select', proxies: ['TAILSCALE'] });",
     `    config.rules = ${JSON.stringify(tailscaleRules)}.concat(config.rules);`,
     "  }",
     "",

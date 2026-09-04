@@ -179,7 +179,6 @@ test("sources.json keeps the AI split and ordered provenance", async () => {
     "ai_cn",
     "ai",
     "direct",
-    "tag",
   ]);
 
   const domesticAiProvider = normalized.providers[4];
@@ -190,7 +189,7 @@ test("sources.json keeps the AI split and ordered provenance", async () => {
   assert.deepEqual(domesticAiProvider.inputs.map((input) => input.inputFormat), ["clash-yaml"]);
 
   const aiProvider = normalized.providers[5];
-  assert.equal(aiProvider.target, "🤖 国外 AI");
+  assert.equal(aiProvider.target, "🤖 国际 AI");
   assert.deepEqual(aiProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/global.yaml",
     "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/non_ip/apple_intelligence.txt",
@@ -199,22 +198,14 @@ test("sources.json keeps the AI split and ordered provenance", async () => {
   assert.deepEqual(aiProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "raw-list", "clash-yaml"]);
 
   const directProvider = normalized.providers[6];
+  assert.equal(directProvider.target, "DIRECT");
   assert.deepEqual(directProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/direct.txt",
     "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/cncidr.txt",
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/cn.yaml",
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/cn.yaml",
-  ]);
-
-  const tagProvider = normalized.providers[7];
-  assert.equal(tagProvider.target, "🌐 国内");
-  assert.equal(tagProvider.noResolve, true);
-  assert.deepEqual(tagProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/yuanv4/clash-rules/main/custom/tag.txt",
   ]);
-  const tagRendered = renderYaml(tagProvider, []);
-  assert.ok(tagRendered.includes("# Source: https://github.com/yuanv4/clash-rules (https://raw.githubusercontent.com/yuanv4/clash-rules/main/custom/tag.txt)"));
-  assert.ok(tagRendered.includes("# License: MIT (https://github.com/yuanv4/clash-rules)"));
 
   const aiRendered = renderYaml(aiProvider, []);
   assert.ok(aiRendered.includes("# Source 1 [VPSDance/ai-proxy-rules]:"));
@@ -229,6 +220,8 @@ test("sources.json keeps the AI split and ordered provenance", async () => {
   assert.ok(directRendered.includes("# Source 2 [Loyalsoldier/clash-rules]:"));
   assert.ok(directRendered.includes("# Source 3 [MetaCubeX/meta-rules-dat]:"));
   assert.ok(directRendered.includes("# License 4 [MetaCubeX/meta-rules-dat]: GPL-3.0 (https://github.com/MetaCubeX/meta-rules-dat/blob/master/LICENSE)"));
+  assert.ok(directRendered.includes("# Source 5 [custom/tag]:"));
+  assert.ok(directRendered.includes("# License 5 [custom/tag]: MIT (https://github.com/yuanv4/clash-rules)"));
 });
 
 test("merges inputs with first-occurrence canonical deduplication", () => {
@@ -335,29 +328,24 @@ test("accepts ordinary percent-encoded paths and rejects over-limit nested encod
   );
 });
 
-test("renders a sub-store override with regional auto-selection groups and generated rules", async () => {
+test("renders the minimal proxy topology and fails closed without Singapore", async () => {
   const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
   const providers = [
+    { name: "lan_non_ip", target: "DIRECT", noResolve: true },
+    { name: "reject_non_ip", target: "REJECT", noResolve: true },
     { name: "ai_cn", target: "🤖 国内 AI", noResolve: true },
-    { name: "ai", target: "🤖 国外 AI", noResolve: true },
+    { name: "ai", target: "🤖 国际 AI", noResolve: true },
+    { name: "direct", target: "DIRECT", noResolve: true },
   ];
-  const releaseBaseUrl = "https://raw.githubusercontent.com/yuanv4/clash-rules/release";
   const proxyGroup = "🚀 节点选择";
-  const script = renderSubstoreOverride(providers, releaseBaseUrl, proxyGroup);
+  const script = renderSubstoreOverride(providers, "https://rules.example.test/release", proxyGroup);
 
-  assert.match(script, /async function main\(config = \{\}\)/);
   assert.match(script, /\(?:HK\|HKG\|Hong Kong\|香港\|🇭🇰\)/i);
-  assert.match(script, /\(?:JP\|JPN\|Japan\|日本\|🇯🇵\)/i);
   assert.match(script, /\(?:SG\|SGP\|Singapore\|新加坡\|🇸🇬\)/i);
-  assert.match(script, /US\(\?: \|-\|_\)\?\(\?:West\|W\)/i);
-  assert.doesNotMatch(script, /cloud-hk-node/);
-  assert.match(script, /produceArtifact\(\{ type: 'file', name: 'tailscale-secret' \}\)/);
-  assert.match(script, /config\['rule-providers'\] = \{"ai_cn":\{"type":"http"/);
-  assert.match(script, /RULE-SET,ai_cn,🤖 国内 AI,no-resolve/);
-  assert.match(script, /RULE-SET,ai,🤖 国外 AI,no-resolve/);
-  assert.match(script, /MATCH,🐟 漏网之鱼/);
+  assert.doesNotMatch(script, /\(?:JP\|JPN\|Japan\|日本\|🇯🇵\)/i);
+  assert.match(script, /MATCH,🚀 节点选择/);
+  assert.match(script, /'empty-fallback': 'REJECT'/);
 
-  // 沙箱执行:模拟 sub-store 运行时环境
   const files = {
     "tailscale-secret": JSON.stringify({
       hostname: "flclash-android",
@@ -374,49 +362,32 @@ test("renders a sub-store override with regional auto-selection groups and gener
     produceArtifact: async ({ name }) => files[name],
     $file: { name: fileName },
   });
-
   const buildConfig = async (env, proxies) => {
-    const fn = new Function(
-      "produceArtifact",
-      "$file",
-      `${script}\nreturn main;`,
-    )(env.produceArtifact, env.$file);
-    return fn({
-      proxies: proxies.map((name) => ({ name })),
-    });
+    const fn = new Function("produceArtifact", "$file", `${script}\nreturn main;`)(env.produceArtifact, env.$file);
+    return fn({ proxies: proxies.map((name) => ({ name })) });
   };
+  const group = (config, name) => config["proxy-groups"].find((item) => item.name === name);
 
-  const plain = await buildConfig(makeEnv("yuanv4"), [
-    { name: "🇭🇰 香港01" },
-    { name: "🇯🇵 日本01" },
-    { name: "🇸🇬 新加坡01" },
-    { name: "US-West 01" },
-    { name: "Los Angeles 01" },
-    { name: "🇺🇸 美国东部01" },
-  ].map((p) => p.name));
-  const regionalGroup = (name) => plain["proxy-groups"].find((g) => g.name === name).proxies;
-  assert.deepEqual(regionalGroup("🇭🇰 香港"), ["🇭🇰 香港01"]);
-  assert.deepEqual(regionalGroup("🇯🇵 日本"), ["🇯🇵 日本01"]);
-  assert.deepEqual(regionalGroup("🇸🇬 新加坡"), ["🇸🇬 新加坡01"]);
-  assert.deepEqual(regionalGroup("🇺🇸 美西"), ["US-West 01", "Los Angeles 01"]);
-  assert.deepEqual(regionalGroup("🤖 国内 AI"), ["DIRECT"]);
-  assert.deepEqual(regionalGroup("🤖 国外 AI"), ["🇸🇬 新加坡", "⚡ 自动选择", "🇭🇰 香港", "🇯🇵 日本", "🇺🇸 美西"]);
-  assert.deepEqual(regionalGroup(proxyGroup), ["⚡ 自动选择", "🇭🇰 香港", "🇯🇵 日本", "🇸🇬 新加坡", "🇺🇸 美西"]);
-  assert.deepEqual(regionalGroup("🌐 国内"), ["DIRECT"]);
-  assert.deepEqual(regionalGroup("🐟 漏网之鱼"), ["⚡ 自动选择"]);
-  assert.equal(plain.mode, "Rule");
-  assert.ok(!plain["proxy-groups"].some((g) => g.name === "Tailscale"));
-  assert.equal(plain.rules[0], "RULE-SET,ai_cn,🤖 国内 AI,no-resolve");
-  assert.equal(plain.rules[1], "RULE-SET,ai,🤖 国外 AI,no-resolve");
-  assert.ok(!plain.proxies.some((p) => p && p.name === "TAILSCALE"), "plain subscription must not contain the TAILSCALE node");
-  assert.deepEqual(plain.proxies.map((p) => p.name), ["🇭🇰 香港01", "🇯🇵 日本01", "🇸🇬 新加坡01", "US-West 01", "Los Angeles 01", "🇺🇸 美国东部01"]);
+  const plain = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 香港01", "🇸🇬 新加坡01", "US-West 01"]);
+  assert.deepEqual(plain["proxy-groups"].map((item) => item.name), [
+    "⚡ 自动选择", "🤖 国内 AI", "🤖 国际 AI", "🇭🇰 香港", "🇸🇬 新加坡", "🚀 节点选择", "Tailscale",
+  ]);
+  assert.deepEqual(group(plain, "🤖 国内 AI").proxies, ["DIRECT", proxyGroup]);
+  assert.equal(group(plain, "🤖 国内 AI")["default-selected"], "DIRECT");
+  assert.deepEqual(group(plain, "🤖 国际 AI").proxies, ["🇸🇬 新加坡"]);
+  assert.deepEqual(group(plain, "🚀 节点选择").proxies, ["⚡ 自动选择", "🇭🇰 香港", "🇸🇬 新加坡"]);
+  assert.deepEqual(group(plain, "Tailscale").proxies, ["DIRECT"]);
+  assert.equal(group(plain, "Tailscale")["default-selected"], "DIRECT");
+  assert.equal(plain.rules.at(-1), "MATCH,🚀 节点选择");
+
+  const noSingapore = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 香港01"]);
+  assert.deepEqual(group(noSingapore, "🤖 国际 AI").proxies, []);
+  assert.equal(group(noSingapore, "🤖 国际 AI")["empty-fallback"], "REJECT");
+  assert.deepEqual(group(noSingapore, "Tailscale").proxies, ["DIRECT"]);
 
   const withTs = await buildConfig(makeEnv("yuanv4-with-tailscale"), ["🇸🇬 新加坡01"]);
   assert.equal(withTs.proxies[0].name, "TAILSCALE");
-  assert.equal(withTs["proxy-groups"][0].name, "Tailscale");
-  assert.deepEqual(withTs["proxy-groups"][0].proxies, ["TAILSCALE"]);
+  assert.deepEqual(group(withTs, "Tailscale").proxies, ["TAILSCALE", "DIRECT"]);
+  assert.equal(group(withTs, "Tailscale")["default-selected"], "TAILSCALE");
   assert.match(withTs.rules[0], /IP-CIDR,100\.64\.0\.0\/10,Tailscale,no-resolve/);
-  assert.ok(!withTs["proxy-groups"].some((g) => g.name === "🇭🇰 香港"));
-  assert.deepEqual(withTs["proxy-groups"].find((g) => g.name === "🇸🇬 新加坡").proxies, ["🇸🇬 新加坡01"]);
 });
-
