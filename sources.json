@@ -88,7 +88,7 @@
     },
     {
       "name": "ai",
-      "target": "🤖 国外 AI",
+      "target": "🤖 国际 AI",
       "no_resolve": true,
       "inputs": [
         {"input": "VPSDance/ai-proxy-rules", "path": "rules/clash/global.yaml"},
@@ -98,20 +98,13 @@
     },
     {
       "name": "direct",
-      "target": "🌐 国内",
+      "target": "DIRECT",
       "no_resolve": true,
       "inputs": [
         {"input": "Loyalsoldier/clash-rules", "path": "direct.txt"},
         {"input": "Loyalsoldier/clash-rules", "path": "cncidr.txt"},
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/cn.yaml"},
-        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geoip/cn.yaml"}
-      ]
-    },
-    {
-      "name": "tag",
-      "target": "🌐 国内",
-      "no_resolve": true,
-      "inputs": [
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geoip/cn.yaml"},
         {"input": "custom/tag", "path": "custom/tag.txt"}
       ]
     }
