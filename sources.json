@@ -13,16 +13,6 @@
       "input_format": "raw-list"
     },
     {
-      "name": "blackmatrix7/ios_rule_script",
-      "repository": "https://github.com/blackmatrix7/ios_rule_script",
-      "base_url": "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/",
-      "license": {
-        "id": "GPL-2.0",
-        "url": "https://github.com/blackmatrix7/ios_rule_script/blob/master/LICENSE"
-      },
-      "input_format": "raw-list"
-    },
-    {
       "name": "Loyalsoldier/clash-rules",
       "repository": "https://github.com/Loyalsoldier/clash-rules",
       "base_url": "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/",
@@ -39,6 +29,16 @@
       "license": {
         "id": "MIT",
         "url": "https://github.com/VPSDance/ai-proxy-rules/blob/main/LICENSE"
+      },
+      "input_format": "clash-yaml"
+    },
+    {
+      "name": "MetaCubeX/meta-rules-dat",
+      "repository": "https://github.com/MetaCubeX/meta-rules-dat",
+      "base_url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/",
+      "license": {
+        "id": "GPL-3.0",
+        "url": "https://github.com/MetaCubeX/meta-rules-dat/blob/master/LICENSE"
       },
       "input_format": "clash-yaml"
     },
@@ -79,12 +79,21 @@
       "inputs": [{"input": "boweic/ruleset.bowei.co", "path": "Clash/ip/reject.txt"}]
     },
     {
+      "name": "ai_cn",
+      "target": "🤖 国内 AI",
+      "no_resolve": true,
+      "inputs": [
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/category-ai-cn.yaml"}
+      ]
+    },
+    {
       "name": "ai",
-      "target": "🤖 AI",
+      "target": "🤖 国外 AI",
       "no_resolve": true,
       "inputs": [
         {"input": "VPSDance/ai-proxy-rules", "path": "rules/clash/global.yaml"},
-        {"input": "boweic/ruleset.bowei.co", "path": "Clash/non_ip/apple_intelligence.txt"}
+        {"input": "boweic/ruleset.bowei.co", "path": "Clash/non_ip/apple_intelligence.txt"},
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/category-ai-!cn.yaml"}
       ]
     },
     {
@@ -94,7 +103,8 @@
       "inputs": [
         {"input": "Loyalsoldier/clash-rules", "path": "direct.txt"},
         {"input": "Loyalsoldier/clash-rules", "path": "cncidr.txt"},
-        {"input": "boweic/ruleset.bowei.co", "path": "Clash/non_ip/direct.txt"}
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/cn.yaml"},
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geoip/cn.yaml"}
       ]
     },
     {
@@ -103,24 +113,6 @@
       "no_resolve": true,
       "inputs": [
         {"input": "custom/tag", "path": "custom/tag.txt"}
-      ]
-    },
-    {
-      "name": "foreign",
-      "target": "⚡ 自动选择",
-      "no_resolve": false,
-      "inputs": [
-        {"input": "boweic/ruleset.bowei.co", "path": "Clash/non_ip/stream.txt"},
-        {"input": "boweic/ruleset.bowei.co", "path": "Clash/ip/stream.txt"},
-        {"input": "boweic/ruleset.bowei.co", "path": "Clash/non_ip/microsoft_cdn.txt"},
-        {"input": "boweic/ruleset.bowei.co", "path": "Clash/non_ip/microsoft.txt"},
-        {"input": "blackmatrix7/ios_rule_script", "path": "rule/Clash/Apple/Apple.list"},
-        {"input": "blackmatrix7/ios_rule_script", "path": "rule/Clash/Google/Google.list"},
-        {"input": "blackmatrix7/ios_rule_script", "path": "rule/Clash/Telegram/Telegram.list"},
-        {"input": "blackmatrix7/ios_rule_script", "path": "rule/Clash/Twitter/Twitter.list"},
-        {"input": "blackmatrix7/ios_rule_script", "path": "rule/Clash/Facebook/Facebook.list"},
-        {"input": "blackmatrix7/ios_rule_script", "path": "rule/Clash/Instagram/Instagram.list"},
-        {"input": "Loyalsoldier/clash-rules", "path": "tld-not-cn.txt"}
       ]
     }
   ]
