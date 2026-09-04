@@ -4,23 +4,23 @@ async function main(config = {}) {
   const withTailscale = ($file && ($file.name || '').indexOf('tailscale') !== -1);
 
   const names = config.proxies.map((p) => p.name);
-  const regionNames = Object.fromEntries(Object.entries({"🇭🇰 香港":"(?:HK|HKG|Hong Kong|香港|🇭🇰)","🇯🇵 日本":"(?:JP|JPN|Japan|日本|🇯🇵)","🇸🇬 新加坡":"(?:SG|SGP|Singapore|新加坡|🇸🇬)","🇺🇸 美西":"(?:US(?: |-|_)?(?:West|W)|USA(?: |-|_)?(?:West|W)|美(?:国)?西|洛杉矶|Los Angeles|San Jose|Seattle|LAX|SJC|SEA)"}).map(([region, filter]) => [region, names.filter((name) => new RegExp(filter, 'i').test(name))]).filter(([, proxies]) => proxies.length));
+  const regionNames = Object.fromEntries(Object.entries({"🇭🇰 香港":"(?:HK|HKG|Hong Kong|香港|🇭🇰)","🇸🇬 新加坡":"(?:SG|SGP|Singapore|新加坡|🇸🇬)"}).map(([region, filter]) => [region, names.filter((name) => new RegExp(filter, 'i').test(name))]).filter(([, proxies]) => proxies.length));
   const regionGroups = Object.keys(regionNames);
-  const aiProxies = regionNames['🇸🇬 新加坡'] ? ['🇸🇬 新加坡', '⚡ 自动选择', ...regionGroups.filter((name) => name !== '🇸🇬 新加坡')] : ['⚡ 自动选择', ...regionGroups];
+  const singaporeProxies = regionNames['🇸🇬 新加坡'] ? ['🇸🇬 新加坡'] : [];
+  const tailscaleProxies = withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT'];
   config['proxy-groups'] = [
     { name: '⚡ 自动选择', type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies: names.slice() },
-    { name: '🤖 国内 AI', type: 'select', proxies: ['DIRECT'] },
-    { name: '🤖 国外 AI', type: 'select', proxies: aiProxies },
+    { name: '🤖 国内 AI', type: 'select', proxies: ['DIRECT', '🚀 节点选择'], 'default-selected': 'DIRECT' },
+    { name: '🤖 国际 AI', type: 'select', proxies: singaporeProxies, 'empty-fallback': 'REJECT' },
     ...regionGroups.map((name) => ({ name, type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies: regionNames[name] })),
     { name: '🚀 节点选择', type: 'select', proxies: ['⚡ 自动选择', ...regionGroups] },
-    { name: '🌐 国内', type: 'select', proxies: ['DIRECT'] },
-    { name: '🐟 漏网之鱼', type: 'select', proxies: ['⚡ 自动选择'] },
+    { name: 'Tailscale', type: 'select', proxies: tailscaleProxies, 'default-selected': withTailscale ? 'TAILSCALE' : 'DIRECT' },
   ];
 
   config.mode = 'Rule';
   config['log-level'] = 'info';
-  config['rule-providers'] = {"lan_non_ip":{"type":"http","behavior":"classical","format":"yaml","interval":86400,"url":"https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/lan_non_ip.yaml"},"lan_ip":{"type":"http","behavior":"classical","format":"yaml","interval":86400,"url":"https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/lan_ip.yaml"},"reject_non_ip":{"type":"http","behavior":"classical","format":"yaml","interval":86400,"url":"https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/reject_non_ip.yaml"},"reject_ip":{"type":"http","behavior":"classical","format":"yaml","interval":86400,"url":"https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/reject_ip.yaml"},"ai_cn":{"type":"http","behavior":"classical","format":"yaml","interval":86400,"url":"https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/ai_cn.yaml"},"ai":{"type":"http","behavior":"classical","format":"yaml","interval":86400,"url":"https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/ai.yaml"},"direct":{"type":"http","behavior":"classical","format":"yaml","interval":86400,"url":"https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/direct.yaml"},"tag":{"type":"http","behavior":"classical","format":"yaml","interval":86400,"url":"https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/tag.yaml"}};
-  config.rules = ["RULE-SET,lan_non_ip,DIRECT,no-resolve","RULE-SET,lan_ip,DIRECT,no-resolve","RULE-SET,reject_non_ip,REJECT,no-resolve","RULE-SET,reject_ip,REJECT,no-resolve","RULE-SET,ai_cn,🤖 国内 AI,no-resolve","RULE-SET,ai,🤖 国外 AI,no-resolve","RULE-SET,direct,🌐 国内,no-resolve","RULE-SET,tag,🌐 国内,no-resolve","MATCH,🐟 漏网之鱼"];
+  config['rule-providers'] = {"lan_non_ip":{"type":"http","behavior":"classical","format":"yaml","interval":86400,"url":"https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/lan_non_ip.yaml"},"lan_ip":{"type":"http","behavior":"classical","format":"yaml","interval":86400,"url":"https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/lan_ip.yaml"},"reject_non_ip":{"type":"http","behavior":"classical","format":"yaml","interval":86400,"url":"https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/reject_non_ip.yaml"},"reject_ip":{"type":"http","behavior":"classical","format":"yaml","interval":86400,"url":"https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/reject_ip.yaml"},"ai_cn":{"type":"http","behavior":"classical","format":"yaml","interval":86400,"url":"https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/ai_cn.yaml"},"ai":{"type":"http","behavior":"classical","format":"yaml","interval":86400,"url":"https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/ai.yaml"},"direct":{"type":"http","behavior":"classical","format":"yaml","interval":86400,"url":"https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/direct.yaml"}};
+  config.rules = ["RULE-SET,lan_non_ip,DIRECT,no-resolve","RULE-SET,lan_ip,DIRECT,no-resolve","RULE-SET,reject_non_ip,REJECT,no-resolve","RULE-SET,reject_ip,REJECT,no-resolve","RULE-SET,ai_cn,🤖 国内 AI,no-resolve","RULE-SET,ai,🤖 国际 AI,no-resolve","RULE-SET,direct,DIRECT,no-resolve","MATCH,🚀 节点选择"];
 
   if (withTailscale) {
     const secret = JSON.parse(await produceArtifact({ type: 'file', name: 'tailscale-secret' }));
@@ -36,7 +36,6 @@ async function main(config = {}) {
       'accept-routes': secret['accept-routes'] !== false,
       'ip-version': secret['ip-version'] || 'ipv4-prefer',
     });
-    config['proxy-groups'].unshift({ name: 'Tailscale', type: 'select', proxies: ['TAILSCALE'] });
     config.rules = ["IP-CIDR,100.64.0.0/10,Tailscale,no-resolve","IP-CIDR,100.100.100.100/32,Tailscale,no-resolve","DOMAIN-SUFFIX,ts.net,Tailscale"].concat(config.rules);
   }
 
