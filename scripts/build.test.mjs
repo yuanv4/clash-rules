@@ -167,7 +167,7 @@ test("normalizes merge-ready provider views and preserves ordered provenance", (
   assert.doesNotMatch(singleSourceRendered, /# Source 1/);
 });
 
-test("migrated sources.json keeps the eight merged providers and ordered provenance", async () => {
+test("sources.json keeps the AI split and ordered provenance", async () => {
   const config = await Bun.file(new URL("../sources.json", import.meta.url)).json();
   const normalized = normalizeConfiguration(config);
   const providerNames = normalized.providers.map((provider) => provider.name);
@@ -176,27 +176,37 @@ test("migrated sources.json keeps the eight merged providers and ordered provena
     "lan_ip",
     "reject_non_ip",
     "reject_ip",
+    "ai_cn",
     "ai",
     "direct",
     "tag",
-    "foreign",
   ]);
 
-  const aiProvider = normalized.providers[4];
+  const domesticAiProvider = normalized.providers[4];
+  assert.equal(domesticAiProvider.target, "🤖 国内 AI");
+  assert.deepEqual(domesticAiProvider.inputs.map((input) => input.sourceUrl), [
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ai-cn.yaml",
+  ]);
+  assert.deepEqual(domesticAiProvider.inputs.map((input) => input.inputFormat), ["clash-yaml"]);
+
+  const aiProvider = normalized.providers[5];
+  assert.equal(aiProvider.target, "🤖 国外 AI");
   assert.deepEqual(aiProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/global.yaml",
     "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/non_ip/apple_intelligence.txt",
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ai-!cn.yaml",
   ]);
-  assert.deepEqual(aiProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "raw-list"]);
+  assert.deepEqual(aiProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "raw-list", "clash-yaml"]);
 
-  const directProvider = normalized.providers[5];
+  const directProvider = normalized.providers[6];
   assert.deepEqual(directProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/direct.txt",
     "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/cncidr.txt",
-    "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/non_ip/direct.txt",
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/cn.yaml",
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/cn.yaml",
   ]);
 
-  const tagProvider = normalized.providers[6];
+  const tagProvider = normalized.providers[7];
   assert.equal(tagProvider.target, "🌐 国内");
   assert.equal(tagProvider.noResolve, true);
   assert.deepEqual(tagProvider.inputs.map((input) => input.sourceUrl), [
@@ -206,36 +216,19 @@ test("migrated sources.json keeps the eight merged providers and ordered provena
   assert.ok(tagRendered.includes("# Source: https://github.com/yuanv4/clash-rules (https://raw.githubusercontent.com/yuanv4/clash-rules/main/custom/tag.txt)"));
   assert.ok(tagRendered.includes("# License: MIT (https://github.com/yuanv4/clash-rules)"));
 
-  const foreignProvider = normalized.providers[7];
-  assert.deepEqual(foreignProvider.inputs.map((input) => input.sourceUrl), [
-    "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/non_ip/stream.txt",
-    "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/ip/stream.txt",
-    "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/non_ip/microsoft_cdn.txt",
-    "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/non_ip/microsoft.txt",
-    "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Apple/Apple.list",
-    "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Google/Google.list",
-    "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Telegram/Telegram.list",
-    "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Twitter/Twitter.list",
-    "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Facebook/Facebook.list",
-    "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Instagram/Instagram.list",
-    "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/tld-not-cn.txt",
-  ]);
-
   const aiRendered = renderYaml(aiProvider, []);
   assert.ok(aiRendered.includes("# Source 1 [VPSDance/ai-proxy-rules]:"));
   assert.ok(aiRendered.includes("# License 1 [VPSDance/ai-proxy-rules]: MIT (https://github.com/VPSDance/ai-proxy-rules/blob/main/LICENSE)"));
   assert.ok(aiRendered.includes("# Source 2 [boweic/ruleset.bowei.co]:"));
   assert.ok(aiRendered.includes("# License 2 [boweic/ruleset.bowei.co]: AGPL-3.0 (https://github.com/boweic/ruleset.bowei.co/blob/master/LICENSE)"));
+  assert.ok(aiRendered.includes("# Source 3 [MetaCubeX/meta-rules-dat]:"));
+  assert.ok(aiRendered.includes("# License 3 [MetaCubeX/meta-rules-dat]: GPL-3.0 (https://github.com/MetaCubeX/meta-rules-dat/blob/master/LICENSE)"));
 
   const directRendered = renderYaml(directProvider, []);
   assert.ok(directRendered.includes("# Source 1 [Loyalsoldier/clash-rules]:"));
   assert.ok(directRendered.includes("# Source 2 [Loyalsoldier/clash-rules]:"));
-  assert.ok(directRendered.includes("# Source 3 [boweic/ruleset.bowei.co]:"));
-
-  const foreignRendered = renderYaml(foreignProvider, []);
-  assert.ok(foreignRendered.includes("# License 5 [blackmatrix7/ios_rule_script]: GPL-2.0 (https://github.com/blackmatrix7/ios_rule_script/blob/master/LICENSE)"));
-  assert.ok(foreignRendered.includes("# Source 11 [Loyalsoldier/clash-rules]:"));
-  assert.ok(foreignRendered.includes("# License 11 [Loyalsoldier/clash-rules]: MIT (https://github.com/Loyalsoldier/clash-rules/blob/release/LICENSE)"));
+  assert.ok(directRendered.includes("# Source 3 [MetaCubeX/meta-rules-dat]:"));
+  assert.ok(directRendered.includes("# License 4 [MetaCubeX/meta-rules-dat]: GPL-3.0 (https://github.com/MetaCubeX/meta-rules-dat/blob/master/LICENSE)"));
 });
 
 test("merges inputs with first-occurrence canonical deduplication", () => {
@@ -345,8 +338,8 @@ test("accepts ordinary percent-encoded paths and rejects over-limit nested encod
 test("renders a sub-store override with regional auto-selection groups and generated rules", async () => {
   const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
   const providers = [
-    { name: "ai", target: "🤖 AI", noResolve: true },
-    { name: "foreign", target: "⚡ 自动选择", noResolve: false },
+    { name: "ai_cn", target: "🤖 国内 AI", noResolve: true },
+    { name: "ai", target: "🤖 国外 AI", noResolve: true },
   ];
   const releaseBaseUrl = "https://raw.githubusercontent.com/yuanv4/clash-rules/release";
   const proxyGroup = "🚀 节点选择";
@@ -359,9 +352,9 @@ test("renders a sub-store override with regional auto-selection groups and gener
   assert.match(script, /US\(\?: \|-\|_\)\?\(\?:West\|W\)/i);
   assert.doesNotMatch(script, /cloud-hk-node/);
   assert.match(script, /produceArtifact\(\{ type: 'file', name: 'tailscale-secret' \}\)/);
-  assert.match(script, /config\['rule-providers'\] = \{"ai":\{"type":"http"/);
-  assert.match(script, /RULE-SET,ai,🤖 AI,no-resolve/);
-  assert.match(script, /RULE-SET,foreign,⚡ 自动选择/);
+  assert.match(script, /config\['rule-providers'\] = \{"ai_cn":\{"type":"http"/);
+  assert.match(script, /RULE-SET,ai_cn,🤖 国内 AI,no-resolve/);
+  assert.match(script, /RULE-SET,ai,🤖 国外 AI,no-resolve/);
   assert.match(script, /MATCH,🐟 漏网之鱼/);
 
   // 沙箱执行:模拟 sub-store 运行时环境
@@ -406,13 +399,15 @@ test("renders a sub-store override with regional auto-selection groups and gener
   assert.deepEqual(regionalGroup("🇯🇵 日本"), ["🇯🇵 日本01"]);
   assert.deepEqual(regionalGroup("🇸🇬 新加坡"), ["🇸🇬 新加坡01"]);
   assert.deepEqual(regionalGroup("🇺🇸 美西"), ["US-West 01", "Los Angeles 01"]);
-  assert.deepEqual(regionalGroup("🤖 AI"), ["🇸🇬 新加坡", "⚡ 自动选择", "🇭🇰 香港", "🇯🇵 日本", "🇺🇸 美西"]);
+  assert.deepEqual(regionalGroup("🤖 国内 AI"), ["DIRECT"]);
+  assert.deepEqual(regionalGroup("🤖 国外 AI"), ["🇸🇬 新加坡", "⚡ 自动选择", "🇭🇰 香港", "🇯🇵 日本", "🇺🇸 美西"]);
   assert.deepEqual(regionalGroup(proxyGroup), ["⚡ 自动选择", "🇭🇰 香港", "🇯🇵 日本", "🇸🇬 新加坡", "🇺🇸 美西"]);
   assert.deepEqual(regionalGroup("🌐 国内"), ["DIRECT"]);
   assert.deepEqual(regionalGroup("🐟 漏网之鱼"), ["⚡ 自动选择"]);
   assert.equal(plain.mode, "Rule");
   assert.ok(!plain["proxy-groups"].some((g) => g.name === "Tailscale"));
-  assert.equal(plain.rules[0], "RULE-SET,ai,🤖 AI,no-resolve");
+  assert.equal(plain.rules[0], "RULE-SET,ai_cn,🤖 国内 AI,no-resolve");
+  assert.equal(plain.rules[1], "RULE-SET,ai,🤖 国外 AI,no-resolve");
   assert.ok(!plain.proxies.some((p) => p && p.name === "TAILSCALE"), "plain subscription must not contain the TAILSCALE node");
   assert.deepEqual(plain.proxies.map((p) => p.name), ["🇭🇰 香港01", "🇯🇵 日本01", "🇸🇬 新加坡01", "US-West 01", "Los Angeles 01", "🇺🇸 美国东部01"]);
 

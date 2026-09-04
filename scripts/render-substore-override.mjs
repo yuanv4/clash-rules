@@ -16,7 +16,8 @@
  */
 export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) => {
   const automaticGroup = "⚡ 自动选择";
-  const aiGroup = "🤖 AI";
+  const domesticAiGroup = "🤖 国内 AI";
+  const foreignAiGroup = "🤖 国外 AI";
   const domesticGroup = "🌐 国内";
   const fallbackGroup = "🐟 漏网之鱼";
   const testUrl = "https://cp.cloudflare.com/generate_204";
@@ -64,7 +65,8 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     `  const aiProxies = regionNames['🇸🇬 新加坡'] ? ['🇸🇬 新加坡', '${automaticGroup}', ...regionGroups.filter((name) => name !== '🇸🇬 新加坡')] : ['${automaticGroup}', ...regionGroups];`,
     "  config['proxy-groups'] = [",
     `    { name: '${automaticGroup}', type: 'url-test', url: '${testUrl}', interval: 300, tolerance: 50, proxies: names.slice() },`,
-    `    { name: '${aiGroup}', type: 'select', proxies: aiProxies },`,
+    `    { name: '${domesticAiGroup}', type: 'select', proxies: ['DIRECT'] },`,
+    `    { name: '${foreignAiGroup}', type: 'select', proxies: aiProxies },`,
     "    ...regionGroups.map((name) => ({ name, type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies: regionNames[name] })),",
     `    { name: '${proxyGroup}', type: 'select', proxies: ['${automaticGroup}', ...regionGroups] },`,
     `    { name: '${domesticGroup}', type: 'select', proxies: ['DIRECT'] },`,
