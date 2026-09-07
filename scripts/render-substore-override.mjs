@@ -22,8 +22,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
   const testUrl = "https://cp.cloudflare.com/generate_204";
   // JS 环境正则:不含 (?i) 前缀(那是 Go/RE2 语法),使用 /i 标志。
   const regionNodeFilters = {
-    "🇭🇰 香港": "(?:HK|HKG|Hong Kong|香港|🇭🇰)",
-    "🇸🇬 新加坡": "(?:SG|SGP|Singapore|新加坡|🇸🇬)",
+    "🇹🇼 台湾": "(?:TW|TPE|Taiwan|台湾|台灣|🇹🇼)",
   };
 
   const ruleProviders = Object.fromEntries(
@@ -59,15 +58,13 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     "  const names = config.proxies.map((p) => p.name);",
     `  const regionNames = Object.fromEntries(Object.entries(${JSON.stringify(regionNodeFilters)}).map(([region, filter]) => [region, names.filter((name) => new RegExp(filter, 'i').test(name))]).filter(([, proxies]) => proxies.length));`,
     "  const regionGroups = Object.keys(regionNames);",
-    "  const defaultProxy = regionNames['🇭🇰 香港'] ? '🇭🇰 香港' : (names[0] || 'DIRECT');",
-    "  const singaporeProxies = regionNames['🇸🇬 新加坡'] ? ['🇸🇬 新加坡'] : [];",
     "  const tailscaleProxies = withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT'];",
     "  config['proxy-groups'] = [",
     `    { name: '${domesticAiGroup}', type: 'select', proxies: ['DIRECT', '${proxyGroup}'], 'default-selected': 'DIRECT' },`,
-    `    { name: '${foreignAiGroup}', type: 'select', proxies: singaporeProxies, 'empty-fallback': 'REJECT' },`,
+    `    { name: '${foreignAiGroup}', type: 'select', proxies: ['DIRECT', '${proxyGroup}'], 'default-selected': 'DIRECT' },`,
     `    ...regionGroups.map((name) => ({ name, type: 'url-test', url: '${testUrl}', interval: 300, tolerance: 50, proxies: regionNames[name] })),`,
-    `    { name: '${proxyGroup}', type: 'select', proxies: [...regionGroups, ...names, 'DIRECT'], 'default-selected': defaultProxy },`,
-    `    { name: '${googleGroup}', type: 'select', proxies: ['${proxyGroup}', 'DIRECT'], 'default-selected': '${proxyGroup}' },`,
+    `    { name: '${proxyGroup}', type: 'select', proxies: ['DIRECT', ...regionGroups, ...names], 'default-selected': 'DIRECT' },`,
+    `    { name: '${googleGroup}', type: 'select', proxies: ['DIRECT', '${proxyGroup}'], 'default-selected': 'DIRECT' },`,
     `    { name: '${tailscaleGroup}', type: 'select', proxies: tailscaleProxies, 'default-selected': withTailscale ? 'TAILSCALE' : 'DIRECT' },`,
     "  ];",
     "",
