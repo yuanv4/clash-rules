@@ -440,9 +440,9 @@ test("renders the Taiwan-only proxy topology", async () => {
   assert.deepEqual(group(plain, "🤖 国际 AI").proxies, ["DIRECT", proxyGroup]);
   assert.equal(group(plain, "🤖 国际 AI")["default-selected"], "DIRECT");
   assert.deepEqual(group(plain, "🚀 节点选择").proxies, [
-    "DIRECT", "🇹🇼 台湾", "🇭🇰 香港01", "🇹🇼 台湾01", "🇯🇵 日本01", "US-West 01",
+    "🇹🇼 台湾", "🇭🇰 香港01", "🇹🇼 台湾01", "🇯🇵 日本01", "US-West 01",
   ]);
-  assert.equal(group(plain, "🚀 节点选择")["default-selected"], "DIRECT");
+  assert.equal(group(plain, "🚀 节点选择")["default-selected"], "🇹🇼 台湾");
   assert.deepEqual(group(plain, "🌐 Google").proxies, ["DIRECT", proxyGroup]);
   assert.equal(group(plain, "🌐 Google")["default-selected"], "DIRECT");
   for (const name of serviceGroups) {
@@ -458,13 +458,14 @@ test("renders the Taiwan-only proxy topology", async () => {
   assert.equal(plain.rules.at(-1), "MATCH,🐟 漏网之鱼");
 
   const noTaiwan = await buildConfig(makeEnv("yuanv4"), ["US-West 01"]);
-  assert.deepEqual(group(noTaiwan, "🚀 节点选择").proxies, ["DIRECT", "US-West 01"]);
-  assert.equal(group(noTaiwan, "🚀 节点选择")["default-selected"], "DIRECT");
+  assert.deepEqual(group(noTaiwan, "🚀 节点选择").proxies, ["US-West 01"]);
+  assert.equal(group(noTaiwan, "🚀 节点选择")["default-selected"], "US-West 01");
   assert.deepEqual(group(noTaiwan, "Tailscale").proxies, ["DIRECT"]);
 
-  const noNodes = await buildConfig(makeEnv("yuanv4"), []);
-  assert.deepEqual(group(noNodes, "🚀 节点选择").proxies, ["DIRECT"]);
-  assert.equal(group(noNodes, "🚀 节点选择")["default-selected"], "DIRECT");
+  await assert.rejects(
+    () => buildConfig(makeEnv("yuanv4"), []),
+    /Subscription has no proxies/
+  );
 
   const withTs = await buildConfig(makeEnv("yuanv4-with-tailscale"), ["🇯🇵 日本01"]);
   assert.equal(withTs.proxies[0].name, "TAILSCALE");
