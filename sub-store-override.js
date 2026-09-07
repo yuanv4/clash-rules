@@ -4,11 +4,13 @@ async function main(config = {}) {
   const withTailscale = ($file && ($file.name || '').indexOf('tailscale') !== -1);
 
   const names = config.proxies.map((p) => p.name);
+  if (!names.length) throw new Error('Subscription has no proxies');
   const regionNames = Object.fromEntries(Object.entries({"🇹🇼 台湾":"(?:TW|TPE|Taiwan|台湾|台灣|🇹🇼)"}).map(([region, filter]) => [region, names.filter((name) => new RegExp(filter, 'i').test(name))]).filter(([, proxies]) => proxies.length));
   const regionGroups = Object.keys(regionNames);
+  const nodeChoices = [...regionGroups, ...names];
   const tailscaleProxies = withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT'];
   config['proxy-groups'] = [
-    { name: '🚀 节点选择', type: 'select', proxies: ['DIRECT', ...regionGroups, ...names], 'default-selected': 'DIRECT' },
+    { name: '🚀 节点选择', type: 'select', proxies: nodeChoices, 'default-selected': nodeChoices[0] },
     ...regionGroups.map((name) => ({ name, type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies: regionNames[name] })),
     { name: '🤖 国内 AI', type: 'select', proxies: ['DIRECT', '🚀 节点选择'], 'default-selected': 'DIRECT' },
     { name: '🤖 国际 AI', type: 'select', proxies: ['DIRECT', '🚀 节点选择'], 'default-selected': 'DIRECT' },
