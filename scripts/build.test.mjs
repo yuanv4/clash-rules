@@ -176,20 +176,20 @@ test("sources.json keeps the AI split and ordered provenance", async () => {
     "lan_ip",
     "reject_non_ip",
     "reject_ip",
-    "google",
     "ai_cn",
     "ai",
+    "google",
     "direct",
   ]);
 
-  const domesticAiProvider = normalized.providers[5];
+  const domesticAiProvider = normalized.providers[4];
   assert.equal(domesticAiProvider.target, "🤖 国内 AI");
   assert.deepEqual(domesticAiProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ai-cn.yaml",
   ]);
   assert.deepEqual(domesticAiProvider.inputs.map((input) => input.inputFormat), ["clash-yaml"]);
 
-  const aiProvider = normalized.providers[6];
+  const aiProvider = normalized.providers[5];
   assert.equal(aiProvider.target, "🤖 国际 AI");
   assert.deepEqual(aiProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/global.yaml",
@@ -198,7 +198,7 @@ test("sources.json keeps the AI split and ordered provenance", async () => {
   ]);
   assert.deepEqual(aiProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "raw-list", "clash-yaml"]);
 
-  const googleProvider = normalized.providers[4];
+  const googleProvider = normalized.providers[6];
   assert.equal(googleProvider.target, "🌐 Google");
   assert.deepEqual(googleProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google.yaml",
@@ -346,9 +346,9 @@ test("renders the minimal proxy topology and fails closed without Singapore", as
   const providers = [
     { name: "lan_non_ip", target: "DIRECT", noResolve: true },
     { name: "reject_non_ip", target: "REJECT", noResolve: true },
-    { name: "google", target: "🌐 Google", noResolve: true },
     { name: "ai_cn", target: "🤖 国内 AI", noResolve: true },
     { name: "ai", target: "🤖 国际 AI", noResolve: true },
+    { name: "google", target: "🌐 Google", noResolve: true },
     { name: "direct", target: "DIRECT", noResolve: true },
   ];
   const proxyGroup = "🚀 节点选择";
@@ -389,9 +389,9 @@ test("renders the minimal proxy topology and fails closed without Singapore", as
   assert.deepEqual(plain.rules.slice(0, -1), [
     "RULE-SET,lan_non_ip,DIRECT,no-resolve",
     "RULE-SET,reject_non_ip,REJECT,no-resolve",
-    "RULE-SET,google,🌐 Google,no-resolve",
     "RULE-SET,ai_cn,🤖 国内 AI,no-resolve",
     "RULE-SET,ai,🤖 国际 AI,no-resolve",
+    "RULE-SET,google,🌐 Google,no-resolve",
     "RULE-SET,direct,DIRECT,no-resolve",
   ]);
   assert.deepEqual(group(plain, "🤖 国内 AI").proxies, ["DIRECT", proxyGroup]);
