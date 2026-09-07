@@ -15,7 +15,6 @@
  * name via `produceArtifact`; nothing secret is embedded.
  */
 export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) => {
-  const automaticGroup = "⚡ 自动选择";
   const domesticAiGroup = "🤖 国内 AI";
   const foreignAiGroup = "🤖 国际 AI";
   const googleGroup = "🌐 Google";
@@ -60,14 +59,14 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     "  const names = config.proxies.map((p) => p.name);",
     `  const regionNames = Object.fromEntries(Object.entries(${JSON.stringify(regionNodeFilters)}).map(([region, filter]) => [region, names.filter((name) => new RegExp(filter, 'i').test(name))]).filter(([, proxies]) => proxies.length));`,
     "  const regionGroups = Object.keys(regionNames);",
+    "  const defaultProxy = regionNames['🇭🇰 香港'] ? '🇭🇰 香港' : (names[0] || 'DIRECT');",
     "  const singaporeProxies = regionNames['🇸🇬 新加坡'] ? ['🇸🇬 新加坡'] : [];",
     "  const tailscaleProxies = withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT'];",
     "  config['proxy-groups'] = [",
-    `    { name: '${automaticGroup}', type: 'url-test', url: '${testUrl}', interval: 300, tolerance: 50, proxies: names.slice() },`,
     `    { name: '${domesticAiGroup}', type: 'select', proxies: ['DIRECT', '${proxyGroup}'], 'default-selected': 'DIRECT' },`,
     `    { name: '${foreignAiGroup}', type: 'select', proxies: singaporeProxies, 'empty-fallback': 'REJECT' },`,
-    "    ...regionGroups.map((name) => ({ name, type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies: regionNames[name] })),",
-    `    { name: '${proxyGroup}', type: 'select', proxies: ['${automaticGroup}', ...regionGroups] },`,
+    `    ...regionGroups.map((name) => ({ name, type: 'url-test', url: '${testUrl}', interval: 300, tolerance: 50, proxies: regionNames[name] })),`,
+    `    { name: '${proxyGroup}', type: 'select', proxies: [...regionGroups, ...names, 'DIRECT'], 'default-selected': defaultProxy },`,
     `    { name: '${googleGroup}', type: 'select', proxies: ['${proxyGroup}', 'DIRECT'], 'default-selected': '${proxyGroup}' },`,
     `    { name: '${tailscaleGroup}', type: 'select', proxies: tailscaleProxies, 'default-selected': withTailscale ? 'TAILSCALE' : 'DIRECT' },`,
     "  ];",
