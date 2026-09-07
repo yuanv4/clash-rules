@@ -167,7 +167,7 @@ test("normalizes merge-ready provider views and preserves ordered provenance", (
   assert.doesNotMatch(singleSourceRendered, /# Source 1/);
 });
 
-test("sources.json keeps the AI split and ordered provenance", async () => {
+test("sources.json preserves routing precedence and provider provenance", async () => {
   const config = await Bun.file(new URL("../sources.json", import.meta.url)).json();
   const normalized = normalizeConfiguration(config);
   const providerNames = normalized.providers.map((provider) => provider.name);
@@ -179,8 +179,20 @@ test("sources.json keeps the AI split and ordered provenance", async () => {
     "ai_cn",
     "ai",
     "google",
+    "netflix",
+    "disney",
+    "telegram",
+    "steam",
+    "microsoft",
+    "apple",
+    "media",
     "direct",
   ]);
+
+  const rejectNonIpProvider = normalized.providers[2];
+  const rejectIpProvider = normalized.providers[3];
+  assert.equal(rejectNonIpProvider.target, "🛑 广告过滤");
+  assert.equal(rejectIpProvider.target, "🛑 广告过滤");
 
   const domesticAiProvider = normalized.providers[4];
   assert.equal(domesticAiProvider.target, "🤖 国内 AI");
@@ -206,7 +218,21 @@ test("sources.json keeps the AI split and ordered provenance", async () => {
   ]);
   assert.deepEqual(googleProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "clash-yaml"]);
 
-  const directProvider = normalized.providers[7];
+  const serviceProviders = normalized.providers.slice(7, 14);
+  assert.deepEqual(
+    serviceProviders.map(({ name, target, inputs }) => [name, target, ...inputs.map((input) => input.sourceUrl)]),
+    [
+      ["netflix", "🎬 Netflix", "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/netflix.yaml", "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/netflix.yaml"],
+      ["disney", "🎬 DisneyPlus", "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/disney.yaml"],
+      ["telegram", "📲 电报信息", "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/telegram.yaml", "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/telegram.yaml"],
+      ["steam", "💨 Steam商店", "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/steam.yaml"],
+      ["microsoft", "Ⓜ️ 微软服务", "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/microsoft.yaml"],
+      ["apple", "🍎 苹果服务", "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/apple.yaml"],
+      ["media", "🌍 媒体服务", "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-media.yaml"],
+    ]
+  );
+
+  const directProvider = normalized.providers[14];
   assert.equal(directProvider.target, "DIRECT");
   assert.deepEqual(directProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/direct.txt",
@@ -345,20 +371,28 @@ test("renders the Taiwan-only proxy topology", async () => {
   const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
   const providers = [
     { name: "lan_non_ip", target: "DIRECT", noResolve: true },
-    { name: "reject_non_ip", target: "REJECT", noResolve: true },
+    { name: "reject_non_ip", target: "🛑 广告过滤", noResolve: true },
     { name: "ai_cn", target: "🤖 国内 AI", noResolve: true },
     { name: "ai", target: "🤖 国际 AI", noResolve: true },
     { name: "google", target: "🌐 Google", noResolve: true },
+    { name: "netflix", target: "🎬 Netflix", noResolve: true },
+    { name: "disney", target: "🎬 DisneyPlus", noResolve: true },
+    { name: "telegram", target: "📲 电报信息", noResolve: true },
+    { name: "steam", target: "💨 Steam商店", noResolve: true },
+    { name: "microsoft", target: "Ⓜ️ 微软服务", noResolve: true },
+    { name: "apple", target: "🍎 苹果服务", noResolve: true },
+    { name: "media", target: "🌍 媒体服务", noResolve: true },
     { name: "direct", target: "DIRECT", noResolve: true },
   ];
   const proxyGroup = "🚀 节点选择";
+  const serviceGroups = ["🎬 Netflix", "🎬 DisneyPlus", "📲 电报信息", "💨 Steam商店", "Ⓜ️ 微软服务", "🍎 苹果服务", "🌍 媒体服务"];
   const script = renderSubstoreOverride(providers, "https://rules.example.test/release", proxyGroup);
 
   assert.match(script, /\(?:TW\|TPE\|Taiwan\|台湾\|台灣\|🇹🇼\)/i);
   assert.doesNotMatch(script, /\(?:HK\|HKG\|Hong Kong\|香港\|🇭🇰\)/i);
   assert.doesNotMatch(script, /\(?:JP\|JPN\|Japan\|日本\|🇯🇵\)/i);
   assert.doesNotMatch(script, /\(?:SG\|SGP\|Singapore\|新加坡\|🇸🇬\)/i);
-  assert.match(script, /MATCH,🚀 节点选择/);
+  assert.match(script, /MATCH,🐟 漏网之鱼/);
 
   const files = {
     "tailscale-secret": JSON.stringify({
@@ -384,14 +418,21 @@ test("renders the Taiwan-only proxy topology", async () => {
 
   const plain = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 香港01", "🇹🇼 台湾01", "🇯🇵 日本01", "US-West 01"]);
   assert.deepEqual(plain["proxy-groups"].map((item) => item.name), [
-    "🤖 国内 AI", "🤖 国际 AI", "🇹🇼 台湾", "🚀 节点选择", "🌐 Google", "Tailscale",
+    "🚀 节点选择", "🇹🇼 台湾", "🤖 国内 AI", "🤖 国际 AI", "🌐 Google", ...serviceGroups, "🛑 广告过滤", "🐟 漏网之鱼", "Tailscale",
   ]);
   assert.deepEqual(plain.rules.slice(0, -1), [
     "RULE-SET,lan_non_ip,DIRECT,no-resolve",
-    "RULE-SET,reject_non_ip,REJECT,no-resolve",
+    "RULE-SET,reject_non_ip,🛑 广告过滤,no-resolve",
     "RULE-SET,ai_cn,🤖 国内 AI,no-resolve",
     "RULE-SET,ai,🤖 国际 AI,no-resolve",
     "RULE-SET,google,🌐 Google,no-resolve",
+    "RULE-SET,netflix,🎬 Netflix,no-resolve",
+    "RULE-SET,disney,🎬 DisneyPlus,no-resolve",
+    "RULE-SET,telegram,📲 电报信息,no-resolve",
+    "RULE-SET,steam,💨 Steam商店,no-resolve",
+    "RULE-SET,microsoft,Ⓜ️ 微软服务,no-resolve",
+    "RULE-SET,apple,🍎 苹果服务,no-resolve",
+    "RULE-SET,media,🌍 媒体服务,no-resolve",
     "RULE-SET,direct,DIRECT,no-resolve",
   ]);
   assert.deepEqual(group(plain, "🤖 国内 AI").proxies, ["DIRECT", proxyGroup]);
@@ -404,9 +445,17 @@ test("renders the Taiwan-only proxy topology", async () => {
   assert.equal(group(plain, "🚀 节点选择")["default-selected"], "DIRECT");
   assert.deepEqual(group(plain, "🌐 Google").proxies, ["DIRECT", proxyGroup]);
   assert.equal(group(plain, "🌐 Google")["default-selected"], "DIRECT");
+  for (const name of serviceGroups) {
+    assert.deepEqual(group(plain, name).proxies, ["DIRECT", proxyGroup]);
+    assert.equal(group(plain, name)["default-selected"], "DIRECT");
+  }
+  assert.deepEqual(group(plain, "🛑 广告过滤").proxies, ["REJECT", "DIRECT"]);
+  assert.equal(group(plain, "🛑 广告过滤")["default-selected"], "REJECT");
+  assert.deepEqual(group(plain, "🐟 漏网之鱼").proxies, [proxyGroup, "DIRECT"]);
+  assert.equal(group(plain, "🐟 漏网之鱼")["default-selected"], proxyGroup);
   assert.deepEqual(group(plain, "Tailscale").proxies, ["DIRECT"]);
   assert.equal(group(plain, "Tailscale")["default-selected"], "DIRECT");
-  assert.equal(plain.rules.at(-1), "MATCH,🚀 节点选择");
+  assert.equal(plain.rules.at(-1), "MATCH,🐟 漏网之鱼");
 
   const noTaiwan = await buildConfig(makeEnv("yuanv4"), ["US-West 01"]);
   assert.deepEqual(group(noTaiwan, "🚀 节点选择").proxies, ["DIRECT", "US-West 01"]);
