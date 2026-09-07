@@ -4,17 +4,15 @@ async function main(config = {}) {
   const withTailscale = ($file && ($file.name || '').indexOf('tailscale') !== -1);
 
   const names = config.proxies.map((p) => p.name);
-  const regionNames = Object.fromEntries(Object.entries({"🇭🇰 香港":"(?:HK|HKG|Hong Kong|香港|🇭🇰)","🇸🇬 新加坡":"(?:SG|SGP|Singapore|新加坡|🇸🇬)"}).map(([region, filter]) => [region, names.filter((name) => new RegExp(filter, 'i').test(name))]).filter(([, proxies]) => proxies.length));
+  const regionNames = Object.fromEntries(Object.entries({"🇹🇼 台湾":"(?:TW|TPE|Taiwan|台湾|台灣|🇹🇼)"}).map(([region, filter]) => [region, names.filter((name) => new RegExp(filter, 'i').test(name))]).filter(([, proxies]) => proxies.length));
   const regionGroups = Object.keys(regionNames);
-  const defaultProxy = regionNames['🇭🇰 香港'] ? '🇭🇰 香港' : (names[0] || 'DIRECT');
-  const singaporeProxies = regionNames['🇸🇬 新加坡'] ? ['🇸🇬 新加坡'] : [];
   const tailscaleProxies = withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT'];
   config['proxy-groups'] = [
     { name: '🤖 国内 AI', type: 'select', proxies: ['DIRECT', '🚀 节点选择'], 'default-selected': 'DIRECT' },
-    { name: '🤖 国际 AI', type: 'select', proxies: singaporeProxies, 'empty-fallback': 'REJECT' },
+    { name: '🤖 国际 AI', type: 'select', proxies: ['DIRECT', '🚀 节点选择'], 'default-selected': 'DIRECT' },
     ...regionGroups.map((name) => ({ name, type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies: regionNames[name] })),
-    { name: '🚀 节点选择', type: 'select', proxies: [...regionGroups, ...names, 'DIRECT'], 'default-selected': defaultProxy },
-    { name: '🌐 Google', type: 'select', proxies: ['🚀 节点选择', 'DIRECT'], 'default-selected': '🚀 节点选择' },
+    { name: '🚀 节点选择', type: 'select', proxies: ['DIRECT', ...regionGroups, ...names], 'default-selected': 'DIRECT' },
+    { name: '🌐 Google', type: 'select', proxies: ['DIRECT', '🚀 节点选择'], 'default-selected': 'DIRECT' },
     { name: 'Tailscale', type: 'select', proxies: tailscaleProxies, 'default-selected': withTailscale ? 'TAILSCALE' : 'DIRECT' },
   ];
 
