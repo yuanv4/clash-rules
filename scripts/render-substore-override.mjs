@@ -18,6 +18,9 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
   const domesticAiGroup = "🤖 国内 AI";
   const foreignAiGroup = "🤖 国际 AI";
   const googleGroup = "🌐 Google";
+  const serviceGroups = ["🎬 Netflix", "🎬 DisneyPlus", "📲 电报信息", "💨 Steam商店", "Ⓜ️ 微软服务", "🍎 苹果服务", "🌍 媒体服务"];
+  const adBlockGroup = "🛑 广告过滤";
+  const fallbackGroup = "🐟 漏网之鱼";
   const tailscaleGroup = "Tailscale";
   const testUrl = "https://cp.cloudflare.com/generate_204";
   // JS 环境正则:不含 (?i) 前缀(那是 Go/RE2 语法),使用 /i 标志。
@@ -41,7 +44,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     const noResolve = provider.noResolve ? ",no-resolve" : "";
     return `RULE-SET,${provider.name},${provider.target}${noResolve}`;
   });
-  rules.push(`MATCH,${proxyGroup}`);
+  rules.push(`MATCH,${fallbackGroup}`);
 
   const tailscaleRules = [
     "IP-CIDR,100.64.0.0/10,Tailscale,no-resolve",
@@ -60,11 +63,14 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     "  const regionGroups = Object.keys(regionNames);",
     "  const tailscaleProxies = withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT'];",
     "  config['proxy-groups'] = [",
+    `    { name: '${proxyGroup}', type: 'select', proxies: ['DIRECT', ...regionGroups, ...names], 'default-selected': 'DIRECT' },`,
+    `    ...regionGroups.map((name) => ({ name, type: 'url-test', url: '${testUrl}', interval: 300, tolerance: 50, proxies: regionNames[name] })),`,
     `    { name: '${domesticAiGroup}', type: 'select', proxies: ['DIRECT', '${proxyGroup}'], 'default-selected': 'DIRECT' },`,
     `    { name: '${foreignAiGroup}', type: 'select', proxies: ['DIRECT', '${proxyGroup}'], 'default-selected': 'DIRECT' },`,
-    `    ...regionGroups.map((name) => ({ name, type: 'url-test', url: '${testUrl}', interval: 300, tolerance: 50, proxies: regionNames[name] })),`,
-    `    { name: '${proxyGroup}', type: 'select', proxies: ['DIRECT', ...regionGroups, ...names], 'default-selected': 'DIRECT' },`,
     `    { name: '${googleGroup}', type: 'select', proxies: ['DIRECT', '${proxyGroup}'], 'default-selected': 'DIRECT' },`,
+    `    ...${JSON.stringify(serviceGroups)}.map((name) => ({ name, type: 'select', proxies: ['DIRECT', '${proxyGroup}'], 'default-selected': 'DIRECT' })),`,
+    `    { name: '${adBlockGroup}', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' },`,
+    `    { name: '${fallbackGroup}', type: 'select', proxies: ['${proxyGroup}', 'DIRECT'], 'default-selected': '${proxyGroup}' },`,
     `    { name: '${tailscaleGroup}', type: 'select', proxies: tailscaleProxies, 'default-selected': withTailscale ? 'TAILSCALE' : 'DIRECT' },`,
     "  ];",
     "",
