@@ -176,19 +176,20 @@ test("sources.json keeps the AI split and ordered provenance", async () => {
     "lan_ip",
     "reject_non_ip",
     "reject_ip",
+    "google",
     "ai_cn",
     "ai",
     "direct",
   ]);
 
-  const domesticAiProvider = normalized.providers[4];
+  const domesticAiProvider = normalized.providers[5];
   assert.equal(domesticAiProvider.target, "🤖 国内 AI");
   assert.deepEqual(domesticAiProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ai-cn.yaml",
   ]);
   assert.deepEqual(domesticAiProvider.inputs.map((input) => input.inputFormat), ["clash-yaml"]);
 
-  const aiProvider = normalized.providers[5];
+  const aiProvider = normalized.providers[6];
   assert.equal(aiProvider.target, "🤖 国际 AI");
   assert.deepEqual(aiProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/global.yaml",
@@ -197,7 +198,15 @@ test("sources.json keeps the AI split and ordered provenance", async () => {
   ]);
   assert.deepEqual(aiProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "raw-list", "clash-yaml"]);
 
-  const directProvider = normalized.providers[6];
+  const googleProvider = normalized.providers[4];
+  assert.equal(googleProvider.target, "🌐 Google");
+  assert.deepEqual(googleProvider.inputs.map((input) => input.sourceUrl), [
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google.yaml",
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/google.yaml",
+  ]);
+  assert.deepEqual(googleProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "clash-yaml"]);
+
+  const directProvider = normalized.providers[7];
   assert.equal(directProvider.target, "DIRECT");
   assert.deepEqual(directProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/direct.txt",
@@ -214,6 +223,10 @@ test("sources.json keeps the AI split and ordered provenance", async () => {
   assert.ok(aiRendered.includes("# License 2 [boweic/ruleset.bowei.co]: AGPL-3.0 (https://github.com/boweic/ruleset.bowei.co/blob/master/LICENSE)"));
   assert.ok(aiRendered.includes("# Source 3 [MetaCubeX/meta-rules-dat]:"));
   assert.ok(aiRendered.includes("# License 3 [MetaCubeX/meta-rules-dat]: GPL-3.0 (https://github.com/MetaCubeX/meta-rules-dat/blob/master/LICENSE)"));
+
+  const googleRendered = renderYaml(googleProvider, []);
+  assert.ok(googleRendered.includes("# Source 1 [MetaCubeX/meta-rules-dat]:"));
+  assert.ok(googleRendered.includes("# Source 2 [MetaCubeX/meta-rules-dat]:"));
 
   const directRendered = renderYaml(directProvider, []);
   assert.ok(directRendered.includes("# Source 1 [Loyalsoldier/clash-rules]:"));
@@ -333,6 +346,7 @@ test("renders the minimal proxy topology and fails closed without Singapore", as
   const providers = [
     { name: "lan_non_ip", target: "DIRECT", noResolve: true },
     { name: "reject_non_ip", target: "REJECT", noResolve: true },
+    { name: "google", target: "🌐 Google", noResolve: true },
     { name: "ai_cn", target: "🤖 国内 AI", noResolve: true },
     { name: "ai", target: "🤖 国际 AI", noResolve: true },
     { name: "direct", target: "DIRECT", noResolve: true },
@@ -370,12 +384,22 @@ test("renders the minimal proxy topology and fails closed without Singapore", as
 
   const plain = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 香港01", "🇸🇬 新加坡01", "US-West 01"]);
   assert.deepEqual(plain["proxy-groups"].map((item) => item.name), [
-    "⚡ 自动选择", "🤖 国内 AI", "🤖 国际 AI", "🇭🇰 香港", "🇸🇬 新加坡", "🚀 节点选择", "Tailscale",
+    "⚡ 自动选择", "🤖 国内 AI", "🤖 国际 AI", "🇭🇰 香港", "🇸🇬 新加坡", "🚀 节点选择", "🌐 Google", "Tailscale",
+  ]);
+  assert.deepEqual(plain.rules.slice(0, -1), [
+    "RULE-SET,lan_non_ip,DIRECT,no-resolve",
+    "RULE-SET,reject_non_ip,REJECT,no-resolve",
+    "RULE-SET,google,🌐 Google,no-resolve",
+    "RULE-SET,ai_cn,🤖 国内 AI,no-resolve",
+    "RULE-SET,ai,🤖 国际 AI,no-resolve",
+    "RULE-SET,direct,DIRECT,no-resolve",
   ]);
   assert.deepEqual(group(plain, "🤖 国内 AI").proxies, ["DIRECT", proxyGroup]);
   assert.equal(group(plain, "🤖 国内 AI")["default-selected"], "DIRECT");
   assert.deepEqual(group(plain, "🤖 国际 AI").proxies, ["🇸🇬 新加坡"]);
   assert.deepEqual(group(plain, "🚀 节点选择").proxies, ["⚡ 自动选择", "🇭🇰 香港", "🇸🇬 新加坡"]);
+  assert.deepEqual(group(plain, "🌐 Google").proxies, [proxyGroup, "DIRECT"]);
+  assert.equal(group(plain, "🌐 Google")["default-selected"], proxyGroup);
   assert.deepEqual(group(plain, "Tailscale").proxies, ["DIRECT"]);
   assert.equal(group(plain, "Tailscale")["default-selected"], "DIRECT");
   assert.equal(plain.rules.at(-1), "MATCH,🚀 节点选择");

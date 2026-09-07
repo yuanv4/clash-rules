@@ -18,6 +18,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
   const automaticGroup = "⚡ 自动选择";
   const domesticAiGroup = "🤖 国内 AI";
   const foreignAiGroup = "🤖 国际 AI";
+  const googleGroup = "🌐 Google";
   const tailscaleGroup = "Tailscale";
   const testUrl = "https://cp.cloudflare.com/generate_204";
   // JS 环境正则:不含 (?i) 前缀(那是 Go/RE2 语法),使用 /i 标志。
@@ -67,6 +68,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     `    { name: '${foreignAiGroup}', type: 'select', proxies: singaporeProxies, 'empty-fallback': 'REJECT' },`,
     "    ...regionGroups.map((name) => ({ name, type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies: regionNames[name] })),",
     `    { name: '${proxyGroup}', type: 'select', proxies: ['${automaticGroup}', ...regionGroups] },`,
+    `    { name: '${googleGroup}', type: 'select', proxies: ['${proxyGroup}', 'DIRECT'], 'default-selected': '${proxyGroup}' },`,
     `    { name: '${tailscaleGroup}', type: 'select', proxies: tailscaleProxies, 'default-selected': withTailscale ? 'TAILSCALE' : 'DIRECT' },`,
     "  ];",
     "",
