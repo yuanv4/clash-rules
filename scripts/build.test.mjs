@@ -341,7 +341,7 @@ test("accepts ordinary percent-encoded paths and rejects over-limit nested encod
   );
 });
 
-test("renders the minimal proxy topology and fails closed without Singapore", async () => {
+test("renders the proxy selector and fails closed without Singapore", async () => {
   const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
   const providers = [
     { name: "lan_non_ip", target: "DIRECT", noResolve: true },
@@ -384,7 +384,7 @@ test("renders the minimal proxy topology and fails closed without Singapore", as
 
   const plain = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 香港01", "🇸🇬 新加坡01", "US-West 01"]);
   assert.deepEqual(plain["proxy-groups"].map((item) => item.name), [
-    "⚡ 自动选择", "🤖 国内 AI", "🤖 国际 AI", "🇭🇰 香港", "🇸🇬 新加坡", "🚀 节点选择", "🌐 Google", "Tailscale",
+    "🤖 国内 AI", "🤖 国际 AI", "🇭🇰 香港", "🇸🇬 新加坡", "🚀 节点选择", "🌐 Google", "Tailscale",
   ]);
   assert.deepEqual(plain.rules.slice(0, -1), [
     "RULE-SET,lan_non_ip,DIRECT,no-resolve",
@@ -397,7 +397,10 @@ test("renders the minimal proxy topology and fails closed without Singapore", as
   assert.deepEqual(group(plain, "🤖 国内 AI").proxies, ["DIRECT", proxyGroup]);
   assert.equal(group(plain, "🤖 国内 AI")["default-selected"], "DIRECT");
   assert.deepEqual(group(plain, "🤖 国际 AI").proxies, ["🇸🇬 新加坡"]);
-  assert.deepEqual(group(plain, "🚀 节点选择").proxies, ["⚡ 自动选择", "🇭🇰 香港", "🇸🇬 新加坡"]);
+  assert.deepEqual(group(plain, "🚀 节点选择").proxies, [
+    "🇭🇰 香港", "🇸🇬 新加坡", "🇭🇰 香港01", "🇸🇬 新加坡01", "US-West 01", "DIRECT",
+  ]);
+  assert.equal(group(plain, "🚀 节点选择")["default-selected"], "🇭🇰 香港");
   assert.deepEqual(group(plain, "🌐 Google").proxies, [proxyGroup, "DIRECT"]);
   assert.equal(group(plain, "🌐 Google")["default-selected"], proxyGroup);
   assert.deepEqual(group(plain, "Tailscale").proxies, ["DIRECT"]);
@@ -408,6 +411,14 @@ test("renders the minimal proxy topology and fails closed without Singapore", as
   assert.deepEqual(group(noSingapore, "🤖 国际 AI").proxies, []);
   assert.equal(group(noSingapore, "🤖 国际 AI")["empty-fallback"], "REJECT");
   assert.deepEqual(group(noSingapore, "Tailscale").proxies, ["DIRECT"]);
+
+  const noHongKong = await buildConfig(makeEnv("yuanv4"), ["US-West 01"]);
+  assert.deepEqual(group(noHongKong, "🚀 节点选择").proxies, ["US-West 01", "DIRECT"]);
+  assert.equal(group(noHongKong, "🚀 节点选择")["default-selected"], "US-West 01");
+
+  const noNodes = await buildConfig(makeEnv("yuanv4"), []);
+  assert.deepEqual(group(noNodes, "🚀 节点选择").proxies, ["DIRECT"]);
+  assert.equal(group(noNodes, "🚀 节点选择")["default-selected"], "DIRECT");
 
   const withTs = await buildConfig(makeEnv("yuanv4-with-tailscale"), ["🇸🇬 新加坡01"]);
   assert.equal(withTs.proxies[0].name, "TAILSCALE");
