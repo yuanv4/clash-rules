@@ -10,14 +10,14 @@ async function main(config = {}) {
   if (!eastAsiaNames.length) throw new Error('Subscription has no East Asia proxies');
   const tailscaleProxies = withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT'];
   config['proxy-groups'] = [
-    { name: '🚀 节点选择 东亚', type: 'select', proxies: eastAsiaNames, 'default-selected': eastAsiaNames[0] },
-    { name: '♻️ 自动选择', type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies: eastAsiaNames },
-    { name: '🐟 漏网之鱼', type: 'select', proxies: ['DIRECT', '🚀 节点选择 东亚', '♻️ 自动选择'], 'default-selected': '🚀 节点选择 东亚' },
+    { name: '🚀 节点选择(东亚)', type: 'select', proxies: eastAsiaNames, 'default-selected': eastAsiaNames[0] },
+    { name: '♻️ 自动选择(东亚)', type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies: eastAsiaNames },
+    { name: '🐟 漏网之鱼', type: 'select', proxies: ['DIRECT', '🚀 节点选择(东亚)', '♻️ 自动选择(东亚)'], 'default-selected': '🚀 节点选择(东亚)' },
     { name: 'Tailscale', type: 'select', proxies: tailscaleProxies, 'default-selected': withTailscale ? 'TAILSCALE' : 'DIRECT' },
-    { name: '🤖 国内 AI', type: 'select', proxies: ['DIRECT', '🚀 节点选择 东亚', '♻️ 自动选择'], 'default-selected': 'DIRECT' },
-    { name: '🤖 国际 AI', type: 'select', proxies: ['DIRECT', '🚀 节点选择 东亚', '♻️ 自动选择'], 'default-selected': 'DIRECT' },
-    { name: '🌐 Google', type: 'select', proxies: ['DIRECT', '🚀 节点选择 东亚', '♻️ 自动选择'], 'default-selected': 'DIRECT' },
-    ...["🎬 Netflix","🎬 DisneyPlus","📲 电报信息","💨 Steam商店","Ⓜ️ 微软服务","🍎 苹果服务","🌍 媒体服务"].map((name) => ({ name, type: 'select', proxies: ['DIRECT', '🚀 节点选择 东亚', '♻️ 自动选择'], 'default-selected': 'DIRECT' })),
+    { name: '🤖 国内 AI', type: 'select', proxies: ['DIRECT', '🚀 节点选择(东亚)', '♻️ 自动选择(东亚)'], 'default-selected': 'DIRECT' },
+    { name: '🤖 国际 AI', type: 'select', proxies: ['DIRECT', '🚀 节点选择(东亚)', '♻️ 自动选择(东亚)'], 'default-selected': 'DIRECT' },
+    { name: '🌐 Google', type: 'select', proxies: ['DIRECT', '🚀 节点选择(东亚)', '♻️ 自动选择(东亚)'], 'default-selected': 'DIRECT' },
+    ...["🎬 Netflix","🎬 DisneyPlus","📲 电报信息","💨 Steam商店","Ⓜ️ 微软服务","🍎 苹果服务","🌍 媒体服务"].map((name) => ({ name, type: 'select', proxies: ['DIRECT', '🚀 节点选择(东亚)', '♻️ 自动选择(东亚)'], 'default-selected': 'DIRECT' })),
     { name: '🛑 广告过滤', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' },
   ];
 
