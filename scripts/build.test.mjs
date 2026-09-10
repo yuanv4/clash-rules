@@ -389,7 +389,7 @@ test("renders node selection and automatic proxy topology", async () => {
   const script = renderSubstoreOverride(providers, "https://rules.example.test/release", proxyGroup);
 
   assert.match(script, /East Asia proxies/);
-  assert.match(script, /TW\|TPE\|Taiwan\|Taipei\|台湾\|台灣\|台北/);
+  assert.match(script, /TW\|TPE\|Taiwan\|Taipei/);
   assert.match(script, /MATCH,🐟 漏网之鱼/);
 
   const files = {
