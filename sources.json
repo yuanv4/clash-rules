@@ -1,6 +1,6 @@
 {
   "release_base_url": "https://raw.githubusercontent.com/yuanv4/clash-rules/release",
-  "proxy_group": "🚀 节点选择 东亚",
+  "proxy_group": "🚀 节点选择(东亚)",
   "inputs": [
     {
       "name": "boweic/ruleset.bowei.co",

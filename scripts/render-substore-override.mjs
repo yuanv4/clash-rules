@@ -21,7 +21,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
   const serviceGroups = ["🎬 Netflix", "🎬 DisneyPlus", "📲 电报信息", "💨 Steam商店", "Ⓜ️ 微软服务", "🍎 苹果服务", "🌍 媒体服务"];
   const adBlockGroup = "🛑 广告过滤";
   const fallbackGroup = "🐟 漏网之鱼";
-  const automaticGroup = "♻️ 自动选择";
+  const automaticGroup = "♻️ 自动选择(东亚)";
   const tailscaleGroup = "Tailscale";
   const testUrl = "https://cp.cloudflare.com/generate_204";
   const eastAsiaNodePattern = String.raw`(?:🇭🇰|🇲🇴|🇹🇼|🇯🇵|🇰🇷|🇨🇳|🇲🇳|HK|HKG|Hong\s*Kong|香港|港|\bMO\b|Macau|Macao|澳门|澳門|TW|TPE|Taiwan|Taipei|台湾|台灣|台北|JP|TYO|NRT|HND|KIX|OSA|Japan|Tokyo|Osaka|日本|东京|東京|大阪|KR|KOR|SEL|ICN|GMP|PUS|Korea|Seoul|韩国|韓國|首尔|首爾|CN|China|中国|中國|大陆|大陸|北京|上海|广州|深圳|Mongolia|蒙古|乌兰巴托|烏蘭巴托)`;
