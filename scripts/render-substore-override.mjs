@@ -24,6 +24,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
   const automaticGroup = "♻️ 自动选择";
   const tailscaleGroup = "Tailscale";
   const testUrl = "https://cp.cloudflare.com/generate_204";
+  const eastAsiaNodePattern = String.raw`(?:🇭🇰|🇲🇴|🇹🇼|🇯🇵|🇰🇷|🇨🇳|🇲🇳|HK|HKG|Hong\s*Kong|香港|港|\bMO\b|Macau|Macao|澳门|澳門|TW|TPE|Taiwan|Taipei|台湾|台灣|台北|JP|TYO|NRT|HND|KIX|OSA|Japan|Tokyo|Osaka|日本|东京|東京|大阪|KR|KOR|SEL|ICN|GMP|PUS|Korea|Seoul|韩国|韓國|首尔|首爾|CN|China|中国|中國|大陆|大陸|北京|上海|广州|深圳|Mongolia|蒙古|乌兰巴托|烏蘭巴托)`;
 
   const ruleProviders = Object.fromEntries(
     providers.map((provider) => [
@@ -57,10 +58,13 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     "",
     "  const names = config.proxies.map((p) => p.name);",
     "  if (!names.length) throw new Error('Subscription has no proxies');",
+    `  const eastAsiaPattern = new RegExp(${JSON.stringify(eastAsiaNodePattern)}, 'i');`,
+    "  const eastAsiaNames = names.filter((name) => eastAsiaPattern.test(name));",
+    "  if (!eastAsiaNames.length) throw new Error('Subscription has no East Asia proxies');",
     "  const tailscaleProxies = withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT'];",
     "  config['proxy-groups'] = [",
-    `    { name: '${proxyGroup}', type: 'select', proxies: names, 'default-selected': names[0] },`,
-    `    { name: '${automaticGroup}', type: 'url-test', url: '${testUrl}', interval: 300, tolerance: 50, proxies: names },`,
+    `    { name: '${proxyGroup}', type: 'select', proxies: eastAsiaNames, 'default-selected': eastAsiaNames[0] },`,
+    `    { name: '${automaticGroup}', type: 'url-test', url: '${testUrl}', interval: 300, tolerance: 50, proxies: eastAsiaNames },`,
     `    { name: '${fallbackGroup}', type: 'select', proxies: ['DIRECT', '${proxyGroup}', '${automaticGroup}'], 'default-selected': '${proxyGroup}' },`,
     `    { name: '${tailscaleGroup}', type: 'select', proxies: tailscaleProxies, 'default-selected': withTailscale ? 'TAILSCALE' : 'DIRECT' },`,
     `    { name: '${domesticAiGroup}', type: 'select', proxies: ['DIRECT', '${proxyGroup}', '${automaticGroup}'], 'default-selected': 'DIRECT' },`,
