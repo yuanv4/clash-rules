@@ -21,7 +21,9 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
   const serviceGroups = ["🎬 Netflix", "🎬 DisneyPlus", "📲 电报信息", "💨 Steam商店", "Ⓜ️ 微软服务", "🍎 苹果服务", "🌍 媒体服务"];
   const adBlockGroup = "🛑 广告过滤";
   const fallbackGroup = "🐟 漏网之鱼";
-  const automaticGroup = "♻️ 自动选择(东亚)";
+  const automaticGroup = proxyGroup;
+  const taiwanBalanceGroup = "⚖️ 负载均衡(台湾)";
+  const taiwanNodePattern = String.raw`(?:🇹🇼|\bTW(?=\b|\d)|\bTPE(?=\b|\d)|Taiwan|Taipei|台湾|台灣|台北)`;
   const tailscaleGroup = "Tailscale";
   const testUrl = "https://cp.cloudflare.com/generate_204";
   const eastAsiaNodePattern = String.raw`(?:🇭🇰|🇲🇴|🇹🇼|🇯🇵|🇰🇷|🇨🇳|🇲🇳|HK|HKG|Hong\s*Kong|香港|港|\bMO\b|Macau|Macao|澳门|澳門|TW|TPE|Taiwan|Taipei|台湾|台灣|台北|JP|TYO|NRT|HND|KIX|OSA|Japan|Tokyo|Osaka|日本|东京|東京|大阪|KR|KOR|SEL|ICN|GMP|PUS|Korea|Seoul|韩国|韓國|首尔|首爾|CN|China|中国|中國|大陆|大陸|北京|上海|广州|深圳|Mongolia|蒙古|乌兰巴托|烏蘭巴托)`;
@@ -61,16 +63,18 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     `  const eastAsiaPattern = new RegExp(${JSON.stringify(eastAsiaNodePattern)}, 'i');`,
     "  const eastAsiaNames = names.filter((name) => eastAsiaPattern.test(name));",
     "  if (!eastAsiaNames.length) throw new Error('Subscription has no East Asia proxies');",
+    `  const taiwanPattern = new RegExp(${JSON.stringify(taiwanNodePattern)}, 'i');`,
+    "  const taiwanNames = names.filter((name) => taiwanPattern.test(name));",
     "  const tailscaleProxies = withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT'];",
     "  config['proxy-groups'] = [",
-    `    { name: '${proxyGroup}', type: 'select', proxies: eastAsiaNames, 'default-selected': eastAsiaNames[0] },`,
     `    { name: '${automaticGroup}', type: 'url-test', url: '${testUrl}', interval: 300, tolerance: 50, proxies: eastAsiaNames },`,
-    `    { name: '${fallbackGroup}', type: 'select', proxies: ['DIRECT', '${proxyGroup}', '${automaticGroup}'], 'default-selected': '${proxyGroup}' },`,
+    `    { name: '${taiwanBalanceGroup}', type: 'load-balance', strategy: 'consistent-hashing', url: '${testUrl}', interval: 300, proxies: taiwanNames.length ? taiwanNames : ['REJECT'] },`,
+    `    { name: '${fallbackGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanBalanceGroup}'], 'default-selected': '${automaticGroup}' },`,
     `    { name: '${tailscaleGroup}', type: 'select', proxies: tailscaleProxies, 'default-selected': withTailscale ? 'TAILSCALE' : 'DIRECT' },`,
-    `    { name: '${domesticAiGroup}', type: 'select', proxies: ['DIRECT', '${proxyGroup}', '${automaticGroup}'], 'default-selected': 'DIRECT' },`,
-    `    { name: '${foreignAiGroup}', type: 'select', proxies: ['DIRECT', '${proxyGroup}', '${automaticGroup}'], 'default-selected': 'DIRECT' },`,
-    `    { name: '${googleGroup}', type: 'select', proxies: ['DIRECT', '${proxyGroup}', '${automaticGroup}'], 'default-selected': 'DIRECT' },`,
-    `    ...${JSON.stringify(serviceGroups)}.map((name) => ({ name, type: 'select', proxies: ['DIRECT', '${proxyGroup}', '${automaticGroup}'], 'default-selected': 'DIRECT' })),`,
+    `    { name: '${domesticAiGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanBalanceGroup}'], 'default-selected': 'DIRECT' },`,
+    `    { name: '${foreignAiGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanBalanceGroup}'], 'default-selected': 'DIRECT' },`,
+    `    { name: '${googleGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanBalanceGroup}'], 'default-selected': 'DIRECT' },`,
+    `    ...${JSON.stringify(serviceGroups)}.map((name) => ({ name, type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanBalanceGroup}'], 'default-selected': 'DIRECT' })),`,
     `    { name: '${adBlockGroup}', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' },`,
     "  ];",
     "",
