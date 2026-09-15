@@ -384,12 +384,11 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
     { name: "media", target: "🌍 媒体服务", noResolve: true },
     { name: "direct", target: "DIRECT", noResolve: true },
   ];
-  const proxyGroup = "♻️ 自动选择(东亚)";
+  const proxyGroup = "♻️ 自动选择(香港)";
   const serviceGroups = ["🎬 Netflix", "🎬 DisneyPlus", "📲 电报信息", "💨 Steam商店", "Ⓜ️ 微软服务", "🍎 苹果服务", "🌍 媒体服务"];
   const script = renderSubstoreOverride(providers, "https://rules.example.test/release", proxyGroup);
 
-  assert.match(script, /East Asia proxies/);
-  assert.match(script, /TW\|TPE\|Taiwan\|Taipei/);
+  assert.match(script, /Hong Kong proxies/);
   assert.match(script, /MATCH,🐟 漏网之鱼/);
 
   const files = {
@@ -416,7 +415,7 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
 
   const plain = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 香港01", "🇲🇴 澳门01", "🇹🇼 台湾01", "🇯🇵 日本01", "US-West 01"]);
   assert.deepEqual(plain["proxy-groups"].map((item) => item.name), [
-    "♻️ 自动选择(东亚)", "🛟 故障转移(台湾)", "🐟 漏网之鱼", "Tailscale", "🤖 国内 AI", "🤖 国际 AI", "🌐 Google", ...serviceGroups, "🛑 广告过滤",
+    "♻️ 自动选择(香港)", "🛟 故障转移(台湾)", "🐟 漏网之鱼", "Tailscale", "🤖 国内 AI", "🤖 国际 AI", "🌐 Google", ...serviceGroups, "🛑 广告过滤",
   ]);
   assert.deepEqual(plain.rules.slice(0, -1), [
     "RULE-SET,lan_non_ip,DIRECT,no-resolve",
@@ -433,7 +432,8 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
     "RULE-SET,media,🌍 媒体服务,no-resolve",
     "RULE-SET,direct,DIRECT,no-resolve",
   ]);
-  const automaticGroup = "♻️ 自动选择(东亚)";
+  const automaticGroup = "♻️ 自动选择(香港)";
+  assert.ok(!JSON.stringify(plain).includes("自动选择(东亚)"));
   const taiwanFallbackGroup = "🛟 故障转移(台湾)";
   const standardProxyChoices = ["DIRECT", automaticGroup, taiwanFallbackGroup];
   assert.ok(!JSON.stringify(plain).includes("节点选择(东亚)"));
@@ -449,16 +449,21 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
   const mixed = await buildConfig(makeEnv("yuanv4"), [...taiwanNodes, "香港01", "日本01", "US-West 01", "Network 01"]);
   assert.deepEqual(group(mixed, taiwanFallbackGroup).proxies, taiwanNodes);
   // Flag-only names must match in Bun as well as Node (Unicode regex mode).
-  const eastAsiaFlags = ["🇭🇰", "🇲🇴", "🇹🇼", "🇯🇵", "🇰🇷", "🇨🇳", "🇲🇳"];
-  for (const flag of eastAsiaFlags) {
+  const nonHongKongFlags = ["🇲🇴", "🇹🇼", "🇯🇵", "🇰🇷", "🇨🇳", "🇲🇳"];
+  for (const flag of nonHongKongFlags) {
     const name = `${flag} 01`;
-    const flagOnly = await buildConfig(makeEnv("yuanv4"), [name, "🇺🇸 01"]);
-    assert.deepEqual(group(flagOnly, automaticGroup).proxies, [name]);
+    const flagOnly = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 01", name, "🇺🇸 01"]);
+    assert.deepEqual(group(flagOnly, automaticGroup).proxies, ["🇭🇰 01"]);
     assert.deepEqual(group(flagOnly, taiwanFallbackGroup).proxies, flag === "🇹🇼" ? [name] : ["REJECT"]);
   }
   assert.deepEqual(group(plain, automaticGroup).proxies, [
-    "🇭🇰 香港01", "🇲🇴 澳门01", "🇹🇼 台湾01", "🇯🇵 日本01",
+    "🇭🇰 香港01",
   ]);
+  const hongKongNodes = ["🇭🇰 01", "香港02", "港03", "HK01", "hk-02", "HKG01", "Hong Kong 01", "HongKong 02"];
+  const hongKongMixed = await buildConfig(makeEnv("yuanv4"), [...hongKongNodes, "台湾01", "澳门01", "日本01", "US-West 01"]);
+  assert.deepEqual(group(hongKongMixed, automaticGroup).proxies, hongKongNodes);
+  assert.equal(group(plain, automaticGroup).interval, 300);
+  assert.equal(group(plain, automaticGroup).tolerance, 50);
   assert.equal(group(plain, automaticGroup).type, "url-test");
   assert.equal(group(plain, automaticGroup).url, "https://cp.cloudflare.com/generate_204");
   for (const name of ["🤖 国内 AI", "🤖 国际 AI", "🌐 Google", ...serviceGroups]) {
@@ -473,21 +478,21 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
   assert.equal(group(plain, "Tailscale")["default-selected"], "DIRECT");
   assert.equal(plain.rules.at(-1), "MATCH,🐟 漏网之鱼");
 
-  const singleNode = await buildConfig(makeEnv("yuanv4"), ["🇰🇷 韩国01"]);
-  assert.deepEqual(group(singleNode, automaticGroup).proxies, ["🇰🇷 韩国01"]);
+  const singleNode = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 香港01"]);
+  assert.deepEqual(group(singleNode, automaticGroup).proxies, ["🇭🇰 香港01"]);
   assert.deepEqual(group(singleNode, taiwanFallbackGroup).proxies, ["REJECT"]);
   assert.deepEqual(group(singleNode, "Tailscale").proxies, ["DIRECT"]);
 
   await assert.rejects(
-    () => buildConfig(makeEnv("yuanv4"), ["US-West 01"]),
-    /Subscription has no East Asia proxies/
+    () => buildConfig(makeEnv("yuanv4"), ["台湾01", "日本01", "澳门01", "US-West 01"]),
+    /Subscription has no Hong Kong proxies/
   );
   await assert.rejects(
     () => buildConfig(makeEnv("yuanv4"), []),
     /Subscription has no proxies/
   );
 
-  const withTs = await buildConfig(makeEnv("yuanv4-with-tailscale"), ["🇯🇵 日本01"]);
+  const withTs = await buildConfig(makeEnv("yuanv4-with-tailscale"), ["🇭🇰 香港01"]);
   assert.equal(withTs.proxies[0].name, "TAILSCALE");
   assert.deepEqual(group(withTs, taiwanFallbackGroup).proxies, ["REJECT"]);
   assert.deepEqual(group(withTs, "Tailscale").proxies, ["TAILSCALE", "DIRECT"]);

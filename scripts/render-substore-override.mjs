@@ -26,7 +26,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
   const taiwanNodePattern = String.raw`(?:🇹🇼|\bTW(?=\b|\d)|\bTPE(?=\b|\d)|Taiwan|Taipei|台湾|台灣|台北)`;
   const tailscaleGroup = "Tailscale";
   const testUrl = "https://cp.cloudflare.com/generate_204";
-  const eastAsiaNodePattern = String.raw`(?:🇭🇰|🇲🇴|🇹🇼|🇯🇵|🇰🇷|🇨🇳|🇲🇳|HK|HKG|Hong\s*Kong|香港|港|\bMO\b|Macau|Macao|澳门|澳門|TW|TPE|Taiwan|Taipei|台湾|台灣|台北|JP|TYO|NRT|HND|KIX|OSA|Japan|Tokyo|Osaka|日本|东京|東京|大阪|KR|KOR|SEL|ICN|GMP|PUS|Korea|Seoul|韩国|韓國|首尔|首爾|CN|China|中国|中國|大陆|大陸|北京|上海|广州|深圳|Mongolia|蒙古|乌兰巴托|烏蘭巴托)`;
+  const hongKongNodePattern = String.raw`(?:🇭🇰|\bHKG?(?=\b|\d)|Hong\s*Kong|香港|港)`;
 
   const ruleProviders = Object.fromEntries(
     providers.map((provider) => [
@@ -60,14 +60,14 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     "",
     "  const names = config.proxies.map((p) => p.name);",
     "  if (!names.length) throw new Error('Subscription has no proxies');",
-    `  const eastAsiaPattern = new RegExp(${JSON.stringify(eastAsiaNodePattern)}, 'iu');`,
-    "  const eastAsiaNames = names.filter((name) => eastAsiaPattern.test(name));",
-    "  if (!eastAsiaNames.length) throw new Error('Subscription has no East Asia proxies');",
+    `  const hongKongPattern = new RegExp(${JSON.stringify(hongKongNodePattern)}, 'iu');`,
+    "  const hongKongNames = names.filter((name) => hongKongPattern.test(name));",
+    "  if (!hongKongNames.length) throw new Error('Subscription has no Hong Kong proxies');",
     `  const taiwanPattern = new RegExp(${JSON.stringify(taiwanNodePattern)}, 'iu');`,
     "  const taiwanNames = names.filter((name) => taiwanPattern.test(name));",
     "  const tailscaleProxies = withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT'];",
     "  config['proxy-groups'] = [",
-    `    { name: '${automaticGroup}', type: 'url-test', url: '${testUrl}', interval: 300, tolerance: 50, proxies: eastAsiaNames },`,
+    `    { name: '${automaticGroup}', type: 'url-test', url: '${testUrl}', interval: 300, tolerance: 50, proxies: hongKongNames },`,
     `    { name: '${taiwanFallbackGroup}', type: 'fallback', url: '${testUrl}', interval: 300, proxies: taiwanNames.length ? taiwanNames : ['REJECT'] },`,
     `    { name: '${fallbackGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': '${automaticGroup}' },`,
     `    { name: '${tailscaleGroup}', type: 'select', proxies: tailscaleProxies, 'default-selected': withTailscale ? 'TAILSCALE' : 'DIRECT' },`,
