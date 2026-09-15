@@ -367,7 +367,7 @@ test("accepts ordinary percent-encoded paths and rejects over-limit nested encod
   );
 });
 
-test("renders node selection and automatic proxy topology", async () => {
+test("renders automatic and Taiwan load-balance proxy topology", async () => {
   const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
   const providers = [
     { name: "lan_non_ip", target: "DIRECT", noResolve: true },
@@ -448,6 +448,14 @@ test("renders node selection and automatic proxy topology", async () => {
   const taiwanNodes = ["🇹🇼 01", "台湾02", "台灣03", "台北04", "TW01", "tw-02", "TPE01", "Taiwan 01", "Taipei 02"];
   const mixed = await buildConfig(makeEnv("yuanv4"), [...taiwanNodes, "香港01", "日本01", "US-West 01", "Network 01"]);
   assert.deepEqual(group(mixed, taiwanBalanceGroup).proxies, taiwanNodes);
+  // Flag-only names must match in Bun as well as Node (Unicode regex mode).
+  const eastAsiaFlags = ["🇭🇰", "🇲🇴", "🇹🇼", "🇯🇵", "🇰🇷", "🇨🇳", "🇲🇳"];
+  for (const flag of eastAsiaFlags) {
+    const name = `${flag} 01`;
+    const flagOnly = await buildConfig(makeEnv("yuanv4"), [name, "🇺🇸 01"]);
+    assert.deepEqual(group(flagOnly, automaticGroup).proxies, [name]);
+    assert.deepEqual(group(flagOnly, taiwanBalanceGroup).proxies, flag === "🇹🇼" ? [name] : ["REJECT"]);
+  }
   assert.deepEqual(group(plain, automaticGroup).proxies, [
     "🇭🇰 香港01", "🇲🇴 澳门01", "🇹🇼 台湾01", "🇯🇵 日本01",
   ]);
