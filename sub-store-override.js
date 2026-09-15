@@ -5,19 +5,21 @@ async function main(config = {}) {
 
   const names = config.proxies.map((p) => p.name);
   if (!names.length) throw new Error('Subscription has no proxies');
-  const eastAsiaPattern = new RegExp("(?:\\u{1f1ed}\\u{1f1f0}|\\u{1f1f2}\\u{1f1f4}|\\u{1f1f9}\\u{1f1fc}|\\u{1f1ef}\\u{1f1f5}|\\u{1f1f0}\\u{1f1f7}|\\u{1f1e8}\\u{1f1f3}|\\u{1f1f2}\\u{1f1f3}|HK|HKG|Hong\\s*Kong|\\u9999\\u6E2F|\\u6E2F|\\bMO\\b|Macau|Macao|\\u6FB3\\u95E8|\\u6FB3\\u9580|TW|TPE|Taiwan|Taipei|\\u53F0\\u6E7E|\\u53F0\\u7063|\\u53F0\\u5317|JP|TYO|NRT|HND|KIX|OSA|Japan|Tokyo|Osaka|\\u65E5\\u672C|\\u4E1C\\u4EAC|\\u6771\\u4EAC|\\u5927\\u962A|KR|KOR|SEL|ICN|GMP|PUS|Korea|Seoul|\\u97E9\\u56FD|\\u97D3\\u570B|\\u9996\\u5C14|\\u9996\\u723E|CN|China|\\u4E2D\\u56FD|\\u4E2D\\u570B|\\u5927\\u9646|\\u5927\\u9678|\\u5317\\u4EAC|\\u4E0A\\u6D77|\\u5E7F\\u5DDE|\\u6DF1\\u5733|Mongolia|\\u8499\\u53E4|\\u4E4C\\u5170\\u5DF4\\u6258|\\u70CF\\u862D\\u5DF4\\u6258)", 'i');
+  const eastAsiaPattern = new RegExp("(?:\\u{1f1ed}\\u{1f1f0}|\\u{1f1f2}\\u{1f1f4}|\\u{1f1f9}\\u{1f1fc}|\\u{1f1ef}\\u{1f1f5}|\\u{1f1f0}\\u{1f1f7}|\\u{1f1e8}\\u{1f1f3}|\\u{1f1f2}\\u{1f1f3}|HK|HKG|Hong\\s*Kong|\\u9999\\u6E2F|\\u6E2F|\\bMO\\b|Macau|Macao|\\u6FB3\\u95E8|\\u6FB3\\u9580|TW|TPE|Taiwan|Taipei|\\u53F0\\u6E7E|\\u53F0\\u7063|\\u53F0\\u5317|JP|TYO|NRT|HND|KIX|OSA|Japan|Tokyo|Osaka|\\u65E5\\u672C|\\u4E1C\\u4EAC|\\u6771\\u4EAC|\\u5927\\u962A|KR|KOR|SEL|ICN|GMP|PUS|Korea|Seoul|\\u97E9\\u56FD|\\u97D3\\u570B|\\u9996\\u5C14|\\u9996\\u723E|CN|China|\\u4E2D\\u56FD|\\u4E2D\\u570B|\\u5927\\u9646|\\u5927\\u9678|\\u5317\\u4EAC|\\u4E0A\\u6D77|\\u5E7F\\u5DDE|\\u6DF1\\u5733|Mongolia|\\u8499\\u53E4|\\u4E4C\\u5170\\u5DF4\\u6258|\\u70CF\\u862D\\u5DF4\\u6258)", 'iu');
   const eastAsiaNames = names.filter((name) => eastAsiaPattern.test(name));
   if (!eastAsiaNames.length) throw new Error('Subscription has no East Asia proxies');
+  const taiwanPattern = new RegExp("(?:\\u{1f1f9}\\u{1f1fc}|\\bTW(?=\\b|\\d)|\\bTPE(?=\\b|\\d)|Taiwan|Taipei|\\u53F0\\u6E7E|\\u53F0\\u7063|\\u53F0\\u5317)", 'iu');
+  const taiwanNames = names.filter((name) => taiwanPattern.test(name));
   const tailscaleProxies = withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT'];
   config['proxy-groups'] = [
-    { name: '🚀 节点选择(东亚)', type: 'select', proxies: eastAsiaNames, 'default-selected': eastAsiaNames[0] },
     { name: '♻️ 自动选择(东亚)', type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies: eastAsiaNames },
-    { name: '🐟 漏网之鱼', type: 'select', proxies: ['DIRECT', '🚀 节点选择(东亚)', '♻️ 自动选择(东亚)'], 'default-selected': '🚀 节点选择(东亚)' },
+    { name: '⚖️ 负载均衡(台湾)', type: 'load-balance', strategy: 'consistent-hashing', url: 'https://cp.cloudflare.com/generate_204', interval: 300, proxies: taiwanNames.length ? taiwanNames : ['REJECT'] },
+    { name: '🐟 漏网之鱼', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(东亚)', '⚖️ 负载均衡(台湾)'], 'default-selected': '♻️ 自动选择(东亚)' },
     { name: 'Tailscale', type: 'select', proxies: tailscaleProxies, 'default-selected': withTailscale ? 'TAILSCALE' : 'DIRECT' },
-    { name: '🤖 国内 AI', type: 'select', proxies: ['DIRECT', '🚀 节点选择(东亚)', '♻️ 自动选择(东亚)'], 'default-selected': 'DIRECT' },
-    { name: '🤖 国际 AI', type: 'select', proxies: ['DIRECT', '🚀 节点选择(东亚)', '♻️ 自动选择(东亚)'], 'default-selected': 'DIRECT' },
-    { name: '🌐 Google', type: 'select', proxies: ['DIRECT', '🚀 节点选择(东亚)', '♻️ 自动选择(东亚)'], 'default-selected': 'DIRECT' },
-    ...["🎬 Netflix","🎬 DisneyPlus","📲 电报信息","💨 Steam商店","Ⓜ️ 微软服务","🍎 苹果服务","🌍 媒体服务"].map((name) => ({ name, type: 'select', proxies: ['DIRECT', '🚀 节点选择(东亚)', '♻️ 自动选择(东亚)'], 'default-selected': 'DIRECT' })),
+    { name: '🤖 国内 AI', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(东亚)', '⚖️ 负载均衡(台湾)'], 'default-selected': 'DIRECT' },
+    { name: '🤖 国际 AI', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(东亚)', '⚖️ 负载均衡(台湾)'], 'default-selected': 'DIRECT' },
+    { name: '🌐 Google', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(东亚)', '⚖️ 负载均衡(台湾)'], 'default-selected': 'DIRECT' },
+    ...["🎬 Netflix","🎬 DisneyPlus","📲 电报信息","💨 Steam商店","Ⓜ️ 微软服务","🍎 苹果服务","🌍 媒体服务"].map((name) => ({ name, type: 'select', proxies: ['DIRECT', '♻️ 自动选择(东亚)', '⚖️ 负载均衡(台湾)'], 'default-selected': 'DIRECT' })),
     { name: '🛑 广告过滤', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' },
   ];
 
