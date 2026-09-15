@@ -367,7 +367,7 @@ test("accepts ordinary percent-encoded paths and rejects over-limit nested encod
   );
 });
 
-test("renders automatic and Taiwan load-balance proxy topology", async () => {
+test("renders automatic and Taiwan fallback proxy topology", async () => {
   const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
   const providers = [
     { name: "lan_non_ip", target: "DIRECT", noResolve: true },
@@ -416,7 +416,7 @@ test("renders automatic and Taiwan load-balance proxy topology", async () => {
 
   const plain = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 香港01", "🇲🇴 澳门01", "🇹🇼 台湾01", "🇯🇵 日本01", "US-West 01"]);
   assert.deepEqual(plain["proxy-groups"].map((item) => item.name), [
-    "♻️ 自动选择(东亚)", "⚖️ 负载均衡(台湾)", "🐟 漏网之鱼", "Tailscale", "🤖 国内 AI", "🤖 国际 AI", "🌐 Google", ...serviceGroups, "🛑 广告过滤",
+    "♻️ 自动选择(东亚)", "🛟 故障转移(台湾)", "🐟 漏网之鱼", "Tailscale", "🤖 国内 AI", "🤖 国际 AI", "🌐 Google", ...serviceGroups, "🛑 广告过滤",
   ]);
   assert.deepEqual(plain.rules.slice(0, -1), [
     "RULE-SET,lan_non_ip,DIRECT,no-resolve",
@@ -434,27 +434,27 @@ test("renders automatic and Taiwan load-balance proxy topology", async () => {
     "RULE-SET,direct,DIRECT,no-resolve",
   ]);
   const automaticGroup = "♻️ 自动选择(东亚)";
-  const taiwanBalanceGroup = "⚖️ 负载均衡(台湾)";
-  const standardProxyChoices = ["DIRECT", automaticGroup, taiwanBalanceGroup];
+  const taiwanFallbackGroup = "🛟 故障转移(台湾)";
+  const standardProxyChoices = ["DIRECT", automaticGroup, taiwanFallbackGroup];
   assert.ok(!JSON.stringify(plain).includes("节点选择(东亚)"));
-  assert.deepEqual(group(plain, taiwanBalanceGroup), {
-    name: taiwanBalanceGroup,
-    type: "load-balance",
-    strategy: "consistent-hashing",
+  assert.ok(!JSON.stringify(plain).includes("负载均衡(台湾)"));
+  assert.deepEqual(group(plain, taiwanFallbackGroup), {
+    name: taiwanFallbackGroup,
+    type: "fallback",
     url: "https://cp.cloudflare.com/generate_204",
     interval: 300,
     proxies: ["🇹🇼 台湾01"],
   });
   const taiwanNodes = ["🇹🇼 01", "台湾02", "台灣03", "台北04", "TW01", "tw-02", "TPE01", "Taiwan 01", "Taipei 02"];
   const mixed = await buildConfig(makeEnv("yuanv4"), [...taiwanNodes, "香港01", "日本01", "US-West 01", "Network 01"]);
-  assert.deepEqual(group(mixed, taiwanBalanceGroup).proxies, taiwanNodes);
+  assert.deepEqual(group(mixed, taiwanFallbackGroup).proxies, taiwanNodes);
   // Flag-only names must match in Bun as well as Node (Unicode regex mode).
   const eastAsiaFlags = ["🇭🇰", "🇲🇴", "🇹🇼", "🇯🇵", "🇰🇷", "🇨🇳", "🇲🇳"];
   for (const flag of eastAsiaFlags) {
     const name = `${flag} 01`;
     const flagOnly = await buildConfig(makeEnv("yuanv4"), [name, "🇺🇸 01"]);
     assert.deepEqual(group(flagOnly, automaticGroup).proxies, [name]);
-    assert.deepEqual(group(flagOnly, taiwanBalanceGroup).proxies, flag === "🇹🇼" ? [name] : ["REJECT"]);
+    assert.deepEqual(group(flagOnly, taiwanFallbackGroup).proxies, flag === "🇹🇼" ? [name] : ["REJECT"]);
   }
   assert.deepEqual(group(plain, automaticGroup).proxies, [
     "🇭🇰 香港01", "🇲🇴 澳门01", "🇹🇼 台湾01", "🇯🇵 日本01",
@@ -475,7 +475,7 @@ test("renders automatic and Taiwan load-balance proxy topology", async () => {
 
   const singleNode = await buildConfig(makeEnv("yuanv4"), ["🇰🇷 韩国01"]);
   assert.deepEqual(group(singleNode, automaticGroup).proxies, ["🇰🇷 韩国01"]);
-  assert.deepEqual(group(singleNode, taiwanBalanceGroup).proxies, ["REJECT"]);
+  assert.deepEqual(group(singleNode, taiwanFallbackGroup).proxies, ["REJECT"]);
   assert.deepEqual(group(singleNode, "Tailscale").proxies, ["DIRECT"]);
 
   await assert.rejects(
@@ -489,7 +489,7 @@ test("renders automatic and Taiwan load-balance proxy topology", async () => {
 
   const withTs = await buildConfig(makeEnv("yuanv4-with-tailscale"), ["🇯🇵 日本01"]);
   assert.equal(withTs.proxies[0].name, "TAILSCALE");
-  assert.deepEqual(group(withTs, taiwanBalanceGroup).proxies, ["REJECT"]);
+  assert.deepEqual(group(withTs, taiwanFallbackGroup).proxies, ["REJECT"]);
   assert.deepEqual(group(withTs, "Tailscale").proxies, ["TAILSCALE", "DIRECT"]);
   assert.equal(group(withTs, "Tailscale")["default-selected"], "TAILSCALE");
   assert.match(withTs.rules[0], /IP-CIDR,100\.64\.0\.0\/10,Tailscale,no-resolve/);
