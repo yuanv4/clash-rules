@@ -444,7 +444,7 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
   const automaticGroup = "♻️ 自动选择(香港)";
   assert.ok(!JSON.stringify(plain).includes("自动选择(东亚)"));
   const taiwanFallbackGroup = "🛟 故障转移(台湾)";
-  const standardProxyChoices = ["DIRECT", "🌍 国外代理", automaticGroup, taiwanFallbackGroup];
+  const standardProxyChoices = ["DIRECT", automaticGroup, taiwanFallbackGroup];
   const foreignGroup = "🌍 国外代理";
   assert.ok(!JSON.stringify(plain).includes("节点选择(东亚)"));
   assert.ok(!JSON.stringify(plain).includes("负载均衡(台湾)"));
@@ -476,21 +476,22 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
   assert.equal(group(plain, automaticGroup).tolerance, 50);
   assert.equal(group(plain, automaticGroup).type, "url-test");
   assert.equal(group(plain, automaticGroup).url, "https://cp.cloudflare.com/generate_204");
-  for (const name of ["🤖 国内 AI", "🤖 国际 AI", ...serviceGroups]) {
+  for (const name of ["🤖 国内 AI", "🤖 国际 AI", "🌐 Google", ...serviceGroups]) {
     assert.deepEqual(group(plain, name).proxies, standardProxyChoices);
-    assert.equal(group(plain, name)["default-selected"], name === "📲 电报信息" ? foreignGroup : "DIRECT");
+    assert.equal(group(plain, name)["default-selected"], "DIRECT");
   }
-  assert.deepEqual(group(plain, "🌐 Google").proxies, standardProxyChoices);
-  assert.equal(group(plain, "🌐 Google")["default-selected"], foreignGroup);
+  for (const item of plain["proxy-groups"]) {
+    assert.ok(!item.proxies.includes(foreignGroup), `${item.name} must not reference the foreign group`);
+  }
   assert.deepEqual(group(plain, foreignGroup), {
     name: foreignGroup,
     type: "select",
-    proxies: [automaticGroup, taiwanFallbackGroup, "DIRECT"],
+    proxies: standardProxyChoices,
     "default-selected": automaticGroup,
   });
   assert.deepEqual(group(plain, "🛑 广告过滤").proxies, ["REJECT", "DIRECT"]);
   assert.equal(group(plain, "🛑 广告过滤")["default-selected"], "REJECT");
-  assert.deepEqual(group(plain, "🐟 漏网之鱼").proxies, ["DIRECT", foreignGroup, automaticGroup, taiwanFallbackGroup]);
+  assert.deepEqual(group(plain, "🐟 漏网之鱼").proxies, standardProxyChoices);
   assert.equal(group(plain, "🐟 漏网之鱼")["default-selected"], "DIRECT");
   const groupNames = new Set(plain["proxy-groups"].map((item) => item.name));
   const proxyNames = new Set(plain.proxies.map((item) => item.name));
