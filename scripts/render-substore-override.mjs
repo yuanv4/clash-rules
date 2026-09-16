@@ -21,7 +21,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
   const serviceGroups = ["🎬 Netflix", "🎬 DisneyPlus", "📲 电报信息", "💨 Steam商店", "Ⓜ️ 微软服务", "🍎 苹果服务", "🌍 媒体服务"];
   const adBlockGroup = "🛑 广告过滤";
   const fallbackGroup = "🐟 漏网之鱼";
-  const foreignGroup = "🌍 国外代理";
+  const foreignGroup = "🌍 国外网站";
   const automaticGroup = proxyGroup;
   const taiwanFallbackGroup = "🛟 故障转移(台湾)";
   const taiwanNodePattern = String.raw`(?:🇹🇼|\bTW(?=\b|\d)|\bTPE(?=\b|\d)|Taiwan|Taipei|台湾|台灣|台北)`;
