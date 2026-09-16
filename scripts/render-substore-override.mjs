@@ -8,7 +8,7 @@
  * use runtime `include-all` + `filter` and must build STATIC proxy lists
  * for each group from the parsed nodes.
  *
- * The Tailscale group is always present; its node and routing rules are
+ * The Tailscale group and routing rules are always present; its node is
  * enabled when the subscription name contains "tailscale".
  *
  * The Tailscale auth-key stays in a local sub-store file and is referenced by
@@ -81,7 +81,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     "  config.mode = 'Rule';",
     "  config['log-level'] = 'info';",
     `  config['rule-providers'] = ${JSON.stringify(ruleProviders)};`,
-    `  config.rules = ${JSON.stringify(rules)};`,
+    `  config.rules = ${JSON.stringify([...tailscaleRules, ...rules])};`,
     "",
     "  if (withTailscale) {",
     "    const secret = JSON.parse(await produceArtifact({ type: 'file', name: 'tailscale-secret' }));",
@@ -97,7 +97,6 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     "      'accept-routes': secret['accept-routes'] !== false,",
     "      'ip-version': secret['ip-version'] || 'ipv4-prefer',",
     "    });",
-    `    config.rules = ${JSON.stringify(tailscaleRules)}.concat(config.rules);`,
     "  }",
     "",
     "  return config;",
