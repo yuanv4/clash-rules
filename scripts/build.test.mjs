@@ -242,7 +242,7 @@ test("sources.json preserves routing precedence and provider provenance", async 
   ]);
   const proxyProvider = normalized.providers[15];
   assert.equal(proxyProvider.name, "proxy");
-  assert.equal(proxyProvider.target, "🌍 国外代理");
+  assert.equal(proxyProvider.target, "🌍 国外网站");
   assert.deepEqual(proxyProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/geolocation-!cn.yaml",
   ]);
@@ -388,7 +388,7 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
     { name: "apple", target: "🍎 苹果服务", noResolve: true },
     { name: "media", target: "🌍 媒体服务", noResolve: true },
     { name: "custom_direct", target: "DIRECT", noResolve: true },
-    { name: "proxy", target: "🌍 国外代理", noResolve: true },
+    { name: "proxy", target: "🌍 国外网站", noResolve: true },
   ];
   const proxyGroup = "♻️ 自动选择(香港)";
   const serviceGroups = ["🎬 Netflix", "🎬 DisneyPlus", "📲 电报信息", "💨 Steam商店", "Ⓜ️ 微软服务", "🍎 苹果服务", "🌍 媒体服务"];
@@ -421,7 +421,7 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
 
   const plain = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 香港01", "🇲🇴 澳门01", "🇹🇼 台湾01", "🇯🇵 日本01", "US-West 01"]);
   assert.deepEqual(plain["proxy-groups"].map((item) => item.name), [
-    "♻️ 自动选择(香港)", "🛟 故障转移(台湾)", "🌍 国外代理", "🐟 漏网之鱼", "Tailscale", "🤖 国内 AI", "🤖 国际 AI", "🌐 Google", ...serviceGroups, "🛑 广告过滤",
+    "♻️ 自动选择(香港)", "🛟 故障转移(台湾)", "🌍 国外网站", "🐟 漏网之鱼", "Tailscale", "🤖 国内 AI", "🤖 国际 AI", "🌐 Google", ...serviceGroups, "🛑 广告过滤",
   ]);
   assert.deepEqual(plain.rules.slice(3, -1), [
     "RULE-SET,lan_non_ip,DIRECT,no-resolve",
@@ -437,15 +437,15 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
     "RULE-SET,apple,🍎 苹果服务,no-resolve",
     "RULE-SET,media,🌍 媒体服务,no-resolve",
     "RULE-SET,custom_direct,DIRECT,no-resolve",
-    "RULE-SET,proxy,🌍 国外代理,no-resolve",
+    "RULE-SET,proxy,🌍 国外网站,no-resolve",
   ]);
-  assert.ok(plain.rules.indexOf("RULE-SET,custom_direct,DIRECT,no-resolve") < plain.rules.indexOf("RULE-SET,proxy,🌍 国外代理,no-resolve"));
-  assert.ok(plain.rules.indexOf("RULE-SET,proxy,🌍 国外代理,no-resolve") < plain.rules.indexOf("MATCH,🐟 漏网之鱼"));
+  assert.ok(plain.rules.indexOf("RULE-SET,custom_direct,DIRECT,no-resolve") < plain.rules.indexOf("RULE-SET,proxy,🌍 国外网站,no-resolve"));
+  assert.ok(plain.rules.indexOf("RULE-SET,proxy,🌍 国外网站,no-resolve") < plain.rules.indexOf("MATCH,🐟 漏网之鱼"));
   const automaticGroup = "♻️ 自动选择(香港)";
   assert.ok(!JSON.stringify(plain).includes("自动选择(东亚)"));
   const taiwanFallbackGroup = "🛟 故障转移(台湾)";
   const standardProxyChoices = ["DIRECT", automaticGroup, taiwanFallbackGroup];
-  const foreignGroup = "🌍 国外代理";
+  const foreignGroup = "🌍 国外网站";
   assert.ok(!JSON.stringify(plain).includes("节点选择(东亚)"));
   assert.ok(!JSON.stringify(plain).includes("负载均衡(台湾)"));
   assert.deepEqual(group(plain, taiwanFallbackGroup), {

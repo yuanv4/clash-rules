@@ -163,7 +163,7 @@
     },
     {
       "name": "proxy",
-      "target": "🌍 国外代理",
+      "target": "🌍 国外网站",
       "no_resolve": true,
       "inputs": [
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/geolocation-!cn.yaml"}
