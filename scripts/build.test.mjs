@@ -417,7 +417,7 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
   assert.deepEqual(plain["proxy-groups"].map((item) => item.name), [
     "♻️ 自动选择(香港)", "🛟 故障转移(台湾)", "🐟 漏网之鱼", "Tailscale", "🤖 国内 AI", "🤖 国际 AI", "🌐 Google", ...serviceGroups, "🛑 广告过滤",
   ]);
-  assert.deepEqual(plain.rules.slice(0, -1), [
+  assert.deepEqual(plain.rules.slice(3, -1), [
     "RULE-SET,lan_non_ip,DIRECT,no-resolve",
     "RULE-SET,reject_non_ip,🛑 广告过滤,no-resolve",
     "RULE-SET,ai_cn,🤖 国内 AI,no-resolve",
@@ -476,6 +476,13 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
   assert.equal(group(plain, "🐟 漏网之鱼")["default-selected"], proxyGroup);
   assert.deepEqual(group(plain, "Tailscale").proxies, ["DIRECT"]);
   assert.equal(group(plain, "Tailscale")["default-selected"], "DIRECT");
+  const expectedTailscaleRules = [
+    "IP-CIDR,100.64.0.0/10,Tailscale,no-resolve",
+    "IP-CIDR,100.100.100.100/32,Tailscale,no-resolve",
+    "DOMAIN-SUFFIX,ts.net,Tailscale",
+  ];
+  assert.deepEqual(plain.rules.slice(0, 3), expectedTailscaleRules);
+  assert.equal(plain.proxies.some((p) => p.name === "TAILSCALE"), false);
   assert.equal(plain.rules.at(-1), "MATCH,🐟 漏网之鱼");
 
   const singleNode = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 香港01"]);
@@ -497,5 +504,6 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
   assert.deepEqual(group(withTs, taiwanFallbackGroup).proxies, ["REJECT"]);
   assert.deepEqual(group(withTs, "Tailscale").proxies, ["TAILSCALE", "DIRECT"]);
   assert.equal(group(withTs, "Tailscale")["default-selected"], "TAILSCALE");
-  assert.match(withTs.rules[0], /IP-CIDR,100\.64\.0\.0\/10,Tailscale,no-resolve/);
+  assert.deepEqual(withTs.rules.slice(0, 3), expectedTailscaleRules);
+  assert.deepEqual(withTs.rules, plain.rules);
 });
