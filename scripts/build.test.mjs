@@ -246,7 +246,7 @@ test("sources.json preserves routing precedence and provider provenance", async 
   assert.deepEqual(proxyProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/geolocation-!cn.yaml",
   ]);
-  assert.equal(normalized.inputs.some((input) => input.name === "Loyalsoldier/clash-rules"), false);
+  assert.equal(config.inputs.some((input) => input.name === "Loyalsoldier/clash-rules"), false);
 
   const aiRendered = renderYaml(aiProvider, []);
   assert.ok(aiRendered.includes("# Source 1 [VPSDance/ai-proxy-rules]:"));
