@@ -21,6 +21,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
   const serviceGroups = ["🎬 Netflix", "🎬 DisneyPlus", "📲 电报信息", "💨 Steam商店", "Ⓜ️ 微软服务", "🍎 苹果服务", "🌍 媒体服务"];
   const adBlockGroup = "🛑 广告过滤";
   const fallbackGroup = "🐟 漏网之鱼";
+  const foreignGroup = "🌍 国外代理";
   const automaticGroup = proxyGroup;
   const taiwanFallbackGroup = "🛟 故障转移(台湾)";
   const taiwanNodePattern = String.raw`(?:🇹🇼|\bTW(?=\b|\d)|\bTPE(?=\b|\d)|Taiwan|Taipei|台湾|台灣|台北)`;
@@ -69,13 +70,14 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     "  config['proxy-groups'] = [",
     `    { name: '${automaticGroup}', type: 'url-test', url: '${testUrl}', interval: 300, tolerance: 50, proxies: hongKongNames },`,
     `    { name: '${taiwanFallbackGroup}', type: 'fallback', url: '${testUrl}', interval: 300, proxies: taiwanNames.length ? taiwanNames : ['REJECT'] },`,
-    `    { name: '${fallbackGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': '${automaticGroup}' },`,
+    `    { name: '${foreignGroup}', type: 'select', proxies: ['${automaticGroup}', '${taiwanFallbackGroup}', 'DIRECT'], 'default-selected': '${automaticGroup}' },`,
+    `    { name: '${fallbackGroup}', type: 'select', proxies: ['DIRECT', '${foreignGroup}', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': 'DIRECT' },`,
     `    { name: '${tailscaleGroup}', type: 'select', proxies: tailscaleProxies, 'default-selected': withTailscale ? 'TAILSCALE' : 'DIRECT' },`,
-    `    { name: '${domesticAiGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': 'DIRECT' },`,
-    `    { name: '${foreignAiGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': 'DIRECT' },`,
-    `    { name: '${googleGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': 'DIRECT' },`,
-    `    ...${JSON.stringify(serviceGroups)}.map((name) => ({ name, type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': 'DIRECT' })),`,
-    `    { name: '${adBlockGroup}', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' },`,
+    `    { name: '${domesticAiGroup}', type: 'select', proxies: ['DIRECT', '${foreignGroup}', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': 'DIRECT' },`,
+    `    { name: '${foreignAiGroup}', type: 'select', proxies: ['DIRECT', '${foreignGroup}', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': 'DIRECT' },`,
+    `    { name: '${googleGroup}', type: 'select', proxies: ['DIRECT', '${foreignGroup}', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': '${foreignGroup}' },`,
+    `    ...${JSON.stringify(serviceGroups)}.map((name) => ({ name, type: 'select', proxies: ['DIRECT', '${foreignGroup}', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': name === '📲 电报信息' ? '${foreignGroup}' : 'DIRECT' })),`,
+    `    { name: '${adBlockGroup}', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' }`,
     "  ];",
     "",
     "  config.mode = 'Rule';",

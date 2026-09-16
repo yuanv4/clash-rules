@@ -171,6 +171,7 @@ test("sources.json preserves routing precedence and provider provenance", async 
   const config = await Bun.file(new URL("../sources.json", import.meta.url)).json();
   const normalized = normalizeConfiguration(config);
   const providerNames = normalized.providers.map((provider) => provider.name);
+  assert.equal(providerNames.includes("direct"), false);
   assert.deepEqual(providerNames, [
     "lan_non_ip",
     "lan_ip",
@@ -186,7 +187,8 @@ test("sources.json preserves routing precedence and provider provenance", async 
     "microsoft",
     "apple",
     "media",
-    "direct",
+    "custom_direct",
+    "proxy",
   ]);
 
   const rejectNonIpProvider = normalized.providers[2];
@@ -232,15 +234,19 @@ test("sources.json preserves routing precedence and provider provenance", async 
     ]
   );
 
-  const directProvider = normalized.providers[14];
-  assert.equal(directProvider.target, "DIRECT");
-  assert.deepEqual(directProvider.inputs.map((input) => input.sourceUrl), [
-    "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/direct.txt",
-    "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/cncidr.txt",
-    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/cn.yaml",
-    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/cn.yaml",
+  const customDirectProvider = normalized.providers[14];
+  assert.equal(customDirectProvider.name, "custom_direct");
+  assert.equal(customDirectProvider.target, "DIRECT");
+  assert.deepEqual(customDirectProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/yuanv4/clash-rules/main/custom/tag.txt",
   ]);
+  const proxyProvider = normalized.providers[15];
+  assert.equal(proxyProvider.name, "proxy");
+  assert.equal(proxyProvider.target, "🌍 国外代理");
+  assert.deepEqual(proxyProvider.inputs.map((input) => input.sourceUrl), [
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/geolocation-!cn.yaml",
+  ]);
+  assert.equal(normalized.inputs.some((input) => input.name === "Loyalsoldier/clash-rules"), false);
 
   const aiRendered = renderYaml(aiProvider, []);
   assert.ok(aiRendered.includes("# Source 1 [VPSDance/ai-proxy-rules]:"));
@@ -254,13 +260,12 @@ test("sources.json preserves routing precedence and provider provenance", async 
   assert.ok(googleRendered.includes("# Source 1 [MetaCubeX/meta-rules-dat]:"));
   assert.ok(googleRendered.includes("# Source 2 [MetaCubeX/meta-rules-dat]:"));
 
-  const directRendered = renderYaml(directProvider, []);
-  assert.ok(directRendered.includes("# Source 1 [Loyalsoldier/clash-rules]:"));
-  assert.ok(directRendered.includes("# Source 2 [Loyalsoldier/clash-rules]:"));
-  assert.ok(directRendered.includes("# Source 3 [MetaCubeX/meta-rules-dat]:"));
-  assert.ok(directRendered.includes("# License 4 [MetaCubeX/meta-rules-dat]: GPL-3.0 (https://github.com/MetaCubeX/meta-rules-dat/blob/master/LICENSE)"));
-  assert.ok(directRendered.includes("# Source 5 [custom/tag]:"));
-  assert.ok(directRendered.includes("# License 5 [custom/tag]: MIT (https://github.com/yuanv4/clash-rules)"));
+  const customDirectRendered = renderYaml(customDirectProvider, []);
+  assert.ok(customDirectRendered.includes("# Source: https://github.com/yuanv4/clash-rules (https://raw.githubusercontent.com/yuanv4/clash-rules/main/custom/tag.txt)"));
+  assert.ok(customDirectRendered.includes("# License: MIT (https://github.com/yuanv4/clash-rules)"));
+  const proxyRendered = renderYaml(proxyProvider, []);
+  assert.ok(proxyRendered.includes("# Source: https://github.com/MetaCubeX/meta-rules-dat (https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/geolocation-!cn.yaml)"));
+  assert.ok(proxyRendered.includes("# License: GPL-3.0 (https://github.com/MetaCubeX/meta-rules-dat/blob/master/LICENSE)"));
 });
 
 test("merges inputs with first-occurrence canonical deduplication", () => {
@@ -382,7 +387,8 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
     { name: "microsoft", target: "Ⓜ️ 微软服务", noResolve: true },
     { name: "apple", target: "🍎 苹果服务", noResolve: true },
     { name: "media", target: "🌍 媒体服务", noResolve: true },
-    { name: "direct", target: "DIRECT", noResolve: true },
+    { name: "custom_direct", target: "DIRECT", noResolve: true },
+    { name: "proxy", target: "🌍 国外代理", noResolve: true },
   ];
   const proxyGroup = "♻️ 自动选择(香港)";
   const serviceGroups = ["🎬 Netflix", "🎬 DisneyPlus", "📲 电报信息", "💨 Steam商店", "Ⓜ️ 微软服务", "🍎 苹果服务", "🌍 媒体服务"];
@@ -415,7 +421,7 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
 
   const plain = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 香港01", "🇲🇴 澳门01", "🇹🇼 台湾01", "🇯🇵 日本01", "US-West 01"]);
   assert.deepEqual(plain["proxy-groups"].map((item) => item.name), [
-    "♻️ 自动选择(香港)", "🛟 故障转移(台湾)", "🐟 漏网之鱼", "Tailscale", "🤖 国内 AI", "🤖 国际 AI", "🌐 Google", ...serviceGroups, "🛑 广告过滤",
+    "♻️ 自动选择(香港)", "🛟 故障转移(台湾)", "🌍 国外代理", "🐟 漏网之鱼", "Tailscale", "🤖 国内 AI", "🤖 国际 AI", "🌐 Google", ...serviceGroups, "🛑 广告过滤",
   ]);
   assert.deepEqual(plain.rules.slice(3, -1), [
     "RULE-SET,lan_non_ip,DIRECT,no-resolve",
@@ -430,12 +436,16 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
     "RULE-SET,microsoft,Ⓜ️ 微软服务,no-resolve",
     "RULE-SET,apple,🍎 苹果服务,no-resolve",
     "RULE-SET,media,🌍 媒体服务,no-resolve",
-    "RULE-SET,direct,DIRECT,no-resolve",
+    "RULE-SET,custom_direct,DIRECT,no-resolve",
+    "RULE-SET,proxy,🌍 国外代理,no-resolve",
   ]);
+  assert.ok(plain.rules.indexOf("RULE-SET,custom_direct,DIRECT,no-resolve") < plain.rules.indexOf("RULE-SET,proxy,🌍 国外代理,no-resolve"));
+  assert.ok(plain.rules.indexOf("RULE-SET,proxy,🌍 国外代理,no-resolve") < plain.rules.indexOf("MATCH,🐟 漏网之鱼"));
   const automaticGroup = "♻️ 自动选择(香港)";
   assert.ok(!JSON.stringify(plain).includes("自动选择(东亚)"));
   const taiwanFallbackGroup = "🛟 故障转移(台湾)";
-  const standardProxyChoices = ["DIRECT", automaticGroup, taiwanFallbackGroup];
+  const standardProxyChoices = ["DIRECT", "🌍 国外代理", automaticGroup, taiwanFallbackGroup];
+  const foreignGroup = "🌍 国外代理";
   assert.ok(!JSON.stringify(plain).includes("节点选择(东亚)"));
   assert.ok(!JSON.stringify(plain).includes("负载均衡(台湾)"));
   assert.deepEqual(group(plain, taiwanFallbackGroup), {
@@ -466,14 +476,30 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
   assert.equal(group(plain, automaticGroup).tolerance, 50);
   assert.equal(group(plain, automaticGroup).type, "url-test");
   assert.equal(group(plain, automaticGroup).url, "https://cp.cloudflare.com/generate_204");
-  for (const name of ["🤖 国内 AI", "🤖 国际 AI", "🌐 Google", ...serviceGroups]) {
+  for (const name of ["🤖 国内 AI", "🤖 国际 AI", ...serviceGroups]) {
     assert.deepEqual(group(plain, name).proxies, standardProxyChoices);
-    assert.equal(group(plain, name)["default-selected"], "DIRECT");
+    assert.equal(group(plain, name)["default-selected"], name === "📲 电报信息" ? foreignGroup : "DIRECT");
   }
+  assert.deepEqual(group(plain, "🌐 Google").proxies, standardProxyChoices);
+  assert.equal(group(plain, "🌐 Google")["default-selected"], foreignGroup);
+  assert.deepEqual(group(plain, foreignGroup), {
+    name: foreignGroup,
+    type: "select",
+    proxies: [automaticGroup, taiwanFallbackGroup, "DIRECT"],
+    "default-selected": automaticGroup,
+  });
   assert.deepEqual(group(plain, "🛑 广告过滤").proxies, ["REJECT", "DIRECT"]);
   assert.equal(group(plain, "🛑 广告过滤")["default-selected"], "REJECT");
-  assert.deepEqual(group(plain, "🐟 漏网之鱼").proxies, standardProxyChoices);
-  assert.equal(group(plain, "🐟 漏网之鱼")["default-selected"], proxyGroup);
+  assert.deepEqual(group(plain, "🐟 漏网之鱼").proxies, ["DIRECT", foreignGroup, automaticGroup, taiwanFallbackGroup]);
+  assert.equal(group(plain, "🐟 漏网之鱼")["default-selected"], "DIRECT");
+  const groupNames = new Set(plain["proxy-groups"].map((item) => item.name));
+  const proxyNames = new Set(plain.proxies.map((item) => item.name));
+  for (const proxy of plain["proxy-groups"].flatMap((item) => item.proxies)) {
+    assert.ok(
+      proxy === "DIRECT" || proxy === "REJECT" || groupNames.has(proxy) || proxyNames.has(proxy),
+      `dangling proxy-group reference: ${proxy}`,
+    );
+  }
   assert.deepEqual(group(plain, "Tailscale").proxies, ["DIRECT"]);
   assert.equal(group(plain, "Tailscale")["default-selected"], "DIRECT");
   const expectedTailscaleRules = [
