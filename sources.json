@@ -13,16 +13,6 @@
       "input_format": "raw-list"
     },
     {
-      "name": "Loyalsoldier/clash-rules",
-      "repository": "https://github.com/Loyalsoldier/clash-rules",
-      "base_url": "https://raw.githubusercontent.com/Loyalsoldier/clash-rules/release/",
-      "license": {
-        "id": "MIT",
-        "url": "https://github.com/Loyalsoldier/clash-rules/blob/release/LICENSE"
-      },
-      "input_format": "clash-yaml"
-    },
-    {
       "name": "VPSDance/ai-proxy-rules",
       "repository": "https://github.com/VPSDance/ai-proxy-rules",
       "base_url": "https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/",
@@ -164,15 +154,19 @@
       ]
     },
     {
-      "name": "direct",
+      "name": "custom_direct",
       "target": "DIRECT",
       "no_resolve": true,
       "inputs": [
-        {"input": "Loyalsoldier/clash-rules", "path": "direct.txt"},
-        {"input": "Loyalsoldier/clash-rules", "path": "cncidr.txt"},
-        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/cn.yaml"},
-        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geoip/cn.yaml"},
         {"input": "custom/tag", "path": "custom/tag.txt"}
+      ]
+    },
+    {
+      "name": "proxy",
+      "target": "🌍 国外代理",
+      "no_resolve": true,
+      "inputs": [
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/geolocation-!cn.yaml"}
       ]
     }
   ]
