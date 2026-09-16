@@ -14,13 +14,13 @@ async function main(config = {}) {
   config['proxy-groups'] = [
     { name: '♻️ 自动选择(香港)', type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies: hongKongNames },
     { name: '🛟 故障转移(台湾)', type: 'fallback', url: 'https://cp.cloudflare.com/generate_204', interval: 300, proxies: taiwanNames.length ? taiwanNames : ['REJECT'] },
-    { name: '🌍 国外代理', type: 'select', proxies: ['♻️ 自动选择(香港)', '🛟 故障转移(台湾)', 'DIRECT'], 'default-selected': '♻️ 自动选择(香港)' },
-    { name: '🐟 漏网之鱼', type: 'select', proxies: ['DIRECT', '🌍 国外代理', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': 'DIRECT' },
+    { name: '🌍 国外代理', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': '♻️ 自动选择(香港)' },
+    { name: '🐟 漏网之鱼', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': 'DIRECT' },
     { name: 'Tailscale', type: 'select', proxies: tailscaleProxies, 'default-selected': withTailscale ? 'TAILSCALE' : 'DIRECT' },
-    { name: '🤖 国内 AI', type: 'select', proxies: ['DIRECT', '🌍 国外代理', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': 'DIRECT' },
-    { name: '🤖 国际 AI', type: 'select', proxies: ['DIRECT', '🌍 国外代理', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': 'DIRECT' },
-    { name: '🌐 Google', type: 'select', proxies: ['DIRECT', '🌍 国外代理', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': '🌍 国外代理' },
-    ...["🎬 Netflix","🎬 DisneyPlus","📲 电报信息","💨 Steam商店","Ⓜ️ 微软服务","🍎 苹果服务","🌍 媒体服务"].map((name) => ({ name, type: 'select', proxies: ['DIRECT', '🌍 国外代理', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': name === '📲 电报信息' ? '🌍 国外代理' : 'DIRECT' })),
+    { name: '🤖 国内 AI', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': 'DIRECT' },
+    { name: '🤖 国际 AI', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': 'DIRECT' },
+    { name: '🌐 Google', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': 'DIRECT' },
+    ...["🎬 Netflix","🎬 DisneyPlus","📲 电报信息","💨 Steam商店","Ⓜ️ 微软服务","🍎 苹果服务","🌍 媒体服务"].map((name) => ({ name, type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': 'DIRECT' })),
     { name: '🛑 广告过滤', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' }
   ];
 
