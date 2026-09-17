@@ -506,12 +506,17 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
       "ip-version": "ipv4-prefer",
     }),
   };
-  const makeEnv = (fileName) => ({
+  const makeEnv = (fileName, options) => ({
     produceArtifact: async ({ name }) => files[name],
     $file: { name: fileName },
+    $options: options,
   });
   const buildConfig = async (env, proxies) => {
-    const fn = new Function("produceArtifact", "$file", `${script}\nreturn main;`)(env.produceArtifact, env.$file);
+    const fn = new Function("produceArtifact", "$file", "$options", `${script}\nreturn main;`)(
+      env.produceArtifact,
+      env.$file,
+      env.$options,
+    );
     return fn({ proxies: proxies.map((name) => ({ name })) });
   };
   const group = (config, name) => config["proxy-groups"].find((item) => item.name === name);
@@ -647,6 +652,54 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
   assert.equal(group(withTs, "Tailscale")["default-selected"], "TAILSCALE");
   assert.deepEqual(withTs.rules.slice(0, 3), expectedTailscaleRules);
   assert.deepEqual(withTs.rules, plain.rules);
+
+  const dynamicSecret = {
+    hostname: "mihomo-home",
+    "auth-key": "tskey-dynamic-test",
+    "control-url": "https://controlplane.tailscale.com",
+    "state-dir": "./tailscale/home",
+    ephemeral: true,
+    udp: false,
+    "accept-routes": false,
+    "ip-version": "ipv6-prefer",
+  };
+  const dynamicEnv = makeEnv("tailscale", { tailscale: dynamicSecret });
+  dynamicEnv.produceArtifact = async () => {
+    throw new Error("dynamic Tailscale must not read a stored artifact");
+  };
+  const dynamicTs = await buildConfig(dynamicEnv, ["🇭🇰 香港01"]);
+  assert.deepEqual(dynamicTs.proxies[0], {
+    name: "TAILSCALE",
+    type: "tailscale",
+    hostname: "mihomo-home",
+    "auth-key": "tskey-dynamic-test",
+    "control-url": "https://controlplane.tailscale.com",
+    "state-dir": "./tailscale/home",
+    ephemeral: true,
+    udp: false,
+    "accept-routes": false,
+    "ip-version": "ipv6-prefer",
+  });
+  assert.deepEqual(group(dynamicTs, "Tailscale").proxies, ["TAILSCALE", "DIRECT"]);
+  assert.equal(group(dynamicTs, "Tailscale")["default-selected"], "TAILSCALE");
+
+  const dynamicJsonTs = await buildConfig(
+    makeEnv("tailscale", { tailscale: JSON.stringify(dynamicSecret) }),
+    ["🇭🇰 香港01"],
+  );
+  assert.equal(dynamicJsonTs.proxies[0].hostname, "mihomo-home");
+
+  const dynamicPlain = await buildConfig(makeEnv("tailscale"), ["🇭🇰 香港01"]);
+  assert.equal(dynamicPlain.proxies.some((proxy) => proxy.name === "TAILSCALE"), false);
+  assert.deepEqual(group(dynamicPlain, "Tailscale").proxies, ["DIRECT"]);
+  await assert.rejects(
+    () => buildConfig(makeEnv("tailscale", { tailscale: "not-json" }), ["🇭🇰 香港01"]),
+    /Invalid \$options\.tailscale JSON/,
+  );
+  await assert.rejects(
+    () => buildConfig(makeEnv("tailscale", { tailscale: { hostname: "missing-fields" } }), ["🇭🇰 香港01"]),
+    /require hostname, auth-key, and state-dir/,
+  );
 });
 
 test("orders proxy groups after merging foreign services", async () => {
