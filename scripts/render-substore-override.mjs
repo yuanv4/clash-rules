@@ -15,12 +15,12 @@
  * name via `produceArtifact`; nothing secret is embedded.
  */
 export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) => {
+  const domesticGroup = "🇨🇳 国内服务";
   const foreignAiGroup = "🤖 国际 AI";
-  const googleGroup = "🌐 Google";
-  const serviceGroups = ["🎬 Netflix", "🎬 DisneyPlus", "📲 电报信息", "💨 Steam商店", "Ⓜ️ 微软服务", "🍎 苹果服务", "🌍 媒体服务"];
+  const foreignGroup = "🌐 国外服务";
+  const streamingGroup = "🎬 流媒体服务";
   const adBlockGroup = "🛑 广告过滤";
   const fallbackGroup = "🐟 漏网之鱼";
-  const foreignGroup = "🌍 国外网站";
   const automaticGroup = proxyGroup;
   const taiwanFallbackGroup = "🛟 故障转移(台湾)";
   const taiwanNodePattern = String.raw`(?:🇹🇼|\bTW(?=\b|\d)|\bTPE(?=\b|\d)|Taiwan|Taipei|台湾|台灣|台北)`;
@@ -49,10 +49,10 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
   const businessGroups = [
     tailscaleGroup,
     adBlockGroup,
-    foreignAiGroup,
-    googleGroup,
-    ...serviceGroups,
+    domesticGroup,
     foreignGroup,
+    foreignAiGroup,
+    streamingGroup,
     fallbackGroup,
   ];
   const businessGroupSet = new Set(businessGroups);
@@ -104,9 +104,9 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     `    { name: '${foreignGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': '${automaticGroup}' },`,
     `    { name: '${fallbackGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': 'DIRECT' },`,
     `    { name: '${tailscaleGroup}', type: 'select', proxies: tailscaleProxies, 'default-selected': withTailscale ? 'TAILSCALE' : 'DIRECT' },`,
+    `    { name: '${domesticGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': 'DIRECT' },`,
     `    { name: '${foreignAiGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': '${taiwanFallbackGroup}' },`,
-    `    { name: '${googleGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': '${automaticGroup}' },`,
-    `    ...${JSON.stringify(serviceGroups)}.map((name) => ({ name, type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': '${automaticGroup}' })),`,
+    `    { name: '${streamingGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': '${automaticGroup}' },`,
     `    { name: '${adBlockGroup}', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' }`,
     "  ];",
     `  const groupOrder = ${JSON.stringify(groupOrder)};`,

@@ -55,16 +55,14 @@
   ],
   "providers": [
     {
-      "name": "lan_non_ip",
+      "name": "direct",
       "target": "DIRECT",
       "no_resolve": true,
-      "inputs": [{"input": "boweic/ruleset.bowei.co", "path": "Clash/non_ip/lan.txt"}]
-    },
-    {
-      "name": "lan_ip",
-      "target": "DIRECT",
-      "no_resolve": true,
-      "inputs": [{"input": "boweic/ruleset.bowei.co", "path": "Clash/ip/lan.txt"}]
+      "inputs": [
+        {"input": "custom/tag", "path": "custom/tag.txt"},
+        {"input": "boweic/ruleset.bowei.co", "path": "Clash/non_ip/lan.txt"},
+        {"input": "boweic/ruleset.bowei.co", "path": "Clash/ip/lan.txt"}
+      ]
     },
     {
       "name": "reject_domainset",
@@ -74,19 +72,14 @@
       "inputs": [{"input": "boweic/ruleset.bowei.co", "path": "Clash/domainset/reject.txt", "input_format": "domain-text"}]
     },
     {
-      "name": "reject_non_ip",
+      "name": "reject",
       "target": "🛑 广告过滤",
       "no_resolve": true,
       "inputs": [
         {"input": "boweic/ruleset.bowei.co", "path": "Clash/non_ip/reject.txt"},
-        {"input": "TG-Twilight/AWAvenue-Ads-Rule", "path": "Filters/AWAvenue-Ads-Rule-Clash-Classical-Only.Ads.yaml"}
+        {"input": "TG-Twilight/AWAvenue-Ads-Rule", "path": "Filters/AWAvenue-Ads-Rule-Clash-Classical-Only.Ads.yaml"},
+        {"input": "boweic/ruleset.bowei.co", "path": "Clash/ip/reject.txt"}
       ]
-    },
-    {
-      "name": "reject_ip",
-      "target": "🛑 广告过滤",
-      "no_resolve": true,
-      "inputs": [{"input": "boweic/ruleset.bowei.co", "path": "Clash/ip/reject.txt"}]
     },
     {
       "name": "ai",
@@ -99,85 +92,39 @@
       ]
     },
     {
-      "name": "google",
-      "target": "🌐 Google",
+      "name": "cn_services",
+      "target": "🇨🇳 国内服务",
       "no_resolve": true,
       "inputs": [
-        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/google.yaml"},
-        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geoip/google.yaml"}
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/apple-cn.yaml"},
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/microsoft@cn.yaml"},
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/steam@cn.yaml"},
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/category-games@cn.yaml"}
       ]
     },
     {
-      "name": "netflix",
-      "target": "🎬 Netflix",
+      "name": "streaming_services",
+      "target": "🎬 流媒体服务",
       "no_resolve": true,
       "inputs": [
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/netflix.yaml"},
-        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geoip/netflix.yaml"}
-      ]
-    },
-    {
-      "name": "disney",
-      "target": "🎬 DisneyPlus",
-      "no_resolve": true,
-      "inputs": [
-        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/disney.yaml"}
-      ]
-    },
-    {
-      "name": "telegram",
-      "target": "📲 电报信息",
-      "no_resolve": true,
-      "inputs": [
-        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/telegram.yaml"},
-        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geoip/telegram.yaml"}
-      ]
-    },
-    {
-      "name": "steam",
-      "target": "💨 Steam商店",
-      "no_resolve": true,
-      "inputs": [
-        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/steam.yaml"}
-      ]
-    },
-    {
-      "name": "microsoft",
-      "target": "Ⓜ️ 微软服务",
-      "no_resolve": true,
-      "inputs": [
-        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/microsoft.yaml"}
-      ]
-    },
-    {
-      "name": "apple",
-      "target": "🍎 苹果服务",
-      "no_resolve": true,
-      "inputs": [
-        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/apple.yaml"}
-      ]
-    },
-    {
-      "name": "media",
-      "target": "🌍 媒体服务",
-      "no_resolve": true,
-      "inputs": [
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geoip/netflix.yaml"},
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/disney.yaml"},
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/category-media.yaml"}
       ]
     },
     {
-      "name": "custom_direct",
-      "target": "DIRECT",
+      "name": "foreign_services",
+      "target": "🌐 国外服务",
       "no_resolve": true,
       "inputs": [
-        {"input": "custom/tag", "path": "custom/tag.txt"}
-      ]
-    },
-    {
-      "name": "proxy",
-      "target": "🌍 国外网站",
-      "no_resolve": true,
-      "inputs": [
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/google.yaml"},
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geoip/google.yaml"},
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/telegram.yaml"},
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geoip/telegram.yaml"},
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/steam.yaml"},
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/microsoft.yaml"},
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/apple.yaml"},
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/geolocation-!cn.yaml"}
       ]
     }
