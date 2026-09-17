@@ -209,6 +209,7 @@ test("sources.json removes domestic AI routing while preserving provider provena
     "reject",
     "ai",
     "cn_services",
+    "dev_services",
     "streaming_services",
     "foreign_services",
   ]);
@@ -271,7 +272,16 @@ test("sources.json removes domestic AI routing while preserving provider provena
   ]);
   assert.deepEqual(domesticProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml"]);
 
-  const streamingProvider = normalized.providers[5];
+  const developerProvider = normalized.providers[5];
+  assert.equal(developerProvider.name, "dev_services");
+  assert.equal(developerProvider.target, "🧑‍💻 开发服务");
+  assert.equal(developerProvider.noResolve, true);
+  assert.deepEqual(developerProvider.inputs.map((input) => input.sourceUrl), [
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-dev.yaml",
+  ]);
+  assert.deepEqual(developerProvider.inputs.map((input) => input.inputFormat), ["clash-yaml"]);
+
+  const streamingProvider = normalized.providers[6];
   assert.equal(streamingProvider.name, "streaming_services");
   assert.equal(streamingProvider.target, "🎬 流媒体服务");
   assert.equal(streamingProvider.noResolve, true);
@@ -288,7 +298,7 @@ test("sources.json removes domestic AI routing while preserving provider provena
     assert.equal(providerNames.includes(name), false);
   }
 
-  const foreignServicesProvider = normalized.providers[6];
+  const foreignServicesProvider = normalized.providers[7];
   assert.equal(foreignServicesProvider.name, "foreign_services");
   assert.equal(foreignServicesProvider.target, "🌐 国外服务");
   assert.equal(foreignServicesProvider.noResolve, true);
@@ -467,10 +477,12 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
     { name: "reject", target: "🛑 广告过滤", noResolve: true },
     { name: "ai", target: "🤖 国际 AI", noResolve: true },
     { name: "cn_services", target: "🇨🇳 国内服务", noResolve: true },
+    { name: "dev_services", target: "🧑‍💻 开发服务", noResolve: true },
     { name: "streaming_services", target: "🎬 流媒体服务", noResolve: true },
     { name: "foreign_services", target: "🌐 国外服务", noResolve: true },
   ];
   const proxyGroup = "♻️ 自动选择(香港)";
+  const developerGroup = "🧑‍💻 开发服务";
   const streamingGroup = "🎬 流媒体服务";
   const script = renderSubstoreOverride(providers, "https://rules.example.test/release", proxyGroup);
 
@@ -506,7 +518,7 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
 
   const plain = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 香港01", "🇲🇴 澳门01", "🇹🇼 台湾01", "🇯🇵 日本01", "US-West 01"]);
   assert.deepEqual(plain["proxy-groups"].map((item) => item.name), [
-    "Tailscale", "🛑 广告过滤", "🤖 国际 AI", "🇨🇳 国内服务", streamingGroup, "🌐 国外服务", "🐟 漏网之鱼", "♻️ 自动选择(香港)", "🛟 故障转移(台湾)",
+    "Tailscale", "🛑 广告过滤", "🤖 国际 AI", "🇨🇳 国内服务", developerGroup, streamingGroup, "🌐 国外服务", "🐟 漏网之鱼", "♻️ 自动选择(香港)", "🛟 故障转移(台湾)",
   ]);
   assert.deepEqual(plain.rules.slice(3, -1), [
     "RULE-SET,direct,DIRECT,no-resolve",
@@ -514,6 +526,7 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
     "RULE-SET,reject,🛑 广告过滤,no-resolve",
     "RULE-SET,ai,🤖 国际 AI,no-resolve",
     "RULE-SET,cn_services,🇨🇳 国内服务,no-resolve",
+    "RULE-SET,dev_services,🧑‍💻 开发服务,no-resolve",
     "RULE-SET,streaming_services,🎬 流媒体服务,no-resolve",
     "RULE-SET,foreign_services,🌐 国外服务,no-resolve",
   ]);
@@ -561,6 +574,10 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
   assert.ok(plain.rules.indexOf("RULE-SET,cn_services,🇨🇳 国内服务,no-resolve") < plain.rules.indexOf("RULE-SET,foreign_services,🌐 国外服务,no-resolve"));
   assert.deepEqual(group(plain, "🤖 国际 AI").proxies, standardProxyChoices);
   assert.equal(group(plain, "🤖 国际 AI")["default-selected"], taiwanFallbackGroup);
+  assert.deepEqual(group(plain, developerGroup).proxies, standardProxyChoices);
+  assert.equal(group(plain, developerGroup)["default-selected"], taiwanFallbackGroup);
+  assert.ok(plain.rules.indexOf("RULE-SET,cn_services,🇨🇳 国内服务,no-resolve") < plain.rules.indexOf("RULE-SET,dev_services,🧑‍💻 开发服务,no-resolve"));
+  assert.ok(plain.rules.indexOf("RULE-SET,dev_services,🧑‍💻 开发服务,no-resolve") < plain.rules.indexOf("RULE-SET,streaming_services,🎬 流媒体服务,no-resolve"));
   assert.equal(plain["rule-providers"].reject_domainset.behavior, "domain");
   assert.equal(plain["rule-providers"].reject_domainset.format, "text");
   assert.equal(plain["rule-providers"].reject.behavior, "classical");
@@ -634,10 +651,12 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
 
 test("orders proxy groups after merging foreign services", async () => {
   const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
+  const developerGroup = "🧑‍💻 开发服务";
   const streamingGroup = "🎬 流媒体服务";
   const providers = [
     { name: "ai", target: "🤖 国际 AI", noResolve: true },
     { name: "cn_services", target: "🇨🇳 国内服务", noResolve: true },
+    { name: "dev_services", target: developerGroup, noResolve: true },
     { name: "streaming_services", target: "🎬 流媒体服务", noResolve: true },
     { name: "direct", target: "DIRECT", noResolve: true },
     { name: "foreign_services", target: "🌐 国外服务", noResolve: true },
@@ -651,7 +670,7 @@ test("orders proxy groups after merging foreign services", async () => {
   const config = await main({ proxies: [{ name: "🇭🇰 香港01" }, { name: "🇹🇼 台湾01" }] });
 
   assert.deepEqual(config["proxy-groups"].map((item) => item.name), [
-    "Tailscale", "🤖 国际 AI", "🇨🇳 国内服务", streamingGroup, "🌐 国外服务",
+    "Tailscale", "🤖 国际 AI", "🇨🇳 国内服务", developerGroup, streamingGroup, "🌐 国外服务",
     "🛑 广告过滤", "🐟 漏网之鱼", "♻️ 自动选择(香港)", "🛟 故障转移(台湾)",
   ]);
   assert.ok(config["proxy-groups"].every(Boolean));
@@ -661,6 +680,7 @@ test("orders proxy groups after merging foreign services", async () => {
     "DOMAIN-SUFFIX,ts.net,Tailscale",
     "RULE-SET,ai,🤖 国际 AI,no-resolve",
     "RULE-SET,cn_services,🇨🇳 国内服务,no-resolve",
+    "RULE-SET,dev_services,🧑‍💻 开发服务,no-resolve",
     "RULE-SET,streaming_services,🎬 流媒体服务,no-resolve",
     "RULE-SET,direct,DIRECT,no-resolve",
     "RULE-SET,foreign_services,🌐 国外服务,no-resolve",
