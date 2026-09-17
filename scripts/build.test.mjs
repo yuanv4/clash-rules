@@ -4,6 +4,7 @@ import {
   mergeRules,
   normalizeConfiguration,
   parseRules,
+  renderDomainText,
   renderYaml,
   resolveInputFormat,
   serializeRule,
@@ -23,6 +24,34 @@ test("parses raw lists into canonical rules with stable deduplication", () => {
     { type: "IP-CIDR", value: "192.0.2.0/24", options: ["no-resolve"] },
   ]);
   assert.deepEqual(rules.map(serializeRule), ["DOMAIN,example.com", "IP-CIDR,192.0.2.0/24,no-resolve"]);
+});
+
+test("parses Mihomo domain text with comments, CRLF, suffix markers, and deduplication", () => {
+  const rules = parseRules(
+    "# comment\r\nexample.com\r\n+.example.com\r\nexample.com\r\n// ignored\r\n",
+    sourceUrl,
+    "domain-text",
+  );
+
+  assert.deepEqual(rules, [
+    { type: "DOMAIN-TEXT", value: "example.com", options: [] },
+    { type: "DOMAIN-TEXT", value: "+.example.com", options: [] },
+  ]);
+});
+
+test("rejects malformed Mihomo domain text lines", () => {
+  for (const input of ["+.\n", "example .com\n", "example.com,other.com\n", "example.com\rbroken\n"]) {
+    assert.throws(() => parseRules(input, sourceUrl, "domain-text"), /Invalid domain text rule|carriage return/);
+  }
+});
+
+test("renders domain text without reinterpreting suffix markers", () => {
+  const provider = {
+    behavior: "domain",
+    inputs: [{ sourceRepository: "https://github.com/example/rules", sourceUrl, license: { id: "MIT", url: "https://example.test/LICENSE" } }],
+  };
+  const rendered = renderDomainText(provider, parseRules("example.com\n+.example.com\n", sourceUrl, "domain-text"));
+  assert.match(rendered, /\nexample\.com\n\+\.example\.com\n$/);
 });
 
 test("raw and Clash YAML adapters produce equivalent canonical rules", () => {
@@ -144,6 +173,7 @@ test("normalizes merge-ready provider views and preserves ordered provenance", (
   assert.equal(config.proxyGroup, "🚀 Nodes");
 
   assert.deepEqual(provider.inputs.map((input) => input.inputFormat), ["raw-list", "raw-list"]);
+  assert.equal(provider.behavior, "classical");
   assert.deepEqual(provider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/example/first-input/main/rules/first.list",
     "https://raw.githubusercontent.com/example/second-input/main/rules/second.yaml",
@@ -175,6 +205,7 @@ test("sources.json removes domestic AI routing while preserving provider provena
   assert.deepEqual(providerNames, [
     "lan_non_ip",
     "lan_ip",
+    "reject_domainset",
     "reject_non_ip",
     "reject_ip",
     "ai",
@@ -190,12 +221,17 @@ test("sources.json removes domestic AI routing while preserving provider provena
     "proxy",
   ]);
 
-  const rejectNonIpProvider = normalized.providers[2];
-  const rejectIpProvider = normalized.providers[3];
+  const rejectDomainProvider = normalized.providers[2];
+  const rejectNonIpProvider = normalized.providers[3];
+  const rejectIpProvider = normalized.providers[4];
+  assert.equal(rejectDomainProvider.target, "🛑 广告过滤");
+  assert.equal(rejectDomainProvider.behavior, "domain");
+  assert.deepEqual(rejectDomainProvider.inputs.map((input) => input.inputFormat), ["domain-text"]);
+  assert.equal(rejectDomainProvider.inputs[0].sourceUrl, "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/domainset/reject.txt");
   assert.equal(rejectNonIpProvider.target, "🛑 广告过滤");
   assert.equal(rejectIpProvider.target, "🛑 广告过滤");
 
-  const aiProvider = normalized.providers[4];
+  const aiProvider = normalized.providers[5];
   assert.equal(aiProvider.target, "🤖 国际 AI");
   assert.deepEqual(aiProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/global.yaml",
@@ -204,7 +240,7 @@ test("sources.json removes domestic AI routing while preserving provider provena
   ]);
   assert.deepEqual(aiProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "raw-list", "clash-yaml"]);
 
-  const googleProvider = normalized.providers[5];
+  const googleProvider = normalized.providers[6];
   assert.equal(googleProvider.target, "🌐 Google");
   assert.deepEqual(googleProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google.yaml",
@@ -212,7 +248,7 @@ test("sources.json removes domestic AI routing while preserving provider provena
   ]);
   assert.deepEqual(googleProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "clash-yaml"]);
 
-  const serviceProviders = normalized.providers.slice(6, 13);
+  const serviceProviders = normalized.providers.slice(7, 14);
   assert.deepEqual(
     serviceProviders.map(({ name, target, inputs }) => [name, target, ...inputs.map((input) => input.sourceUrl)]),
     [
@@ -226,13 +262,13 @@ test("sources.json removes domestic AI routing while preserving provider provena
     ]
   );
 
-  const customDirectProvider = normalized.providers[13];
+  const customDirectProvider = normalized.providers[14];
   assert.equal(customDirectProvider.name, "custom_direct");
   assert.equal(customDirectProvider.target, "DIRECT");
   assert.deepEqual(customDirectProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/yuanv4/clash-rules/main/custom/tag.txt",
   ]);
-  const proxyProvider = normalized.providers[14];
+  const proxyProvider = normalized.providers[15];
   assert.equal(proxyProvider.name, "proxy");
   assert.equal(proxyProvider.target, "🌍 国外网站");
   assert.deepEqual(proxyProvider.inputs.map((input) => input.sourceUrl), [
@@ -270,6 +306,25 @@ test("merges inputs with first-occurrence canonical deduplication", () => {
     "IP-CIDR,192.0.2.0/24,no-resolve",
     "DOMAIN,second.example",
   ]);
+});
+
+test("validates domain provider behavior and preserves classical defaults", () => {
+  const domainConfig = makeConfig();
+  domainConfig.providers[0].behavior = "domain";
+  for (const input of domainConfig.providers[0].inputs) {
+    input.input_format = "domain-text";
+  }
+  const provider = normalizeConfiguration(domainConfig).providers[0];
+  assert.equal(provider.behavior, "domain");
+  assert.equal(provider.inputs[0].inputFormat, "domain-text");
+
+  const mixedConfig = makeConfig();
+  mixedConfig.providers[0].behavior = "domain";
+  assert.throws(() => normalizeConfiguration(mixedConfig), /requires domain-text/);
+
+  const invalidBehaviorConfig = makeConfig();
+  invalidBehaviorConfig.providers[0].behavior = "classical-text";
+  assert.throws(() => normalizeConfiguration(invalidBehaviorConfig), /classical or domain/);
 });
 
 test("fails closed for invalid input/provider references and metadata", () => {
@@ -368,6 +423,7 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
   const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
   const providers = [
     { name: "lan_non_ip", target: "DIRECT", noResolve: true },
+    { name: "reject_domainset", target: "🛑 广告过滤", behavior: "domain", noResolve: true },
     { name: "reject_non_ip", target: "🛑 广告过滤", noResolve: true },
     { name: "ai", target: "🤖 国际 AI", noResolve: true },
     { name: "google", target: "🌐 Google", noResolve: true },
@@ -387,6 +443,8 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
 
   assert.match(script, /Hong Kong proxies/);
   assert.match(script, /MATCH,🐟 漏网之鱼/);
+  assert.match(script, /reject_domainset/);
+  assert.match(script, /reject_domainset\.txt/);
 
   const files = {
     "tailscale-secret": JSON.stringify({
@@ -416,6 +474,7 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
   ]);
   assert.deepEqual(plain.rules.slice(3, -1), [
     "RULE-SET,lan_non_ip,DIRECT,no-resolve",
+    "RULE-SET,reject_domainset,🛑 广告过滤,no-resolve",
     "RULE-SET,reject_non_ip,🛑 广告过滤,no-resolve",
     "RULE-SET,ai,🤖 国际 AI,no-resolve",
     "RULE-SET,google,🌐 Google,no-resolve",
@@ -468,6 +527,8 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
   assert.equal(group(plain, automaticGroup).url, "https://cp.cloudflare.com/generate_204");
   assert.deepEqual(group(plain, "🤖 国际 AI").proxies, standardProxyChoices);
   assert.equal(group(plain, "🤖 国际 AI")["default-selected"], taiwanFallbackGroup);
+  assert.equal(plain["rule-providers"].reject_domainset.behavior, "domain");
+  assert.equal(plain["rule-providers"].reject_domainset.format, "text");
   for (const name of ["🌐 Google", ...serviceGroups]) {
     assert.deepEqual(group(plain, name).proxies, standardProxyChoices);
     assert.equal(group(plain, name)["default-selected"], automaticGroup);
