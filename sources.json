@@ -92,17 +92,6 @@
       ]
     },
     {
-      "name": "cn_services",
-      "target": "🇨🇳 国内服务",
-      "no_resolve": true,
-      "inputs": [
-        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/apple-cn.yaml"},
-        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/microsoft@cn.yaml"},
-        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/steam@cn.yaml"},
-        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/category-games@cn.yaml"}
-      ]
-    },
-    {
       "name": "dev_services",
       "target": "🧑‍💻 开发服务",
       "no_resolve": true,
@@ -119,6 +108,17 @@
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geoip/netflix.yaml"},
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/disney.yaml"},
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/category-media.yaml"}
+      ]
+    },
+    {
+      "name": "cn_services",
+      "target": "🇨🇳 国内服务",
+      "no_resolve": true,
+      "inputs": [
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/apple-cn.yaml"},
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/microsoft@cn.yaml"},
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/steam@cn.yaml"},
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/category-games@cn.yaml"}
       ]
     },
     {
