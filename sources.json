@@ -103,6 +103,14 @@
       ]
     },
     {
+      "name": "dev_services",
+      "target": "🧑‍💻 开发服务",
+      "no_resolve": true,
+      "inputs": [
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/category-dev.yaml"}
+      ]
+    },
+    {
       "name": "streaming_services",
       "target": "🎬 流媒体服务",
       "no_resolve": true,
