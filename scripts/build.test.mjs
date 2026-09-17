@@ -229,6 +229,11 @@ test("sources.json removes domestic AI routing while preserving provider provena
   assert.deepEqual(rejectDomainProvider.inputs.map((input) => input.inputFormat), ["domain-text"]);
   assert.equal(rejectDomainProvider.inputs[0].sourceUrl, "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/domainset/reject.txt");
   assert.equal(rejectNonIpProvider.target, "🛑 广告过滤");
+  assert.deepEqual(rejectNonIpProvider.inputs.map((input) => input.sourceUrl), [
+    "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/non_ip/reject.txt",
+    "https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Clash-Classical-Only.Ads.yaml",
+  ]);
+  assert.deepEqual(rejectNonIpProvider.inputs.map((input) => input.inputFormat), ["raw-list", "clash-yaml"]);
   assert.equal(rejectIpProvider.target, "🛑 广告过滤");
 
   const aiProvider = normalized.providers[5];
@@ -276,6 +281,11 @@ test("sources.json removes domestic AI routing while preserving provider provena
   ]);
   assert.equal(config.inputs.some((input) => input.name === "Loyalsoldier/clash-rules"), false);
 
+  const rejectNonIpRendered = renderYaml(rejectNonIpProvider, []);
+  assert.ok(rejectNonIpRendered.includes("# Source 1 [boweic/ruleset.bowei.co]:"));
+  assert.ok(rejectNonIpRendered.includes("# Source 2 [TG-Twilight/AWAvenue-Ads-Rule]:"));
+  assert.ok(rejectNonIpRendered.includes("# License 2 [TG-Twilight/AWAvenue-Ads-Rule]: GPL-3.0 (https://github.com/TG-Twilight/AWAvenue-Ads-Rule/blob/main/LICENSE)"));
+
   const aiRendered = renderYaml(aiProvider, []);
   assert.ok(aiRendered.includes("# Source 1 [VPSDance/ai-proxy-rules]:"));
   assert.ok(aiRendered.includes("# License 1 [VPSDance/ai-proxy-rules]: MIT (https://github.com/VPSDance/ai-proxy-rules/blob/main/LICENSE)"));
@@ -298,14 +308,18 @@ test("sources.json removes domestic AI routing while preserving provider provena
 
 test("merges inputs with first-occurrence canonical deduplication", () => {
   const merged = mergeRules([
-    parseRules("DOMAIN,first.example\nIP-CIDR,192.0.2.0/24,no-resolve\n", sourceUrl),
-    parseRules("DOMAIN,second.example\nDOMAIN,first.example\nIP-CIDR,192.0.2.0/24,no-resolve\n", sourceUrl),
+    parseRules("DOMAIN,first.example\nDOMAIN-SUFFIX,shared.example\nDOMAIN-KEYWORD,ads\nIP-CIDR,192.0.2.0/24,no-resolve\n", sourceUrl),
+    parseRules("DOMAIN,second.example\nDOMAIN-SUFFIX,shared.example\nDOMAIN-KEYWORD,ads\nIP-CIDR,192.0.2.0/24,no-resolve\n", sourceUrl),
   ]);
   assert.deepEqual(merged.map(serializeRule), [
     "DOMAIN,first.example",
+    "DOMAIN-SUFFIX,shared.example",
+    "DOMAIN-KEYWORD,ads",
     "IP-CIDR,192.0.2.0/24,no-resolve",
     "DOMAIN,second.example",
   ]);
+  assert.equal(merged[1].type, "DOMAIN-SUFFIX");
+  assert.equal(merged[2].type, "DOMAIN-KEYWORD");
 });
 
 test("validates domain provider behavior and preserves classical defaults", () => {
