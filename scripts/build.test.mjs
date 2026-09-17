@@ -421,7 +421,7 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
 
   const plain = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 香港01", "🇲🇴 澳门01", "🇹🇼 台湾01", "🇯🇵 日本01", "US-West 01"]);
   assert.deepEqual(plain["proxy-groups"].map((item) => item.name), [
-    "♻️ 自动选择(香港)", "🛟 故障转移(台湾)", "🌍 国外网站", "🐟 漏网之鱼", "Tailscale", "🤖 国内 AI", "🤖 国际 AI", "🌐 Google", ...serviceGroups, "🛑 广告过滤",
+    "Tailscale", "🛑 广告过滤", "🤖 国内 AI", "🤖 国际 AI", "🌐 Google", ...serviceGroups, "🌍 国外网站", "🐟 漏网之鱼", "♻️ 自动选择(香港)", "🛟 故障转移(台湾)",
   ]);
   assert.deepEqual(plain.rules.slice(3, -1), [
     "RULE-SET,lan_non_ip,DIRECT,no-resolve",
@@ -476,9 +476,13 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
   assert.equal(group(plain, automaticGroup).tolerance, 50);
   assert.equal(group(plain, automaticGroup).type, "url-test");
   assert.equal(group(plain, automaticGroup).url, "https://cp.cloudflare.com/generate_204");
-  for (const name of ["🤖 国内 AI", "🤖 国际 AI", "🌐 Google", ...serviceGroups]) {
+  assert.deepEqual(group(plain, "🤖 国内 AI").proxies, standardProxyChoices);
+  assert.equal(group(plain, "🤖 国内 AI")["default-selected"], "DIRECT");
+  assert.deepEqual(group(plain, "🤖 国际 AI").proxies, standardProxyChoices);
+  assert.equal(group(plain, "🤖 国际 AI")["default-selected"], taiwanFallbackGroup);
+  for (const name of ["🌐 Google", ...serviceGroups]) {
     assert.deepEqual(group(plain, name).proxies, standardProxyChoices);
-    assert.equal(group(plain, name)["default-selected"], "DIRECT");
+    assert.equal(group(plain, name)["default-selected"], automaticGroup);
   }
   for (const item of plain["proxy-groups"]) {
     assert.ok(!item.proxies.includes(foreignGroup), `${item.name} must not reference the foreign group`);
@@ -533,4 +537,38 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
   assert.equal(group(withTs, "Tailscale")["default-selected"], "TAILSCALE");
   assert.deepEqual(withTs.rules.slice(0, 3), expectedTailscaleRules);
   assert.deepEqual(withTs.rules, plain.rules);
+});
+
+test("orders proxy groups by unique provider targets while retaining unreferenced groups", async () => {
+  const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
+  const serviceGroups = ["🎬 Netflix", "🎬 DisneyPlus", "📲 电报信息", "💨 Steam商店", "Ⓜ️ 微软服务", "🍎 苹果服务", "🌍 媒体服务"];
+  const providers = [
+    { name: "proxy", target: "🌍 国外网站", noResolve: true },
+    { name: "proxy_duplicate", target: "🌍 国外网站", noResolve: true },
+    { name: "unknown", target: "UNDECLARED", noResolve: true },
+    { name: "ai", target: "🤖 国际 AI", noResolve: true },
+    { name: "direct", target: "DIRECT", noResolve: true },
+  ];
+  const script = renderSubstoreOverride(providers, "https://rules.example.test/release", "♻️ 自动选择(香港)");
+  const main = new Function("produceArtifact", "$file", `${script}\nreturn main;`)(
+    async () => "{}",
+    { name: "yuanv4" },
+  );
+  const config = await main({ proxies: [{ name: "🇭🇰 香港01" }, { name: "🇹🇼 台湾01" }] });
+
+  assert.deepEqual(config["proxy-groups"].map((item) => item.name), [
+    "Tailscale", "🌍 国外网站", "🤖 国际 AI", "🛑 广告过滤", "🤖 国内 AI", "🌐 Google", ...serviceGroups,
+    "🐟 漏网之鱼", "♻️ 自动选择(香港)", "🛟 故障转移(台湾)",
+  ]);
+  assert.deepEqual(config.rules, [
+    "IP-CIDR,100.64.0.0/10,Tailscale,no-resolve",
+    "IP-CIDR,100.100.100.100/32,Tailscale,no-resolve",
+    "DOMAIN-SUFFIX,ts.net,Tailscale",
+    "RULE-SET,proxy,🌍 国外网站,no-resolve",
+    "RULE-SET,proxy_duplicate,🌍 国外网站,no-resolve",
+    "RULE-SET,unknown,UNDECLARED,no-resolve",
+    "RULE-SET,ai,🤖 国际 AI,no-resolve",
+    "RULE-SET,direct,DIRECT,no-resolve",
+    "MATCH,🐟 漏网之鱼",
+  ]);
 });
