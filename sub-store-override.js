@@ -11,18 +11,20 @@ async function main(config = {}) {
   const taiwanPattern = new RegExp("(?:\\u{1f1f9}\\u{1f1fc}|\\bTW(?=\\b|\\d)|\\bTPE(?=\\b|\\d)|Taiwan|Taipei|\\u53F0\\u6E7E|\\u53F0\\u7063|\\u53F0\\u5317)", 'iu');
   const taiwanNames = names.filter((name) => taiwanPattern.test(name));
   const tailscaleProxies = withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT'];
-  config['proxy-groups'] = [
+  const proxyGroups = [
     { name: '♻️ 自动选择(香港)', type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies: hongKongNames },
     { name: '🛟 故障转移(台湾)', type: 'fallback', url: 'https://cp.cloudflare.com/generate_204', interval: 300, proxies: taiwanNames.length ? taiwanNames : ['REJECT'] },
     { name: '🌍 国外网站', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': '♻️ 自动选择(香港)' },
     { name: '🐟 漏网之鱼', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': 'DIRECT' },
     { name: 'Tailscale', type: 'select', proxies: tailscaleProxies, 'default-selected': withTailscale ? 'TAILSCALE' : 'DIRECT' },
     { name: '🤖 国内 AI', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': 'DIRECT' },
-    { name: '🤖 国际 AI', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': 'DIRECT' },
-    { name: '🌐 Google', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': 'DIRECT' },
-    ...["🎬 Netflix","🎬 DisneyPlus","📲 电报信息","💨 Steam商店","Ⓜ️ 微软服务","🍎 苹果服务","🌍 媒体服务"].map((name) => ({ name, type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': 'DIRECT' })),
+    { name: '🤖 国际 AI', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': '🛟 故障转移(台湾)' },
+    { name: '🌐 Google', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': '♻️ 自动选择(香港)' },
+    ...["🎬 Netflix","🎬 DisneyPlus","📲 电报信息","💨 Steam商店","Ⓜ️ 微软服务","🍎 苹果服务","🌍 媒体服务"].map((name) => ({ name, type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': '♻️ 自动选择(香港)' })),
     { name: '🛑 广告过滤', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' }
   ];
+  const groupOrder = ["Tailscale","🛑 广告过滤","🤖 国内 AI","🤖 国际 AI","🌐 Google","🎬 Netflix","🎬 DisneyPlus","📲 电报信息","💨 Steam商店","Ⓜ️ 微软服务","🍎 苹果服务","🌍 媒体服务","🌍 国外网站","🐟 漏网之鱼","♻️ 自动选择(香港)","🛟 故障转移(台湾)"];
+  config['proxy-groups'] = groupOrder.map((name) => proxyGroups.find((group) => group.name === name));
 
   config.mode = 'Rule';
   config['log-level'] = 'info';
