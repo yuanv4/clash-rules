@@ -201,42 +201,56 @@ test("sources.json removes domestic AI routing while preserving provider provena
   const config = await Bun.file(new URL("../sources.json", import.meta.url)).json();
   const normalized = normalizeConfiguration(config);
   const providerNames = normalized.providers.map((provider) => provider.name);
-  assert.equal(providerNames.includes("direct"), false);
+  assert.equal(providerNames[0], "direct");
+  assert.equal(providerNames.includes("proxy"), false);
   assert.deepEqual(providerNames, [
-    "lan_non_ip",
-    "lan_ip",
+    "direct",
     "reject_domainset",
-    "reject_non_ip",
-    "reject_ip",
+    "reject",
     "ai",
-    "google",
-    "netflix",
-    "disney",
-    "telegram",
-    "steam",
-    "microsoft",
-    "apple",
-    "media",
-    "custom_direct",
-    "proxy",
+    "cn_services",
+    "streaming_services",
+    "foreign_services",
   ]);
+  for (const name of ["lan_non_ip", "lan_ip", "custom_direct"]) {
+    assert.equal(providerNames.includes(name), false);
+  }
 
-  const rejectDomainProvider = normalized.providers[2];
-  const rejectNonIpProvider = normalized.providers[3];
-  const rejectIpProvider = normalized.providers[4];
+  const directProvider = normalized.providers[0];
+  assert.equal(directProvider.name, "direct");
+  assert.equal(directProvider.target, "DIRECT");
+  assert.equal(directProvider.behavior, "classical");
+  assert.equal(directProvider.noResolve, true);
+  assert.deepEqual(directProvider.inputs.map((input) => input.sourceUrl), [
+    "https://raw.githubusercontent.com/yuanv4/clash-rules/main/custom/tag.txt",
+    "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/non_ip/lan.txt",
+    "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/ip/lan.txt",
+  ]);
+  assert.deepEqual(directProvider.inputs.map((input) => input.inputFormat), ["raw-list", "raw-list", "raw-list"]);
+  for (const name of ["google", "telegram", "steam", "microsoft", "apple"]) {
+    assert.equal(providerNames.includes(name), false);
+  }
+
+  const rejectDomainProvider = normalized.providers[1];
+  const rejectProvider = normalized.providers[2];
   assert.equal(rejectDomainProvider.target, "🛑 广告过滤");
   assert.equal(rejectDomainProvider.behavior, "domain");
   assert.deepEqual(rejectDomainProvider.inputs.map((input) => input.inputFormat), ["domain-text"]);
   assert.equal(rejectDomainProvider.inputs[0].sourceUrl, "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/domainset/reject.txt");
-  assert.equal(rejectNonIpProvider.target, "🛑 广告过滤");
-  assert.deepEqual(rejectNonIpProvider.inputs.map((input) => input.sourceUrl), [
+  assert.equal(rejectProvider.name, "reject");
+  assert.equal(rejectProvider.target, "🛑 广告过滤");
+  assert.equal(rejectProvider.behavior, "classical");
+  assert.equal(rejectProvider.noResolve, true);
+  assert.deepEqual(rejectProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/non_ip/reject.txt",
     "https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Clash-Classical-Only.Ads.yaml",
+    "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/ip/reject.txt",
   ]);
-  assert.deepEqual(rejectNonIpProvider.inputs.map((input) => input.inputFormat), ["raw-list", "clash-yaml"]);
-  assert.equal(rejectIpProvider.target, "🛑 广告过滤");
+  assert.deepEqual(rejectProvider.inputs.map((input) => input.inputFormat), ["raw-list", "clash-yaml", "raw-list"]);
+  assert.equal(providerNames.includes("reject_non_ip"), false);
+  assert.equal(providerNames.includes("reject_ip"), false);
 
-  const aiProvider = normalized.providers[5];
+  const aiProvider = normalized.providers[3];
   assert.equal(aiProvider.target, "🤖 国际 AI");
   assert.deepEqual(aiProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/global.yaml",
@@ -245,46 +259,60 @@ test("sources.json removes domestic AI routing while preserving provider provena
   ]);
   assert.deepEqual(aiProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "raw-list", "clash-yaml"]);
 
-  const googleProvider = normalized.providers[6];
-  assert.equal(googleProvider.target, "🌐 Google");
-  assert.deepEqual(googleProvider.inputs.map((input) => input.sourceUrl), [
+  const domesticProvider = normalized.providers[4];
+  assert.equal(domesticProvider.name, "cn_services");
+  assert.equal(domesticProvider.target, "🇨🇳 国内服务");
+  assert.equal(domesticProvider.noResolve, true);
+  assert.deepEqual(domesticProvider.inputs.map((input) => input.sourceUrl), [
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/apple-cn.yaml",
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/microsoft@cn.yaml",
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/steam@cn.yaml",
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-games@cn.yaml",
+  ]);
+  assert.deepEqual(domesticProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml"]);
+
+  const streamingProvider = normalized.providers[5];
+  assert.equal(streamingProvider.name, "streaming_services");
+  assert.equal(streamingProvider.target, "🎬 流媒体服务");
+  assert.equal(streamingProvider.noResolve, true);
+  assert.deepEqual(streamingProvider.inputs.map((input) => input.sourceUrl), [
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/netflix.yaml",
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/netflix.yaml",
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/disney.yaml",
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-media.yaml",
+  ]);
+  assert.deepEqual(streamingProvider.inputs.map((input) => input.inputFormat), [
+    "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml",
+  ]);
+  for (const name of ["netflix", "disney", "media"]) {
+    assert.equal(providerNames.includes(name), false);
+  }
+
+  const foreignServicesProvider = normalized.providers[6];
+  assert.equal(foreignServicesProvider.name, "foreign_services");
+  assert.equal(foreignServicesProvider.target, "🌐 国外服务");
+  assert.equal(foreignServicesProvider.noResolve, true);
+  assert.equal(normalized.providers.filter((provider) => provider.target === "🌐 国外服务").length, 1);
+  assert.deepEqual(foreignServicesProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google.yaml",
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/google.yaml",
-  ]);
-  assert.deepEqual(googleProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "clash-yaml"]);
-
-  const serviceProviders = normalized.providers.slice(7, 14);
-  assert.deepEqual(
-    serviceProviders.map(({ name, target, inputs }) => [name, target, ...inputs.map((input) => input.sourceUrl)]),
-    [
-      ["netflix", "🎬 Netflix", "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/netflix.yaml", "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/netflix.yaml"],
-      ["disney", "🎬 DisneyPlus", "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/disney.yaml"],
-      ["telegram", "📲 电报信息", "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/telegram.yaml", "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/telegram.yaml"],
-      ["steam", "💨 Steam商店", "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/steam.yaml"],
-      ["microsoft", "Ⓜ️ 微软服务", "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/microsoft.yaml"],
-      ["apple", "🍎 苹果服务", "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/apple.yaml"],
-      ["media", "🌍 媒体服务", "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-media.yaml"],
-    ]
-  );
-
-  const customDirectProvider = normalized.providers[14];
-  assert.equal(customDirectProvider.name, "custom_direct");
-  assert.equal(customDirectProvider.target, "DIRECT");
-  assert.deepEqual(customDirectProvider.inputs.map((input) => input.sourceUrl), [
-    "https://raw.githubusercontent.com/yuanv4/clash-rules/main/custom/tag.txt",
-  ]);
-  const proxyProvider = normalized.providers[15];
-  assert.equal(proxyProvider.name, "proxy");
-  assert.equal(proxyProvider.target, "🌍 国外网站");
-  assert.deepEqual(proxyProvider.inputs.map((input) => input.sourceUrl), [
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/telegram.yaml",
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/telegram.yaml",
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/steam.yaml",
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/microsoft.yaml",
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/apple.yaml",
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/geolocation-!cn.yaml",
+  ]);
+  assert.deepEqual(foreignServicesProvider.inputs.map((input) => input.inputFormat), [
+    "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml",
   ]);
   assert.equal(config.inputs.some((input) => input.name === "Loyalsoldier/clash-rules"), false);
 
-  const rejectNonIpRendered = renderYaml(rejectNonIpProvider, []);
-  assert.ok(rejectNonIpRendered.includes("# Source 1 [boweic/ruleset.bowei.co]:"));
-  assert.ok(rejectNonIpRendered.includes("# Source 2 [TG-Twilight/AWAvenue-Ads-Rule]:"));
-  assert.ok(rejectNonIpRendered.includes("# License 2 [TG-Twilight/AWAvenue-Ads-Rule]: GPL-3.0 (https://github.com/TG-Twilight/AWAvenue-Ads-Rule/blob/main/LICENSE)"));
+  const rejectRendered = renderYaml(rejectProvider, []);
+  assert.ok(rejectRendered.includes("# Source 1 [boweic/ruleset.bowei.co]:"));
+  assert.ok(rejectRendered.includes("# Source 2 [TG-Twilight/AWAvenue-Ads-Rule]:"));
+  assert.ok(rejectRendered.includes("# Source 3 [boweic/ruleset.bowei.co]:"));
+  assert.ok(rejectRendered.includes("# License 2 [TG-Twilight/AWAvenue-Ads-Rule]: GPL-3.0 (https://github.com/TG-Twilight/AWAvenue-Ads-Rule/blob/main/LICENSE)"));
 
   const aiRendered = renderYaml(aiProvider, []);
   assert.ok(aiRendered.includes("# Source 1 [VPSDance/ai-proxy-rules]:"));
@@ -294,16 +322,14 @@ test("sources.json removes domestic AI routing while preserving provider provena
   assert.ok(aiRendered.includes("# Source 3 [MetaCubeX/meta-rules-dat]:"));
   assert.ok(aiRendered.includes("# License 3 [MetaCubeX/meta-rules-dat]: GPL-3.0 (https://github.com/MetaCubeX/meta-rules-dat/blob/master/LICENSE)"));
 
-  const googleRendered = renderYaml(googleProvider, []);
-  assert.ok(googleRendered.includes("# Source 1 [MetaCubeX/meta-rules-dat]:"));
-  assert.ok(googleRendered.includes("# Source 2 [MetaCubeX/meta-rules-dat]:"));
-
-  const customDirectRendered = renderYaml(customDirectProvider, []);
-  assert.ok(customDirectRendered.includes("# Source: https://github.com/yuanv4/clash-rules (https://raw.githubusercontent.com/yuanv4/clash-rules/main/custom/tag.txt)"));
-  assert.ok(customDirectRendered.includes("# License: MIT (https://github.com/yuanv4/clash-rules)"));
-  const proxyRendered = renderYaml(proxyProvider, []);
-  assert.ok(proxyRendered.includes("# Source: https://github.com/MetaCubeX/meta-rules-dat (https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/geolocation-!cn.yaml)"));
-  assert.ok(proxyRendered.includes("# License: GPL-3.0 (https://github.com/MetaCubeX/meta-rules-dat/blob/master/LICENSE)"));
+  const directRendered = renderYaml(directProvider, []);
+  assert.ok(directRendered.includes("# Source 1 [custom/tag]:"));
+  assert.ok(directRendered.includes("# Source 2 [boweic/ruleset.bowei.co]:"));
+  assert.ok(directRendered.includes("# Source 3 [boweic/ruleset.bowei.co]:"));
+  const foreignServicesRendered = renderYaml(foreignServicesProvider, []);
+  assert.ok(foreignServicesRendered.includes("# Source 1 [MetaCubeX/meta-rules-dat]:"));
+  assert.ok(foreignServicesRendered.includes("# Source 8 [MetaCubeX/meta-rules-dat]:"));
+  assert.ok(foreignServicesRendered.includes("geo/geosite/geolocation-!cn.yaml"));
 });
 
 test("merges inputs with first-occurrence canonical deduplication", () => {
@@ -436,29 +462,25 @@ test("accepts ordinary percent-encoded paths and rejects over-limit nested encod
 test("renders automatic and Taiwan fallback proxy topology", async () => {
   const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
   const providers = [
-    { name: "lan_non_ip", target: "DIRECT", noResolve: true },
+    { name: "direct", target: "DIRECT", noResolve: true },
     { name: "reject_domainset", target: "🛑 广告过滤", behavior: "domain", noResolve: true },
-    { name: "reject_non_ip", target: "🛑 广告过滤", noResolve: true },
+    { name: "reject", target: "🛑 广告过滤", noResolve: true },
     { name: "ai", target: "🤖 国际 AI", noResolve: true },
-    { name: "google", target: "🌐 Google", noResolve: true },
-    { name: "netflix", target: "🎬 Netflix", noResolve: true },
-    { name: "disney", target: "🎬 DisneyPlus", noResolve: true },
-    { name: "telegram", target: "📲 电报信息", noResolve: true },
-    { name: "steam", target: "💨 Steam商店", noResolve: true },
-    { name: "microsoft", target: "Ⓜ️ 微软服务", noResolve: true },
-    { name: "apple", target: "🍎 苹果服务", noResolve: true },
-    { name: "media", target: "🌍 媒体服务", noResolve: true },
-    { name: "custom_direct", target: "DIRECT", noResolve: true },
-    { name: "proxy", target: "🌍 国外网站", noResolve: true },
+    { name: "cn_services", target: "🇨🇳 国内服务", noResolve: true },
+    { name: "streaming_services", target: "🎬 流媒体服务", noResolve: true },
+    { name: "foreign_services", target: "🌐 国外服务", noResolve: true },
   ];
   const proxyGroup = "♻️ 自动选择(香港)";
-  const serviceGroups = ["🎬 Netflix", "🎬 DisneyPlus", "📲 电报信息", "💨 Steam商店", "Ⓜ️ 微软服务", "🍎 苹果服务", "🌍 媒体服务"];
+  const streamingGroup = "🎬 流媒体服务";
   const script = renderSubstoreOverride(providers, "https://rules.example.test/release", proxyGroup);
 
   assert.match(script, /Hong Kong proxies/);
   assert.match(script, /MATCH,🐟 漏网之鱼/);
   assert.match(script, /reject_domainset/);
   assert.match(script, /reject_domainset\.txt/);
+  assert.match(script, /reject,🛑 广告过滤,no-resolve/);
+  assert.match(script, /reject\.yaml/);
+  assert.doesNotMatch(script, /reject_non_ip|reject_ip/);
 
   const files = {
     "tailscale-secret": JSON.stringify({
@@ -484,31 +506,26 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
 
   const plain = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 香港01", "🇲🇴 澳门01", "🇹🇼 台湾01", "🇯🇵 日本01", "US-West 01"]);
   assert.deepEqual(plain["proxy-groups"].map((item) => item.name), [
-    "Tailscale", "🛑 广告过滤", "🤖 国际 AI", "🌐 Google", ...serviceGroups, "🌍 国外网站", "🐟 漏网之鱼", "♻️ 自动选择(香港)", "🛟 故障转移(台湾)",
+    "Tailscale", "🛑 广告过滤", "🤖 国际 AI", "🇨🇳 国内服务", streamingGroup, "🌐 国外服务", "🐟 漏网之鱼", "♻️ 自动选择(香港)", "🛟 故障转移(台湾)",
   ]);
   assert.deepEqual(plain.rules.slice(3, -1), [
-    "RULE-SET,lan_non_ip,DIRECT,no-resolve",
+    "RULE-SET,direct,DIRECT,no-resolve",
     "RULE-SET,reject_domainset,🛑 广告过滤,no-resolve",
-    "RULE-SET,reject_non_ip,🛑 广告过滤,no-resolve",
+    "RULE-SET,reject,🛑 广告过滤,no-resolve",
     "RULE-SET,ai,🤖 国际 AI,no-resolve",
-    "RULE-SET,google,🌐 Google,no-resolve",
-    "RULE-SET,netflix,🎬 Netflix,no-resolve",
-    "RULE-SET,disney,🎬 DisneyPlus,no-resolve",
-    "RULE-SET,telegram,📲 电报信息,no-resolve",
-    "RULE-SET,steam,💨 Steam商店,no-resolve",
-    "RULE-SET,microsoft,Ⓜ️ 微软服务,no-resolve",
-    "RULE-SET,apple,🍎 苹果服务,no-resolve",
-    "RULE-SET,media,🌍 媒体服务,no-resolve",
-    "RULE-SET,custom_direct,DIRECT,no-resolve",
-    "RULE-SET,proxy,🌍 国外网站,no-resolve",
+    "RULE-SET,cn_services,🇨🇳 国内服务,no-resolve",
+    "RULE-SET,streaming_services,🎬 流媒体服务,no-resolve",
+    "RULE-SET,foreign_services,🌐 国外服务,no-resolve",
   ]);
-  assert.ok(plain.rules.indexOf("RULE-SET,custom_direct,DIRECT,no-resolve") < plain.rules.indexOf("RULE-SET,proxy,🌍 国外网站,no-resolve"));
-  assert.ok(plain.rules.indexOf("RULE-SET,proxy,🌍 国外网站,no-resolve") < plain.rules.indexOf("MATCH,🐟 漏网之鱼"));
+  assert.equal(plain.rules[3], "RULE-SET,direct,DIRECT,no-resolve");
+  assert.ok(plain.rules.indexOf("RULE-SET,direct,DIRECT,no-resolve") < plain.rules.indexOf("RULE-SET,reject_domainset,🛑 广告过滤,no-resolve"));
+  assert.ok(plain.rules.indexOf("RULE-SET,streaming_services,🎬 流媒体服务,no-resolve") < plain.rules.indexOf("RULE-SET,foreign_services,🌐 国外服务,no-resolve"));
+  assert.ok(plain.rules.indexOf("RULE-SET,foreign_services,🌐 国外服务,no-resolve") < plain.rules.indexOf("MATCH,🐟 漏网之鱼"));
   const automaticGroup = "♻️ 自动选择(香港)";
   assert.ok(!JSON.stringify(plain).includes("自动选择(东亚)"));
   const taiwanFallbackGroup = "🛟 故障转移(台湾)";
   const standardProxyChoices = ["DIRECT", automaticGroup, taiwanFallbackGroup];
-  const foreignGroup = "🌍 国外网站";
+  const foreignGroup = "🌐 国外服务";
   assert.ok(!JSON.stringify(plain).includes("节点选择(东亚)"));
   assert.ok(!JSON.stringify(plain).includes("负载均衡(台湾)"));
   assert.deepEqual(group(plain, taiwanFallbackGroup), {
@@ -539,13 +556,26 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
   assert.equal(group(plain, automaticGroup).tolerance, 50);
   assert.equal(group(plain, automaticGroup).type, "url-test");
   assert.equal(group(plain, automaticGroup).url, "https://cp.cloudflare.com/generate_204");
+  assert.deepEqual(group(plain, "🇨🇳 国内服务").proxies, standardProxyChoices);
+  assert.equal(group(plain, "🇨🇳 国内服务")["default-selected"], "DIRECT");
+  assert.ok(plain.rules.indexOf("RULE-SET,cn_services,🇨🇳 国内服务,no-resolve") < plain.rules.indexOf("RULE-SET,foreign_services,🌐 国外服务,no-resolve"));
   assert.deepEqual(group(plain, "🤖 国际 AI").proxies, standardProxyChoices);
   assert.equal(group(plain, "🤖 国际 AI")["default-selected"], taiwanFallbackGroup);
   assert.equal(plain["rule-providers"].reject_domainset.behavior, "domain");
   assert.equal(plain["rule-providers"].reject_domainset.format, "text");
-  for (const name of ["🌐 Google", ...serviceGroups]) {
-    assert.deepEqual(group(plain, name).proxies, standardProxyChoices);
-    assert.equal(group(plain, name)["default-selected"], automaticGroup);
+  assert.equal(plain["rule-providers"].reject.behavior, "classical");
+  assert.equal(plain["rule-providers"].reject.format, "yaml");
+  assert.deepEqual(
+    plain.rules.filter((rule) => rule.includes("🛑 广告过滤")),
+    [
+      "RULE-SET,reject_domainset,🛑 广告过滤,no-resolve",
+      "RULE-SET,reject,🛑 广告过滤,no-resolve",
+    ],
+  );
+  assert.deepEqual(group(plain, streamingGroup).proxies, standardProxyChoices);
+  assert.equal(group(plain, streamingGroup)["default-selected"], automaticGroup);
+  for (const oldGroup of ["🌐 Google", "📲 电报信息", "💨 Steam商店", "Ⓜ️ 微软服务", "🍎 苹果服务", "🌍 国外网站", "🎬 Netflix", "🎬 DisneyPlus", "🌍 媒体服务"]) {
+    assert.equal(group(plain, oldGroup), undefined, `${oldGroup} must not be generated`);
   }
   for (const item of plain["proxy-groups"]) {
     assert.ok(!item.proxies.includes(foreignGroup), `${item.name} must not reference the foreign group`);
@@ -602,15 +632,16 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
   assert.deepEqual(withTs.rules, plain.rules);
 });
 
-test("orders proxy groups after removing domestic AI group", async () => {
+test("orders proxy groups after merging foreign services", async () => {
   const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
-  const serviceGroups = ["🎬 Netflix", "🎬 DisneyPlus", "📲 电报信息", "💨 Steam商店", "Ⓜ️ 微软服务", "🍎 苹果服务", "🌍 媒体服务"];
+  const streamingGroup = "🎬 流媒体服务";
   const providers = [
-    { name: "proxy", target: "🌍 国外网站", noResolve: true },
-    { name: "proxy_duplicate", target: "🌍 国外网站", noResolve: true },
-    { name: "unknown", target: "UNDECLARED", noResolve: true },
     { name: "ai", target: "🤖 国际 AI", noResolve: true },
+    { name: "cn_services", target: "🇨🇳 国内服务", noResolve: true },
+    { name: "streaming_services", target: "🎬 流媒体服务", noResolve: true },
     { name: "direct", target: "DIRECT", noResolve: true },
+    { name: "foreign_services", target: "🌐 国外服务", noResolve: true },
+    { name: "unknown", target: "UNDECLARED", noResolve: true },
   ];
   const script = renderSubstoreOverride(providers, "https://rules.example.test/release", "♻️ 自动选择(香港)");
   const main = new Function("produceArtifact", "$file", `${script}\nreturn main;`)(
@@ -620,18 +651,20 @@ test("orders proxy groups after removing domestic AI group", async () => {
   const config = await main({ proxies: [{ name: "🇭🇰 香港01" }, { name: "🇹🇼 台湾01" }] });
 
   assert.deepEqual(config["proxy-groups"].map((item) => item.name), [
-    "Tailscale", "🌍 国外网站", "🤖 国际 AI", "🛑 广告过滤", "🌐 Google", ...serviceGroups,
-    "🐟 漏网之鱼", "♻️ 自动选择(香港)", "🛟 故障转移(台湾)",
+    "Tailscale", "🤖 国际 AI", "🇨🇳 国内服务", streamingGroup, "🌐 国外服务",
+    "🛑 广告过滤", "🐟 漏网之鱼", "♻️ 自动选择(香港)", "🛟 故障转移(台湾)",
   ]);
+  assert.ok(config["proxy-groups"].every(Boolean));
   assert.deepEqual(config.rules, [
     "IP-CIDR,100.64.0.0/10,Tailscale,no-resolve",
     "IP-CIDR,100.100.100.100/32,Tailscale,no-resolve",
     "DOMAIN-SUFFIX,ts.net,Tailscale",
-    "RULE-SET,proxy,🌍 国外网站,no-resolve",
-    "RULE-SET,proxy_duplicate,🌍 国外网站,no-resolve",
-    "RULE-SET,unknown,UNDECLARED,no-resolve",
     "RULE-SET,ai,🤖 国际 AI,no-resolve",
+    "RULE-SET,cn_services,🇨🇳 国内服务,no-resolve",
+    "RULE-SET,streaming_services,🎬 流媒体服务,no-resolve",
     "RULE-SET,direct,DIRECT,no-resolve",
+    "RULE-SET,foreign_services,🌐 国外服务,no-resolve",
+    "RULE-SET,unknown,UNDECLARED,no-resolve",
     "MATCH,🐟 漏网之鱼",
   ]);
 });
