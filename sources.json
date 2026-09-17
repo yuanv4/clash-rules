@@ -69,14 +69,6 @@
       "inputs": [{"input": "boweic/ruleset.bowei.co", "path": "Clash/ip/reject.txt"}]
     },
     {
-      "name": "ai_cn",
-      "target": "🤖 国内 AI",
-      "no_resolve": true,
-      "inputs": [
-        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/category-ai-cn.yaml"}
-      ]
-    },
-    {
       "name": "ai",
       "target": "🤖 国际 AI",
       "no_resolve": true,

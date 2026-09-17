@@ -167,7 +167,7 @@ test("normalizes merge-ready provider views and preserves ordered provenance", (
   assert.doesNotMatch(singleSourceRendered, /# Source 1/);
 });
 
-test("sources.json preserves routing precedence and provider provenance", async () => {
+test("sources.json removes domestic AI routing while preserving provider provenance", async () => {
   const config = await Bun.file(new URL("../sources.json", import.meta.url)).json();
   const normalized = normalizeConfiguration(config);
   const providerNames = normalized.providers.map((provider) => provider.name);
@@ -177,7 +177,6 @@ test("sources.json preserves routing precedence and provider provenance", async 
     "lan_ip",
     "reject_non_ip",
     "reject_ip",
-    "ai_cn",
     "ai",
     "google",
     "netflix",
@@ -196,14 +195,7 @@ test("sources.json preserves routing precedence and provider provenance", async 
   assert.equal(rejectNonIpProvider.target, "🛑 广告过滤");
   assert.equal(rejectIpProvider.target, "🛑 广告过滤");
 
-  const domesticAiProvider = normalized.providers[4];
-  assert.equal(domesticAiProvider.target, "🤖 国内 AI");
-  assert.deepEqual(domesticAiProvider.inputs.map((input) => input.sourceUrl), [
-    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ai-cn.yaml",
-  ]);
-  assert.deepEqual(domesticAiProvider.inputs.map((input) => input.inputFormat), ["clash-yaml"]);
-
-  const aiProvider = normalized.providers[5];
+  const aiProvider = normalized.providers[4];
   assert.equal(aiProvider.target, "🤖 国际 AI");
   assert.deepEqual(aiProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/global.yaml",
@@ -212,7 +204,7 @@ test("sources.json preserves routing precedence and provider provenance", async 
   ]);
   assert.deepEqual(aiProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "raw-list", "clash-yaml"]);
 
-  const googleProvider = normalized.providers[6];
+  const googleProvider = normalized.providers[5];
   assert.equal(googleProvider.target, "🌐 Google");
   assert.deepEqual(googleProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google.yaml",
@@ -220,7 +212,7 @@ test("sources.json preserves routing precedence and provider provenance", async 
   ]);
   assert.deepEqual(googleProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "clash-yaml"]);
 
-  const serviceProviders = normalized.providers.slice(7, 14);
+  const serviceProviders = normalized.providers.slice(6, 13);
   assert.deepEqual(
     serviceProviders.map(({ name, target, inputs }) => [name, target, ...inputs.map((input) => input.sourceUrl)]),
     [
@@ -234,13 +226,13 @@ test("sources.json preserves routing precedence and provider provenance", async 
     ]
   );
 
-  const customDirectProvider = normalized.providers[14];
+  const customDirectProvider = normalized.providers[13];
   assert.equal(customDirectProvider.name, "custom_direct");
   assert.equal(customDirectProvider.target, "DIRECT");
   assert.deepEqual(customDirectProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/yuanv4/clash-rules/main/custom/tag.txt",
   ]);
-  const proxyProvider = normalized.providers[15];
+  const proxyProvider = normalized.providers[14];
   assert.equal(proxyProvider.name, "proxy");
   assert.equal(proxyProvider.target, "🌍 国外网站");
   assert.deepEqual(proxyProvider.inputs.map((input) => input.sourceUrl), [
@@ -377,7 +369,6 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
   const providers = [
     { name: "lan_non_ip", target: "DIRECT", noResolve: true },
     { name: "reject_non_ip", target: "🛑 广告过滤", noResolve: true },
-    { name: "ai_cn", target: "🤖 国内 AI", noResolve: true },
     { name: "ai", target: "🤖 国际 AI", noResolve: true },
     { name: "google", target: "🌐 Google", noResolve: true },
     { name: "netflix", target: "🎬 Netflix", noResolve: true },
@@ -421,12 +412,11 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
 
   const plain = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 香港01", "🇲🇴 澳门01", "🇹🇼 台湾01", "🇯🇵 日本01", "US-West 01"]);
   assert.deepEqual(plain["proxy-groups"].map((item) => item.name), [
-    "Tailscale", "🛑 广告过滤", "🤖 国内 AI", "🤖 国际 AI", "🌐 Google", ...serviceGroups, "🌍 国外网站", "🐟 漏网之鱼", "♻️ 自动选择(香港)", "🛟 故障转移(台湾)",
+    "Tailscale", "🛑 广告过滤", "🤖 国际 AI", "🌐 Google", ...serviceGroups, "🌍 国外网站", "🐟 漏网之鱼", "♻️ 自动选择(香港)", "🛟 故障转移(台湾)",
   ]);
   assert.deepEqual(plain.rules.slice(3, -1), [
     "RULE-SET,lan_non_ip,DIRECT,no-resolve",
     "RULE-SET,reject_non_ip,🛑 广告过滤,no-resolve",
-    "RULE-SET,ai_cn,🤖 国内 AI,no-resolve",
     "RULE-SET,ai,🤖 国际 AI,no-resolve",
     "RULE-SET,google,🌐 Google,no-resolve",
     "RULE-SET,netflix,🎬 Netflix,no-resolve",
@@ -476,8 +466,6 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
   assert.equal(group(plain, automaticGroup).tolerance, 50);
   assert.equal(group(plain, automaticGroup).type, "url-test");
   assert.equal(group(plain, automaticGroup).url, "https://cp.cloudflare.com/generate_204");
-  assert.deepEqual(group(plain, "🤖 国内 AI").proxies, standardProxyChoices);
-  assert.equal(group(plain, "🤖 国内 AI")["default-selected"], "DIRECT");
   assert.deepEqual(group(plain, "🤖 国际 AI").proxies, standardProxyChoices);
   assert.equal(group(plain, "🤖 国际 AI")["default-selected"], taiwanFallbackGroup);
   for (const name of ["🌐 Google", ...serviceGroups]) {
@@ -539,7 +527,7 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
   assert.deepEqual(withTs.rules, plain.rules);
 });
 
-test("orders proxy groups by unique provider targets while retaining unreferenced groups", async () => {
+test("orders proxy groups after removing domestic AI group", async () => {
   const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
   const serviceGroups = ["🎬 Netflix", "🎬 DisneyPlus", "📲 电报信息", "💨 Steam商店", "Ⓜ️ 微软服务", "🍎 苹果服务", "🌍 媒体服务"];
   const providers = [
@@ -557,7 +545,7 @@ test("orders proxy groups by unique provider targets while retaining unreference
   const config = await main({ proxies: [{ name: "🇭🇰 香港01" }, { name: "🇹🇼 台湾01" }] });
 
   assert.deepEqual(config["proxy-groups"].map((item) => item.name), [
-    "Tailscale", "🌍 国外网站", "🤖 国际 AI", "🛑 广告过滤", "🤖 国内 AI", "🌐 Google", ...serviceGroups,
+    "Tailscale", "🌍 国外网站", "🤖 国际 AI", "🛑 广告过滤", "🌐 Google", ...serviceGroups,
     "🐟 漏网之鱼", "♻️ 自动选择(香港)", "🛟 故障转移(台湾)",
   ]);
   assert.deepEqual(config.rules, [

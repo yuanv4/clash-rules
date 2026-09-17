@@ -15,7 +15,6 @@
  * name via `produceArtifact`; nothing secret is embedded.
  */
 export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) => {
-  const domesticAiGroup = "🤖 国内 AI";
   const foreignAiGroup = "🤖 国际 AI";
   const googleGroup = "🌐 Google";
   const serviceGroups = ["🎬 Netflix", "🎬 DisneyPlus", "📲 电报信息", "💨 Steam商店", "Ⓜ️ 微软服务", "🍎 苹果服务", "🌍 媒体服务"];
@@ -50,7 +49,6 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
   const businessGroups = [
     tailscaleGroup,
     adBlockGroup,
-    domesticAiGroup,
     foreignAiGroup,
     googleGroup,
     ...serviceGroups,
@@ -106,7 +104,6 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     `    { name: '${foreignGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': '${automaticGroup}' },`,
     `    { name: '${fallbackGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': 'DIRECT' },`,
     `    { name: '${tailscaleGroup}', type: 'select', proxies: tailscaleProxies, 'default-selected': withTailscale ? 'TAILSCALE' : 'DIRECT' },`,
-    `    { name: '${domesticAiGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': 'DIRECT' },`,
     `    { name: '${foreignAiGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': '${taiwanFallbackGroup}' },`,
     `    { name: '${googleGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': '${automaticGroup}' },`,
     `    ...${JSON.stringify(serviceGroups)}.map((name) => ({ name, type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': '${automaticGroup}' })),`,
