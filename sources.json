@@ -57,6 +57,13 @@
       "inputs": [{"input": "boweic/ruleset.bowei.co", "path": "Clash/ip/lan.txt"}]
     },
     {
+      "name": "reject_domainset",
+      "target": "🛑 广告过滤",
+      "behavior": "domain",
+      "no_resolve": true,
+      "inputs": [{"input": "boweic/ruleset.bowei.co", "path": "Clash/domainset/reject.txt", "input_format": "domain-text"}]
+    },
+    {
       "name": "reject_non_ip",
       "target": "🛑 广告过滤",
       "no_resolve": true,

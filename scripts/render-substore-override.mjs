@@ -33,10 +33,10 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
       provider.name,
       {
         type: "http",
-        behavior: "classical",
-        format: "yaml",
+        behavior: provider.behavior ?? "classical",
+        format: provider.behavior === "domain" ? "text" : "yaml",
         interval: 86400,
-        url: `${releaseBaseUrl}/rules/${provider.name}.yaml`,
+        url: `${releaseBaseUrl}/rules/${provider.name}.${provider.behavior === "domain" ? "txt" : "yaml"}`,
       },
     ]),
   );
