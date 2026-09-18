@@ -3,12 +3,12 @@
   "proxy_group": "♻️ 自动选择(香港)",
   "inputs": [
     {
-      "name": "boweic/ruleset.bowei.co",
-      "repository": "https://github.com/boweic/ruleset.bowei.co",
-      "base_url": "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/",
+      "name": "SukkaLab/ruleset.skk.moe",
+      "repository": "https://github.com/SukkaLab/ruleset.skk.moe",
+      "base_url": "https://raw.githubusercontent.com/SukkaLab/ruleset.skk.moe/master/",
       "license": {
         "id": "AGPL-3.0",
-        "url": "https://github.com/boweic/ruleset.bowei.co/blob/master/LICENSE"
+        "url": "https://github.com/SukkaLab/ruleset.skk.moe/blob/master/LICENSE"
       },
       "input_format": "raw-list"
     },
@@ -60,8 +60,8 @@
       "no_resolve": true,
       "inputs": [
         {"input": "custom/tag", "path": "custom/tag.txt"},
-        {"input": "boweic/ruleset.bowei.co", "path": "Clash/non_ip/lan.txt"},
-        {"input": "boweic/ruleset.bowei.co", "path": "Clash/ip/lan.txt"}
+        {"input": "SukkaLab/ruleset.skk.moe", "path": "Clash/non_ip/lan.txt"},
+        {"input": "SukkaLab/ruleset.skk.moe", "path": "Clash/ip/lan.txt"}
       ]
     },
     {
@@ -69,16 +69,16 @@
       "target": "🛑 广告过滤",
       "behavior": "domain",
       "no_resolve": true,
-      "inputs": [{"input": "boweic/ruleset.bowei.co", "path": "Clash/domainset/reject.txt", "input_format": "domain-text"}]
+      "inputs": [{"input": "SukkaLab/ruleset.skk.moe", "path": "Clash/domainset/reject.txt", "input_format": "domain-text"}]
     },
     {
       "name": "reject",
       "target": "🛑 广告过滤",
       "no_resolve": true,
       "inputs": [
-        {"input": "boweic/ruleset.bowei.co", "path": "Clash/non_ip/reject.txt"},
+        {"input": "SukkaLab/ruleset.skk.moe", "path": "Clash/non_ip/reject.txt"},
         {"input": "TG-Twilight/AWAvenue-Ads-Rule", "path": "Filters/AWAvenue-Ads-Rule-Clash-Classical-Only.Ads.yaml"},
-        {"input": "boweic/ruleset.bowei.co", "path": "Clash/ip/reject.txt"}
+        {"input": "SukkaLab/ruleset.skk.moe", "path": "Clash/ip/reject.txt"}
       ]
     },
     {
@@ -87,7 +87,7 @@
       "no_resolve": true,
       "inputs": [
         {"input": "VPSDance/ai-proxy-rules", "path": "rules/clash/global.yaml"},
-        {"input": "boweic/ruleset.bowei.co", "path": "Clash/non_ip/apple_intelligence.txt"},
+        {"input": "SukkaLab/ruleset.skk.moe", "path": "Clash/non_ip/apple_intelligence.txt"},
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/category-ai-!cn.yaml"}
       ]
     },

@@ -224,8 +224,8 @@ test("sources.json removes domestic AI routing while preserving provider provena
   assert.equal(directProvider.noResolve, true);
   assert.deepEqual(directProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/yuanv4/clash-rules/main/custom/tag.txt",
-    "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/non_ip/lan.txt",
-    "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/ip/lan.txt",
+    "https://raw.githubusercontent.com/SukkaLab/ruleset.skk.moe/master/Clash/non_ip/lan.txt",
+    "https://raw.githubusercontent.com/SukkaLab/ruleset.skk.moe/master/Clash/ip/lan.txt",
   ]);
   assert.deepEqual(directProvider.inputs.map((input) => input.inputFormat), ["raw-list", "raw-list", "raw-list"]);
   for (const name of ["google", "telegram", "steam", "microsoft", "apple"]) {
@@ -237,15 +237,15 @@ test("sources.json removes domestic AI routing while preserving provider provena
   assert.equal(rejectDomainProvider.target, "🛑 广告过滤");
   assert.equal(rejectDomainProvider.behavior, "domain");
   assert.deepEqual(rejectDomainProvider.inputs.map((input) => input.inputFormat), ["domain-text"]);
-  assert.equal(rejectDomainProvider.inputs[0].sourceUrl, "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/domainset/reject.txt");
+  assert.equal(rejectDomainProvider.inputs[0].sourceUrl, "https://raw.githubusercontent.com/SukkaLab/ruleset.skk.moe/master/Clash/domainset/reject.txt");
   assert.equal(rejectProvider.name, "reject");
   assert.equal(rejectProvider.target, "🛑 广告过滤");
   assert.equal(rejectProvider.behavior, "classical");
   assert.equal(rejectProvider.noResolve, true);
   assert.deepEqual(rejectProvider.inputs.map((input) => input.sourceUrl), [
-    "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/non_ip/reject.txt",
+    "https://raw.githubusercontent.com/SukkaLab/ruleset.skk.moe/master/Clash/non_ip/reject.txt",
     "https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Clash-Classical-Only.Ads.yaml",
-    "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/ip/reject.txt",
+    "https://raw.githubusercontent.com/SukkaLab/ruleset.skk.moe/master/Clash/ip/reject.txt",
   ]);
   assert.deepEqual(rejectProvider.inputs.map((input) => input.inputFormat), ["raw-list", "clash-yaml", "raw-list"]);
   assert.equal(providerNames.includes("reject_non_ip"), false);
@@ -255,7 +255,7 @@ test("sources.json removes domestic AI routing while preserving provider provena
   assert.equal(aiProvider.target, "🤖 国际 AI");
   assert.deepEqual(aiProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/global.yaml",
-    "https://raw.githubusercontent.com/boweic/ruleset.bowei.co/master/Clash/non_ip/apple_intelligence.txt",
+    "https://raw.githubusercontent.com/SukkaLab/ruleset.skk.moe/master/Clash/non_ip/apple_intelligence.txt",
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ai-!cn.yaml",
   ]);
   assert.deepEqual(aiProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "raw-list", "clash-yaml"]);
@@ -319,23 +319,23 @@ test("sources.json removes domestic AI routing while preserving provider provena
   assert.equal(config.inputs.some((input) => input.name === "Loyalsoldier/clash-rules"), false);
 
   const rejectRendered = renderYaml(rejectProvider, []);
-  assert.ok(rejectRendered.includes("# Source 1 [boweic/ruleset.bowei.co]:"));
+  assert.ok(rejectRendered.includes("# Source 1 [SukkaLab/ruleset.skk.moe]:"));
   assert.ok(rejectRendered.includes("# Source 2 [TG-Twilight/AWAvenue-Ads-Rule]:"));
-  assert.ok(rejectRendered.includes("# Source 3 [boweic/ruleset.bowei.co]:"));
+  assert.ok(rejectRendered.includes("# Source 3 [SukkaLab/ruleset.skk.moe]:"));
   assert.ok(rejectRendered.includes("# License 2 [TG-Twilight/AWAvenue-Ads-Rule]: GPL-3.0 (https://github.com/TG-Twilight/AWAvenue-Ads-Rule/blob/main/LICENSE)"));
 
   const aiRendered = renderYaml(aiProvider, []);
   assert.ok(aiRendered.includes("# Source 1 [VPSDance/ai-proxy-rules]:"));
   assert.ok(aiRendered.includes("# License 1 [VPSDance/ai-proxy-rules]: MIT (https://github.com/VPSDance/ai-proxy-rules/blob/main/LICENSE)"));
-  assert.ok(aiRendered.includes("# Source 2 [boweic/ruleset.bowei.co]:"));
-  assert.ok(aiRendered.includes("# License 2 [boweic/ruleset.bowei.co]: AGPL-3.0 (https://github.com/boweic/ruleset.bowei.co/blob/master/LICENSE)"));
+  assert.ok(aiRendered.includes("# Source 2 [SukkaLab/ruleset.skk.moe]:"));
+  assert.ok(aiRendered.includes("# License 2 [SukkaLab/ruleset.skk.moe]: AGPL-3.0 (https://github.com/SukkaLab/ruleset.skk.moe/blob/master/LICENSE)"));
   assert.ok(aiRendered.includes("# Source 3 [MetaCubeX/meta-rules-dat]:"));
   assert.ok(aiRendered.includes("# License 3 [MetaCubeX/meta-rules-dat]: GPL-3.0 (https://github.com/MetaCubeX/meta-rules-dat/blob/master/LICENSE)"));
 
   const directRendered = renderYaml(directProvider, []);
   assert.ok(directRendered.includes("# Source 1 [custom/tag]:"));
-  assert.ok(directRendered.includes("# Source 2 [boweic/ruleset.bowei.co]:"));
-  assert.ok(directRendered.includes("# Source 3 [boweic/ruleset.bowei.co]:"));
+  assert.ok(directRendered.includes("# Source 2 [SukkaLab/ruleset.skk.moe]:"));
+  assert.ok(directRendered.includes("# Source 3 [SukkaLab/ruleset.skk.moe]:"));
   const foreignServicesRendered = renderYaml(foreignServicesProvider, []);
   assert.ok(foreignServicesRendered.includes("# Source 1 [MetaCubeX/meta-rules-dat]:"));
   assert.ok(foreignServicesRendered.includes("# Source 8 [MetaCubeX/meta-rules-dat]:"));
