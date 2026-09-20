@@ -207,6 +207,7 @@ test("sources.json removes domestic AI routing while preserving provider provena
     "direct",
     "reject_domainset",
     "reject",
+    "adult_content",
     "ai",
     "dev_services",
     "streaming_services",
@@ -251,7 +252,16 @@ test("sources.json removes domestic AI routing while preserving provider provena
   assert.equal(providerNames.includes("reject_non_ip"), false);
   assert.equal(providerNames.includes("reject_ip"), false);
 
-  const aiProvider = normalized.providers[3];
+  const adultContentProvider = normalized.providers[3];
+  assert.equal(adultContentProvider.target, "🔞 成人内容");
+  assert.equal(adultContentProvider.behavior, "classical");
+  assert.equal(adultContentProvider.noResolve, true);
+  assert.deepEqual(adultContentProvider.inputs.map((input) => input.sourceUrl), [
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-porn.yaml",
+  ]);
+  assert.deepEqual(adultContentProvider.inputs.map((input) => input.inputFormat), ["clash-yaml"]);
+
+  const aiProvider = normalized.providers[4];
   assert.equal(aiProvider.target, "🤖 国际 AI");
   assert.deepEqual(aiProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/global.yaml",
@@ -260,7 +270,7 @@ test("sources.json removes domestic AI routing while preserving provider provena
   ]);
   assert.deepEqual(aiProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "raw-list", "clash-yaml"]);
 
-  const domesticProvider = normalized.providers[6];
+  const domesticProvider = normalized.providers[7];
   assert.equal(domesticProvider.name, "cn_services");
   assert.equal(domesticProvider.target, "🇨🇳 国内服务");
   assert.equal(domesticProvider.noResolve, true);
@@ -272,7 +282,7 @@ test("sources.json removes domestic AI routing while preserving provider provena
   ]);
   assert.deepEqual(domesticProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml"]);
 
-  const developerProvider = normalized.providers[4];
+  const developerProvider = normalized.providers[5];
   assert.equal(developerProvider.name, "dev_services");
   assert.equal(developerProvider.target, "🧑‍💻 开发服务");
   assert.equal(developerProvider.noResolve, true);
@@ -281,7 +291,7 @@ test("sources.json removes domestic AI routing while preserving provider provena
   ]);
   assert.deepEqual(developerProvider.inputs.map((input) => input.inputFormat), ["clash-yaml"]);
 
-  const streamingProvider = normalized.providers[5];
+  const streamingProvider = normalized.providers[6];
   assert.equal(streamingProvider.name, "streaming_services");
   assert.equal(streamingProvider.target, "🎬 流媒体服务");
   assert.equal(streamingProvider.noResolve, true);
@@ -298,7 +308,7 @@ test("sources.json removes domestic AI routing while preserving provider provena
     assert.equal(providerNames.includes(name), false);
   }
 
-  const foreignServicesProvider = normalized.providers[7];
+  const foreignServicesProvider = normalized.providers[8];
   assert.equal(foreignServicesProvider.name, "foreign_services");
   assert.equal(foreignServicesProvider.target, "🌐 国外服务");
   assert.equal(foreignServicesProvider.noResolve, true);
@@ -475,6 +485,7 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
     { name: "direct", target: "DIRECT", noResolve: true },
     { name: "reject_domainset", target: "🛑 广告过滤", behavior: "domain", noResolve: true },
     { name: "reject", target: "🛑 广告过滤", noResolve: true },
+    { name: "adult_content", target: "🔞 成人内容", noResolve: true },
     { name: "ai", target: "🤖 国际 AI", noResolve: true },
     { name: "dev_services", target: "🧑‍💻 开发服务", noResolve: true },
     { name: "streaming_services", target: "🎬 流媒体服务", noResolve: true },
@@ -492,6 +503,8 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
   assert.match(script, /reject_domainset\.txt/);
   assert.match(script, /reject,🛑 广告过滤,no-resolve/);
   assert.match(script, /reject\.yaml/);
+  assert.match(script, /adult_content,🔞 成人内容,no-resolve/);
+  assert.match(script, /adult_content\.yaml/);
   assert.doesNotMatch(script, /reject_non_ip|reject_ip/);
 
   const files = {
@@ -523,12 +536,13 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
 
   const plain = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 香港01", "🇲🇴 澳门01", "🇹🇼 台湾01", "🇯🇵 日本01", "US-West 01"]);
   assert.deepEqual(plain["proxy-groups"].map((item) => item.name), [
-    "Tailscale", "🛑 广告过滤", "🤖 国际 AI", developerGroup, streamingGroup, "🇨🇳 国内服务", "🌐 国外服务", "🐟 漏网之鱼", "♻️ 自动选择(香港)", "🛟 故障转移(台湾)",
+    "Tailscale", "🛑 广告过滤", "🔞 成人内容", "🤖 国际 AI", developerGroup, streamingGroup, "🇨🇳 国内服务", "🌐 国外服务", "🐟 漏网之鱼", "♻️ 自动选择(香港)", "🛟 故障转移(台湾)",
   ]);
   assert.deepEqual(plain.rules.slice(3, -1), [
     "RULE-SET,direct,DIRECT,no-resolve",
     "RULE-SET,reject_domainset,🛑 广告过滤,no-resolve",
     "RULE-SET,reject,🛑 广告过滤,no-resolve",
+    "RULE-SET,adult_content,🔞 成人内容,no-resolve",
     "RULE-SET,ai,🤖 国际 AI,no-resolve",
     "RULE-SET,dev_services,🧑‍💻 开发服务,no-resolve",
     "RULE-SET,streaming_services,🎬 流媒体服务,no-resolve",
@@ -610,6 +624,8 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
   });
   assert.deepEqual(group(plain, "🛑 广告过滤").proxies, ["REJECT", "DIRECT"]);
   assert.equal(group(plain, "🛑 广告过滤")["default-selected"], "REJECT");
+  assert.deepEqual(group(plain, "🔞 成人内容").proxies, ["REJECT", "DIRECT"]);
+  assert.equal(group(plain, "🔞 成人内容")["default-selected"], "REJECT");
   assert.deepEqual(group(plain, "🐟 漏网之鱼").proxies, standardProxyChoices);
   assert.equal(group(plain, "🐟 漏网之鱼")["default-selected"], "DIRECT");
   const groupNames = new Set(plain["proxy-groups"].map((item) => item.name));
@@ -724,7 +740,7 @@ test("orders proxy groups after merging foreign services", async () => {
 
   assert.deepEqual(config["proxy-groups"].map((item) => item.name), [
     "Tailscale", "🤖 国际 AI", "🇨🇳 国内服务", developerGroup, streamingGroup, "🌐 国外服务",
-    "🛑 广告过滤", "🐟 漏网之鱼", "♻️ 自动选择(香港)", "🛟 故障转移(台湾)",
+    "🛑 广告过滤", "🔞 成人内容", "🐟 漏网之鱼", "♻️ 自动选择(香港)", "🛟 故障转移(台湾)",
   ]);
   assert.ok(config["proxy-groups"].every(Boolean));
   assert.deepEqual(config.rules, [
