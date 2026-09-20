@@ -20,6 +20,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
   const foreignGroup = "🌐 国外服务";
   const streamingGroup = "🎬 流媒体服务";
   const adBlockGroup = "🛑 广告过滤";
+  const adultContentGroup = "🔞 成人内容";
   const fallbackGroup = "🐟 漏网之鱼";
   const automaticGroup = proxyGroup;
   const taiwanFallbackGroup = "🛟 故障转移(台湾)";
@@ -49,6 +50,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
   const businessGroups = [
     tailscaleGroup,
     adBlockGroup,
+    adultContentGroup,
     domesticGroup,
     foreignGroup,
     foreignAiGroup,
@@ -113,7 +115,8 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     `    { name: '${foreignAiGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': '${taiwanFallbackGroup}' },`,
     `    { name: '${developerGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': '${taiwanFallbackGroup}' },`,
     `    { name: '${streamingGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': '${automaticGroup}' },`,
-    `    { name: '${adBlockGroup}', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' }`,
+    `    { name: '${adBlockGroup}', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' },`,
+    `    { name: '${adultContentGroup}', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' }`,
     "  ];",
     `  const groupOrder = ${JSON.stringify(groupOrder)};`,
     "  config['proxy-groups'] = groupOrder.map((name) => proxyGroups.find((group) => group.name === name));",

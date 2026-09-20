@@ -82,6 +82,14 @@
       ]
     },
     {
+      "name": "adult_content",
+      "target": "🔞 成人内容",
+      "no_resolve": true,
+      "inputs": [
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/category-porn.yaml"}
+      ]
+    },
+    {
       "name": "ai",
       "target": "🤖 国际 AI",
       "no_resolve": true,
