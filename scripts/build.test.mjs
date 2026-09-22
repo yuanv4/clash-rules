@@ -534,7 +534,7 @@ test("renders automatic and Japan home proxy topology", async () => {
   };
   const group = (config, name) => config["proxy-groups"].find((item) => item.name === name);
 
-  const plain = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 香港01", "🇲🇴 澳门01", "🇹🇼 台湾01", "🇯🇵 日本01", "US-West 01"]);
+  const plain = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 香港01", "🇲🇴 澳门01", "🇹🇼 台湾01", "🇯🇵 日本家宽01", "日本02", "中国家宽03", "US-West 01"]);
   assert.deepEqual(plain["proxy-groups"].map((item) => item.name), [
     "Tailscale", "🛑 广告过滤", "🔞 成人内容", "🤖 国际 AI", developerGroup, streamingGroup, "🇨🇳 国内服务", "🌐 国外服务", "🐟 漏网之鱼", "♻️ 自动选择(香港)",
   ]);
@@ -559,7 +559,7 @@ test("renders automatic and Japan home proxy topology", async () => {
   const foreignGroup = "🌐 国外服务";
   assert.ok(!JSON.stringify(plain).includes("节点选择(东亚)"));
   assert.ok(!JSON.stringify(plain).includes("负载均衡(台湾)"));
-  const japanHomeNodes = ["🇯🇵 01", "日本02", "JP03", "Japan 04", "日本家宽05", "Residential JP06"];
+  const japanHomeNodes = ["🇯🇵 家宽01", "日本家宽02", "JP03 家宽", "Japan 04 Residential", "日本家宽05", "Residential JP06"];
   const mixed = await buildConfig(makeEnv("yuanv4"), [...japanHomeNodes, "香港01", "台湾01", "US-West 01", "Network 01"]);
   assert.deepEqual(group(mixed, "🤖 国际 AI").proxies, japanHomeNodes);
   // Flag-only names must match in Bun as well as Node (Unicode regex mode).
@@ -583,7 +583,7 @@ test("renders automatic and Japan home proxy topology", async () => {
   assert.deepEqual(group(plain, "🇨🇳 国内服务").proxies, standardProxyChoices);
   assert.equal(group(plain, "🇨🇳 国内服务")["default-selected"], "DIRECT");
   assert.ok(plain.rules.indexOf("RULE-SET,cn_services,🇨🇳 国内服务,no-resolve") < plain.rules.indexOf("RULE-SET,foreign_services,🌐 国外服务,no-resolve"));
-  assert.deepEqual(group(plain, "🤖 国际 AI").proxies, ["🇯🇵 日本01"]);
+  assert.deepEqual(group(plain, "🤖 国际 AI").proxies, ["🇯🇵 日本家宽01"]);
   assert.equal(group(plain, "🤖 国际 AI").type, "fallback");
   assert.deepEqual(group(plain, developerGroup).proxies, standardProxyChoices);
   assert.equal(group(plain, developerGroup)["default-selected"], automaticGroup);

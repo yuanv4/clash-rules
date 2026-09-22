@@ -23,7 +23,8 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
   const adultContentGroup = "🔞 成人内容";
   const fallbackGroup = "🐟 漏网之鱼";
   const automaticGroup = proxyGroup;
-  const japanHomeNodePattern = String.raw`(?:🇯🇵|\bJP(?=\b|\d)|\bJPN(?=\b|\d)|Japan|日本|家宽|家用宽带|住宅宽带|Residential|Home)`;
+  const japanNodePattern = String.raw`(?:🇯🇵|\bJP(?=\b|\d)|\bJPN(?=\b|\d)|Japan|日本)`;
+  const homeBroadbandPattern = String.raw`(?:家宽|家用宽带|住宅宽带|Residential|Home)`;
   const tailscaleGroup = "Tailscale";
   const testUrl = "https://cp.cloudflare.com/generate_204";
   const hongKongNodePattern = String.raw`(?:🇭🇰|\bHKG?(?=\b|\d)|Hong\s*Kong|香港|港)`;
@@ -100,8 +101,9 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     `  const hongKongPattern = new RegExp(${JSON.stringify(hongKongNodePattern)}, 'iu');`,
     "  const hongKongNames = names.filter((name) => hongKongPattern.test(name));",
     "  if (!hongKongNames.length) throw new Error('Subscription has no Hong Kong proxies');",
-    `  const japanHomePattern = new RegExp(${JSON.stringify(japanHomeNodePattern)}, 'iu');`,
-    "  const japanHomeNames = names.filter((name) => japanHomePattern.test(name));",
+    `  const japanPattern = new RegExp(${JSON.stringify(japanNodePattern)}, 'iu');`,
+    `  const homeBroadbandPattern = new RegExp(${JSON.stringify(homeBroadbandPattern)}, 'iu');`,
+    "  const japanHomeNames = names.filter((name) => japanPattern.test(name) && homeBroadbandPattern.test(name));",
     "  const tailscaleProxies = withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT'];",
     "  const proxyGroups = [",
     `    { name: '${automaticGroup}', type: 'url-test', url: '${testUrl}', interval: 300, tolerance: 50, proxies: hongKongNames },`,
