@@ -12,8 +12,9 @@ async function main(config = {}) {
   const hongKongPattern = new RegExp("(?:\\u{1f1ed}\\u{1f1f0}|\\bHKG?(?=\\b|\\d)|Hong\\s*Kong|\\u9999\\u6E2F|\\u6E2F)", 'iu');
   const hongKongNames = names.filter((name) => hongKongPattern.test(name));
   if (!hongKongNames.length) throw new Error('Subscription has no Hong Kong proxies');
-  const japanHomePattern = new RegExp("(?:\\u{1f1ef}\\u{1f1f5}|\\bJP(?=\\b|\\d)|\\bJPN(?=\\b|\\d)|Japan|\\u65E5\\u672C|\\u5BB6\\u5BBD|\\u5BB6\\u7528\\u5BBD\\u5E26|\\u4F4F\\u5B85\\u5BBD\\u5E26|Residential|Home)", 'iu');
-  const japanHomeNames = names.filter((name) => japanHomePattern.test(name));
+  const japanPattern = new RegExp("(?:\\u{1f1ef}\\u{1f1f5}|\\bJP(?=\\b|\\d)|\\bJPN(?=\\b|\\d)|Japan|\\u65E5\\u672C)", 'iu');
+  const homeBroadbandPattern = new RegExp("(?:\\u5BB6\\u5BBD|\\u5BB6\\u7528\\u5BBD\\u5E26|\\u4F4F\\u5B85\\u5BBD\\u5E26|Residential|Home)", 'iu');
+  const japanHomeNames = names.filter((name) => japanPattern.test(name) && homeBroadbandPattern.test(name));
   const tailscaleProxies = withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT'];
   const proxyGroups = [
     { name: '♻️ 自动选择(香港)', type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies: hongKongNames },
