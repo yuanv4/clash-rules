@@ -12,23 +12,22 @@ async function main(config = {}) {
   const hongKongPattern = new RegExp("(?:\\u{1f1ed}\\u{1f1f0}|\\bHKG?(?=\\b|\\d)|Hong\\s*Kong|\\u9999\\u6E2F|\\u6E2F)", 'iu');
   const hongKongNames = names.filter((name) => hongKongPattern.test(name));
   if (!hongKongNames.length) throw new Error('Subscription has no Hong Kong proxies');
-  const taiwanPattern = new RegExp("(?:\\u{1f1f9}\\u{1f1fc}|\\bTW(?=\\b|\\d)|\\bTPE(?=\\b|\\d)|Taiwan|Taipei|\\u53F0\\u6E7E|\\u53F0\\u7063|\\u53F0\\u5317)", 'iu');
-  const taiwanNames = names.filter((name) => taiwanPattern.test(name));
+  const japanHomePattern = new RegExp("(?:\\u{1f1ef}\\u{1f1f5}|\\bJP(?=\\b|\\d)|\\bJPN(?=\\b|\\d)|Japan|\\u65E5\\u672C|\\u5BB6\\u5BBD|\\u5BB6\\u7528\\u5BBD\\u5E26|\\u4F4F\\u5B85\\u5BBD\\u5E26|Residential|Home)", 'iu');
+  const japanHomeNames = names.filter((name) => japanHomePattern.test(name));
   const tailscaleProxies = withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT'];
   const proxyGroups = [
     { name: '♻️ 自动选择(香港)', type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies: hongKongNames },
-    { name: '🛟 故障转移(台湾)', type: 'fallback', url: 'https://cp.cloudflare.com/generate_204', interval: 300, proxies: taiwanNames.length ? taiwanNames : ['REJECT'] },
-    { name: '🌐 国外服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': '♻️ 自动选择(香港)' },
-    { name: '🐟 漏网之鱼', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': 'DIRECT' },
+    { name: '🌐 国外服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)'], 'default-selected': '♻️ 自动选择(香港)' },
+    { name: '🐟 漏网之鱼', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)'], 'default-selected': 'DIRECT' },
     { name: 'Tailscale', type: 'select', proxies: tailscaleProxies, 'default-selected': withTailscale ? 'TAILSCALE' : 'DIRECT' },
-    { name: '🇨🇳 国内服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': 'DIRECT' },
-    { name: '🤖 国际 AI', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': '🛟 故障转移(台湾)' },
-    { name: '🧑‍💻 开发服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': '🛟 故障转移(台湾)' },
-    { name: '🎬 流媒体服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)', '🛟 故障转移(台湾)'], 'default-selected': '♻️ 自动选择(香港)' },
+    { name: '🇨🇳 国内服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)'], 'default-selected': 'DIRECT' },
+    { name: '🤖 国际 AI', type: 'fallback', url: 'https://cp.cloudflare.com/generate_204', interval: 300, proxies: japanHomeNames.length ? japanHomeNames : ['REJECT'] },
+    { name: '🧑‍💻 开发服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)'], 'default-selected': '♻️ 自动选择(香港)' },
+    { name: '🎬 流媒体服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)'], 'default-selected': '♻️ 自动选择(香港)' },
     { name: '🛑 广告过滤', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' },
     { name: '🔞 成人内容', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' }
   ];
-  const groupOrder = ["Tailscale","🛑 广告过滤","🔞 成人内容","🤖 国际 AI","🧑‍💻 开发服务","🎬 流媒体服务","🇨🇳 国内服务","🌐 国外服务","🐟 漏网之鱼","♻️ 自动选择(香港)","🛟 故障转移(台湾)"];
+  const groupOrder = ["Tailscale","🛑 广告过滤","🔞 成人内容","🤖 国际 AI","🧑‍💻 开发服务","🎬 流媒体服务","🇨🇳 国内服务","🌐 国外服务","🐟 漏网之鱼","♻️ 自动选择(香港)"];
   config['proxy-groups'] = groupOrder.map((name) => proxyGroups.find((group) => group.name === name));
 
   config.mode = 'Rule';
