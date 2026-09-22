@@ -479,7 +479,7 @@ test("accepts ordinary percent-encoded paths and rejects over-limit nested encod
   );
 });
 
-test("renders automatic and Taiwan fallback proxy topology", async () => {
+test("renders automatic and Japan home proxy topology", async () => {
   const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
   const providers = [
     { name: "direct", target: "DIRECT", noResolve: true },
@@ -536,7 +536,7 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
 
   const plain = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 香港01", "🇲🇴 澳门01", "🇹🇼 台湾01", "🇯🇵 日本01", "US-West 01"]);
   assert.deepEqual(plain["proxy-groups"].map((item) => item.name), [
-    "Tailscale", "🛑 广告过滤", "🔞 成人内容", "🤖 国际 AI", developerGroup, streamingGroup, "🇨🇳 国内服务", "🌐 国外服务", "🐟 漏网之鱼", "♻️ 自动选择(香港)", "🛟 故障转移(台湾)",
+    "Tailscale", "🛑 广告过滤", "🔞 成人内容", "🤖 国际 AI", developerGroup, streamingGroup, "🇨🇳 国内服务", "🌐 国外服务", "🐟 漏网之鱼", "♻️ 自动选择(香港)",
   ]);
   assert.deepEqual(plain.rules.slice(3, -1), [
     "RULE-SET,direct,DIRECT,no-resolve",
@@ -555,28 +555,20 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
   assert.ok(plain.rules.indexOf("RULE-SET,foreign_services,🌐 国外服务,no-resolve") < plain.rules.indexOf("MATCH,🐟 漏网之鱼"));
   const automaticGroup = "♻️ 自动选择(香港)";
   assert.ok(!JSON.stringify(plain).includes("自动选择(东亚)"));
-  const taiwanFallbackGroup = "🛟 故障转移(台湾)";
-  const standardProxyChoices = ["DIRECT", automaticGroup, taiwanFallbackGroup];
+  const standardProxyChoices = ["DIRECT", automaticGroup];
   const foreignGroup = "🌐 国外服务";
   assert.ok(!JSON.stringify(plain).includes("节点选择(东亚)"));
   assert.ok(!JSON.stringify(plain).includes("负载均衡(台湾)"));
-  assert.deepEqual(group(plain, taiwanFallbackGroup), {
-    name: taiwanFallbackGroup,
-    type: "fallback",
-    url: "https://cp.cloudflare.com/generate_204",
-    interval: 300,
-    proxies: ["🇹🇼 台湾01"],
-  });
-  const taiwanNodes = ["🇹🇼 01", "台湾02", "台灣03", "台北04", "TW01", "tw-02", "TPE01", "Taiwan 01", "Taipei 02"];
-  const mixed = await buildConfig(makeEnv("yuanv4"), [...taiwanNodes, "香港01", "日本01", "US-West 01", "Network 01"]);
-  assert.deepEqual(group(mixed, taiwanFallbackGroup).proxies, taiwanNodes);
+  const japanHomeNodes = ["🇯🇵 01", "日本02", "JP03", "Japan 04", "日本家宽05", "Residential JP06"];
+  const mixed = await buildConfig(makeEnv("yuanv4"), [...japanHomeNodes, "香港01", "台湾01", "US-West 01", "Network 01"]);
+  assert.deepEqual(group(mixed, "🤖 国际 AI").proxies, japanHomeNodes);
   // Flag-only names must match in Bun as well as Node (Unicode regex mode).
-  const nonHongKongFlags = ["🇲🇴", "🇹🇼", "🇯🇵", "🇰🇷", "🇨🇳", "🇲🇳"];
-  for (const flag of nonHongKongFlags) {
+  const nonJapanFlags = ["🇲🇴", "🇹🇼", "🇰🇷", "🇨🇳", "🇲🇳"];
+  for (const flag of nonJapanFlags) {
     const name = `${flag} 01`;
     const flagOnly = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 01", name, "🇺🇸 01"]);
     assert.deepEqual(group(flagOnly, automaticGroup).proxies, ["🇭🇰 01"]);
-    assert.deepEqual(group(flagOnly, taiwanFallbackGroup).proxies, flag === "🇹🇼" ? [name] : ["REJECT"]);
+    assert.deepEqual(group(flagOnly, "🤖 国际 AI").proxies, ["REJECT"]);
   }
   assert.deepEqual(group(plain, automaticGroup).proxies, [
     "🇭🇰 香港01",
@@ -591,10 +583,10 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
   assert.deepEqual(group(plain, "🇨🇳 国内服务").proxies, standardProxyChoices);
   assert.equal(group(plain, "🇨🇳 国内服务")["default-selected"], "DIRECT");
   assert.ok(plain.rules.indexOf("RULE-SET,cn_services,🇨🇳 国内服务,no-resolve") < plain.rules.indexOf("RULE-SET,foreign_services,🌐 国外服务,no-resolve"));
-  assert.deepEqual(group(plain, "🤖 国际 AI").proxies, standardProxyChoices);
-  assert.equal(group(plain, "🤖 国际 AI")["default-selected"], taiwanFallbackGroup);
+  assert.deepEqual(group(plain, "🤖 国际 AI").proxies, ["🇯🇵 日本01"]);
+  assert.equal(group(plain, "🤖 国际 AI").type, "fallback");
   assert.deepEqual(group(plain, developerGroup).proxies, standardProxyChoices);
-  assert.equal(group(plain, developerGroup)["default-selected"], taiwanFallbackGroup);
+  assert.equal(group(plain, developerGroup)["default-selected"], automaticGroup);
   assert.ok(plain.rules.indexOf("RULE-SET,dev_services,🧑‍💻 开发服务,no-resolve") < plain.rules.indexOf("RULE-SET,streaming_services,🎬 流媒体服务,no-resolve"));
   assert.ok(plain.rules.indexOf("RULE-SET,streaming_services,🎬 流媒体服务,no-resolve") < plain.rules.indexOf("RULE-SET,cn_services,🇨🇳 国内服务,no-resolve"));
   assert.equal(plain["rule-providers"].reject_domainset.behavior, "domain");
@@ -649,7 +641,7 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
 
   const singleNode = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 香港01"]);
   assert.deepEqual(group(singleNode, automaticGroup).proxies, ["🇭🇰 香港01"]);
-  assert.deepEqual(group(singleNode, taiwanFallbackGroup).proxies, ["REJECT"]);
+  assert.deepEqual(group(singleNode, "🤖 国际 AI").proxies, ["REJECT"]);
   assert.deepEqual(group(singleNode, "Tailscale").proxies, ["DIRECT"]);
 
   await assert.rejects(
@@ -663,7 +655,7 @@ test("renders automatic and Taiwan fallback proxy topology", async () => {
 
   const withTs = await buildConfig(makeEnv("yuanv4-with-tailscale"), ["🇭🇰 香港01"]);
   assert.equal(withTs.proxies[0].name, "TAILSCALE");
-  assert.deepEqual(group(withTs, taiwanFallbackGroup).proxies, ["REJECT"]);
+  assert.deepEqual(group(withTs, "🤖 国际 AI").proxies, ["REJECT"]);
   assert.deepEqual(group(withTs, "Tailscale").proxies, ["TAILSCALE", "DIRECT"]);
   assert.equal(group(withTs, "Tailscale")["default-selected"], "TAILSCALE");
   assert.deepEqual(withTs.rules.slice(0, 3), expectedTailscaleRules);
@@ -740,7 +732,7 @@ test("orders proxy groups after merging foreign services", async () => {
 
   assert.deepEqual(config["proxy-groups"].map((item) => item.name), [
     "Tailscale", "🤖 国际 AI", "🇨🇳 国内服务", developerGroup, streamingGroup, "🌐 国外服务",
-    "🛑 广告过滤", "🔞 成人内容", "🐟 漏网之鱼", "♻️ 自动选择(香港)", "🛟 故障转移(台湾)",
+    "🛑 广告过滤", "🔞 成人内容", "🐟 漏网之鱼", "♻️ 自动选择(香港)",
   ]);
   assert.ok(config["proxy-groups"].every(Boolean));
   assert.deepEqual(config.rules, [

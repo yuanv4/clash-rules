@@ -23,8 +23,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
   const adultContentGroup = "🔞 成人内容";
   const fallbackGroup = "🐟 漏网之鱼";
   const automaticGroup = proxyGroup;
-  const taiwanFallbackGroup = "🛟 故障转移(台湾)";
-  const taiwanNodePattern = String.raw`(?:🇹🇼|\bTW(?=\b|\d)|\bTPE(?=\b|\d)|Taiwan|Taipei|台湾|台灣|台北)`;
+  const japanHomeNodePattern = String.raw`(?:🇯🇵|\bJP(?=\b|\d)|\bJPN(?=\b|\d)|Japan|日本|家宽|家用宽带|住宅宽带|Residential|Home)`;
   const tailscaleGroup = "Tailscale";
   const testUrl = "https://cp.cloudflare.com/generate_204";
   const hongKongNodePattern = String.raw`(?:🇭🇰|\bHKG?(?=\b|\d)|Hong\s*Kong|香港|港)`;
@@ -78,7 +77,6 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     ),
     fallbackGroup,
     automaticGroup,
-    taiwanFallbackGroup,
   ];
 
   const tailscaleRules = [
@@ -102,19 +100,18 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     `  const hongKongPattern = new RegExp(${JSON.stringify(hongKongNodePattern)}, 'iu');`,
     "  const hongKongNames = names.filter((name) => hongKongPattern.test(name));",
     "  if (!hongKongNames.length) throw new Error('Subscription has no Hong Kong proxies');",
-    `  const taiwanPattern = new RegExp(${JSON.stringify(taiwanNodePattern)}, 'iu');`,
-    "  const taiwanNames = names.filter((name) => taiwanPattern.test(name));",
+    `  const japanHomePattern = new RegExp(${JSON.stringify(japanHomeNodePattern)}, 'iu');`,
+    "  const japanHomeNames = names.filter((name) => japanHomePattern.test(name));",
     "  const tailscaleProxies = withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT'];",
     "  const proxyGroups = [",
     `    { name: '${automaticGroup}', type: 'url-test', url: '${testUrl}', interval: 300, tolerance: 50, proxies: hongKongNames },`,
-    `    { name: '${taiwanFallbackGroup}', type: 'fallback', url: '${testUrl}', interval: 300, proxies: taiwanNames.length ? taiwanNames : ['REJECT'] },`,
-    `    { name: '${foreignGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': '${automaticGroup}' },`,
-    `    { name: '${fallbackGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': 'DIRECT' },`,
+    `    { name: '${foreignGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': '${automaticGroup}' },`,
+    `    { name: '${fallbackGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': 'DIRECT' },`,
     `    { name: '${tailscaleGroup}', type: 'select', proxies: tailscaleProxies, 'default-selected': withTailscale ? 'TAILSCALE' : 'DIRECT' },`,
-    `    { name: '${domesticGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': 'DIRECT' },`,
-    `    { name: '${foreignAiGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': '${taiwanFallbackGroup}' },`,
-    `    { name: '${developerGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': '${taiwanFallbackGroup}' },`,
-    `    { name: '${streamingGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}', '${taiwanFallbackGroup}'], 'default-selected': '${automaticGroup}' },`,
+    `    { name: '${domesticGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': 'DIRECT' },`,
+    `    { name: '${foreignAiGroup}', type: 'fallback', url: '${testUrl}', interval: 300, proxies: japanHomeNames.length ? japanHomeNames : ['REJECT'] },`,
+    `    { name: '${developerGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': '${automaticGroup}' },`,
+    `    { name: '${streamingGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': '${automaticGroup}' },`,
     `    { name: '${adBlockGroup}', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' },`,
     `    { name: '${adultContentGroup}', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' }`,
     "  ];",
