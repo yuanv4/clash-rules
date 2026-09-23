@@ -27,7 +27,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
   const homeBroadbandPattern = String.raw`(?:家宽|家用宽带|住宅宽带|Residential|Home)`;
   const tailscaleGroup = "Tailscale";
   const testUrl = "https://cp.cloudflare.com/generate_204";
-  const eastAsiaNodePattern = String.raw`(?:🇭🇰|🇲🇴|🇹🇼|🇯🇵|🇰🇷|🇨🇳|🇲🇳|\b(?:HK|HKG)(?=\b|\d)|Hong\s*Kong|香港|港|\bMO(?=\b|\d)|Macau|Macao|澳门|澳門|\b(?:TW|TPE)(?=\b|\d)|Taiwan|Taipei|台湾|台灣|台北|\b(?:JP|TYO|NRT|HND|KIX|OSA)(?=\b|\d)|Japan|Tokyo|Osaka|日本|东京|東京|大阪|\b(?:KR|KOR|SEL|ICN|GMP|PUS)(?=\b|\d)|Korea|Seoul|韩国|韓國|首尔|首爾|\bCN(?=\b|\d)|China|中国|中國|大陆|大陸|北京|上海|广州|深圳|Mongolia|蒙古|乌兰巴托|烏蘭巴托)`;
+  const eastAsiaNodePattern = String.raw`(?:🇭🇰|🇲🇴|🇹🇼|🇯🇵|🇰🇷|\b(?:HK|HKG)(?=\b|\d)|Hong\s*Kong|香港|港|\bMO(?=\b|\d)|Macau|Macao|澳门|澳門|\b(?:TW|TPE)(?=\b|\d)|Taiwan|Taipei|台湾|台灣|台北|\b(?:JP|TYO|NRT|HND|KIX|OSA)(?=\b|\d)|Japan|Tokyo|Osaka|日本|东京|東京|大阪|\b(?:KR|KOR|SEL|ICN|GMP|PUS)(?=\b|\d)|Korea|Seoul|韩国|韓國|首尔|首爾)`;
 
   const ruleProviders = Object.fromEntries(
     providers.map((provider) => [

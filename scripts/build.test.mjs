@@ -564,7 +564,7 @@ test("renders automatic and Japan home proxy topology", async () => {
   const mixed = await buildConfig(makeEnv("yuanv4"), [...japanHomeNodes, "香港01", "台湾01", "US-West 01", "Network 01"]);
   assert.deepEqual(group(mixed, "🤖 国际 AI").proxies, japanHomeNodes);
   // Flag-only names must match in Bun as well as Node (Unicode regex mode).
-  const eastAsiaFlags = ["🇭🇰", "🇲🇴", "🇹🇼", "🇯🇵", "🇰🇷", "🇨🇳", "🇲🇳"];
+  const eastAsiaFlags = ["🇭🇰", "🇲🇴", "🇹🇼", "🇯🇵", "🇰🇷"];
   for (const flag of eastAsiaFlags) {
     const name = `${flag} 01`;
     const flagOnly = await buildConfig(makeEnv("yuanv4"), [name, "🇺🇸 01"]);
@@ -572,15 +572,21 @@ test("renders automatic and Japan home proxy topology", async () => {
     assert.deepEqual(group(flagOnly, "🤖 国际 AI").proxies, ["REJECT"]);
   }
   assert.deepEqual(group(plain, automaticGroup).proxies, [
-    "🇭🇰 香港01", "🇲🇴 澳门01", "🇹🇼 台湾01", "🇯🇵 日本家宽01", "日本02", "中国家宽03",
+    "🇭🇰 香港01", "🇲🇴 澳门01", "🇹🇼 台湾01", "🇯🇵 日本家宽01", "日本02",
   ]);
   const eastAsiaNodes = [
-    "🇭🇰 01", "🇲🇴 02", "🇹🇼 03", "🇯🇵 04", "🇰🇷 05", "🇨🇳 06", "🇲🇳 07",
-    "香港08", "澳门09", "台湾10", "日本11", "韩国12", "中国13", "蒙古14",
+    "🇭🇰 01", "🇲🇴 02", "🇹🇼 03", "🇯🇵 04", "🇰🇷 05",
+    "香港08", "澳门09", "台湾10", "日本11", "韩国12",
     "HK01", "HKG02", "Hong Kong 03", "Taiwan 05", "JP06", "Tokyo 07",
-    "KR08", "Seoul 09", "CN10", "China 11", "Mongolia 12",
+    "KR08", "Seoul 09",
   ];
-  const eastAsiaMixed = await buildConfig(makeEnv("yuanv4"), [...eastAsiaNodes, "US-West 01", "Network 01"]);
+  const mainlandAndMongoliaNodes = [
+    "🇨🇳 06", "🇲🇳 07", "中国13", "蒙古14", "CN10", "China 11", "Mongolia 12",
+  ];
+  const eastAsiaMixed = await buildConfig(
+    makeEnv("yuanv4"),
+    [...eastAsiaNodes, ...mainlandAndMongoliaNodes, "US-West 01", "Network 01"],
+  );
   assert.deepEqual(group(eastAsiaMixed, automaticGroup).proxies, eastAsiaNodes);
   assert.equal(group(plain, automaticGroup).interval, 300);
   assert.equal(group(plain, automaticGroup).tolerance, 50);
