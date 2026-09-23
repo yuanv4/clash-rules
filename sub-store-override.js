@@ -9,26 +9,26 @@ async function main(config = {}) {
 
   const names = config.proxies.map((p) => p.name);
   if (!names.length) throw new Error('Subscription has no proxies');
-  const hongKongPattern = new RegExp("(?:\\u{1f1ed}\\u{1f1f0}|\\bHKG?(?=\\b|\\d)|Hong\\s*Kong|\\u9999\\u6E2F|\\u6E2F)", 'iu');
-  const hongKongNames = names.filter((name) => hongKongPattern.test(name));
-  if (!hongKongNames.length) throw new Error('Subscription has no Hong Kong proxies');
+  const eastAsiaPattern = new RegExp("(?:\\u{1f1ed}\\u{1f1f0}|\\u{1f1f2}\\u{1f1f4}|\\u{1f1f9}\\u{1f1fc}|\\u{1f1ef}\\u{1f1f5}|\\u{1f1f0}\\u{1f1f7}|\\u{1f1e8}\\u{1f1f3}|\\u{1f1f2}\\u{1f1f3}|\\b(?:HK|HKG)(?=\\b|\\d)|Hong\\s*Kong|\\u9999\\u6E2F|\\u6E2F|\\bMO(?=\\b|\\d)|Macau|Macao|\\u6FB3\\u95E8|\\u6FB3\\u9580|\\b(?:TW|TPE)(?=\\b|\\d)|Taiwan|Taipei|\\u53F0\\u6E7E|\\u53F0\\u7063|\\u53F0\\u5317|\\b(?:JP|TYO|NRT|HND|KIX|OSA)(?=\\b|\\d)|Japan|Tokyo|Osaka|\\u65E5\\u672C|\\u4E1C\\u4EAC|\\u6771\\u4EAC|\\u5927\\u962A|\\b(?:KR|KOR|SEL|ICN|GMP|PUS)(?=\\b|\\d)|Korea|Seoul|\\u97E9\\u56FD|\\u97D3\\u570B|\\u9996\\u5C14|\\u9996\\u723E|\\bCN(?=\\b|\\d)|China|\\u4E2D\\u56FD|\\u4E2D\\u570B|\\u5927\\u9646|\\u5927\\u9678|\\u5317\\u4EAC|\\u4E0A\\u6D77|\\u5E7F\\u5DDE|\\u6DF1\\u5733|Mongolia|\\u8499\\u53E4|\\u4E4C\\u5170\\u5DF4\\u6258|\\u70CF\\u862D\\u5DF4\\u6258)", 'iu');
+  const eastAsiaNames = names.filter((name) => eastAsiaPattern.test(name));
+  if (!eastAsiaNames.length) throw new Error('Subscription has no East Asia proxies');
   const japanPattern = new RegExp("(?:\\u{1f1ef}\\u{1f1f5}|\\bJP(?=\\b|\\d)|\\bJPN(?=\\b|\\d)|Japan|\\u65E5\\u672C)", 'iu');
   const homeBroadbandPattern = new RegExp("(?:\\u5BB6\\u5BBD|\\u5BB6\\u7528\\u5BBD\\u5E26|\\u4F4F\\u5B85\\u5BBD\\u5E26|Residential|Home)", 'iu');
   const japanHomeNames = names.filter((name) => japanPattern.test(name) && homeBroadbandPattern.test(name));
   const tailscaleProxies = withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT'];
   const proxyGroups = [
-    { name: '♻️ 自动选择(香港)', type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies: hongKongNames },
-    { name: '🌐 国外服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)'], 'default-selected': '♻️ 自动选择(香港)' },
-    { name: '🐟 漏网之鱼', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)'], 'default-selected': 'DIRECT' },
+    { name: '♻️ 自动选择', type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies: eastAsiaNames },
+    { name: '🌐 国外服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择'], 'default-selected': '♻️ 自动选择' },
+    { name: '🐟 漏网之鱼', type: 'select', proxies: ['DIRECT', '♻️ 自动选择'], 'default-selected': 'DIRECT' },
     { name: 'Tailscale', type: 'select', proxies: tailscaleProxies, 'default-selected': withTailscale ? 'TAILSCALE' : 'DIRECT' },
-    { name: '🇨🇳 国内服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)'], 'default-selected': 'DIRECT' },
+    { name: '🇨🇳 国内服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择'], 'default-selected': 'DIRECT' },
     { name: '🤖 国际 AI', type: 'fallback', url: 'https://cp.cloudflare.com/generate_204', interval: 300, proxies: japanHomeNames.length ? japanHomeNames : ['REJECT'] },
-    { name: '🧑‍💻 开发服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)'], 'default-selected': '♻️ 自动选择(香港)' },
-    { name: '🎬 流媒体服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择(香港)'], 'default-selected': '♻️ 自动选择(香港)' },
+    { name: '🧑‍💻 开发服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择'], 'default-selected': '♻️ 自动选择' },
+    { name: '🎬 流媒体服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择'], 'default-selected': '♻️ 自动选择' },
     { name: '🛑 广告过滤', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' },
     { name: '🔞 成人内容', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' }
   ];
-  const groupOrder = ["Tailscale","🛑 广告过滤","🔞 成人内容","🤖 国际 AI","🧑‍💻 开发服务","🎬 流媒体服务","🇨🇳 国内服务","🌐 国外服务","🐟 漏网之鱼","♻️ 自动选择(香港)"];
+  const groupOrder = ["Tailscale","🛑 广告过滤","🔞 成人内容","🤖 国际 AI","🧑‍💻 开发服务","🎬 流媒体服务","🇨🇳 国内服务","🌐 国外服务","🐟 漏网之鱼","♻️ 自动选择"];
   config['proxy-groups'] = groupOrder.map((name) => proxyGroups.find((group) => group.name === name));
 
   config.mode = 'Rule';
