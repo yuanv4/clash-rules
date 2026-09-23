@@ -1,6 +1,6 @@
 {
   "release_base_url": "https://raw.githubusercontent.com/yuanv4/clash-rules/release",
-  "proxy_group": "♻️ 自动选择(香港)",
+  "proxy_group": "♻️ 自动选择",
   "inputs": [
     {
       "name": "SukkaLab/ruleset.skk.moe",
