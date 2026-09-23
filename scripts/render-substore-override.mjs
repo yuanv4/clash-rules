@@ -24,10 +24,9 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
   const fallbackGroup = "🐟 漏网之鱼";
   const automaticGroup = proxyGroup;
   const japanNodePattern = String.raw`(?:🇯🇵|\bJP(?=\b|\d)|\bJPN(?=\b|\d)|Japan|日本)`;
-  const homeBroadbandPattern = String.raw`(?:家宽|家用宽带|住宅宽带|Residential|Home)`;
   const tailscaleGroup = "Tailscale";
   const testUrl = "https://cp.cloudflare.com/generate_204";
-  const eastAsiaNodePattern = String.raw`(?:🇭🇰|🇲🇴|🇹🇼|🇯🇵|🇰🇷|\b(?:HK|HKG)(?=\b|\d)|Hong\s*Kong|香港|港|\bMO(?=\b|\d)|Macau|Macao|澳门|澳門|\b(?:TW|TPE)(?=\b|\d)|Taiwan|Taipei|台湾|台灣|台北|\b(?:JP|TYO|NRT|HND|KIX|OSA)(?=\b|\d)|Japan|Tokyo|Osaka|日本|东京|東京|大阪|\b(?:KR|KOR|SEL|ICN|GMP|PUS)(?=\b|\d)|Korea|Seoul|韩国|韓國|首尔|首爾)`;
+  const hongKongNodePattern = String.raw`(?:🇭🇰|\bHKG?(?=\b|\d)|Hong\s*Kong|香港|港)`;
 
   const ruleProviders = Object.fromEntries(
     providers.map((provider) => [
@@ -98,20 +97,19 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup) =>
     "",
     "  const names = config.proxies.map((p) => p.name);",
     "  if (!names.length) throw new Error('Subscription has no proxies');",
-    `  const eastAsiaPattern = new RegExp(${JSON.stringify(eastAsiaNodePattern)}, 'iu');`,
-    "  const eastAsiaNames = names.filter((name) => eastAsiaPattern.test(name));",
-    "  if (!eastAsiaNames.length) throw new Error('Subscription has no East Asia proxies');",
+    `  const hongKongPattern = new RegExp(${JSON.stringify(hongKongNodePattern)}, 'iu');`,
+    "  const hongKongNames = names.filter((name) => hongKongPattern.test(name));",
+    "  if (!hongKongNames.length) throw new Error('Subscription has no Hong Kong proxies');",
     `  const japanPattern = new RegExp(${JSON.stringify(japanNodePattern)}, 'iu');`,
-    `  const homeBroadbandPattern = new RegExp(${JSON.stringify(homeBroadbandPattern)}, 'iu');`,
-    "  const japanHomeNames = names.filter((name) => japanPattern.test(name) && homeBroadbandPattern.test(name));",
+    "  const japanNames = names.filter((name) => japanPattern.test(name));",
     "  const tailscaleProxies = withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT'];",
     "  const proxyGroups = [",
-    `    { name: '${automaticGroup}', type: 'url-test', url: '${testUrl}', interval: 300, tolerance: 50, proxies: eastAsiaNames },`,
+    `    { name: '${automaticGroup}', type: 'url-test', url: '${testUrl}', interval: 300, tolerance: 50, proxies: hongKongNames },`,
     `    { name: '${foreignGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': '${automaticGroup}' },`,
     `    { name: '${fallbackGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': 'DIRECT' },`,
     `    { name: '${tailscaleGroup}', type: 'select', proxies: tailscaleProxies, 'default-selected': withTailscale ? 'TAILSCALE' : 'DIRECT' },`,
     `    { name: '${domesticGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': 'DIRECT' },`,
-    `    { name: '${foreignAiGroup}', type: 'fallback', url: '${testUrl}', interval: 300, proxies: japanHomeNames.length ? japanHomeNames : ['REJECT'] },`,
+    `    { name: '${foreignAiGroup}', type: 'fallback', url: '${testUrl}', interval: 300, proxies: japanNames.length ? japanNames : ['REJECT'] },`,
     `    { name: '${developerGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': '${automaticGroup}' },`,
     `    { name: '${streamingGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': '${automaticGroup}' },`,
     `    { name: '${adBlockGroup}', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' },`,

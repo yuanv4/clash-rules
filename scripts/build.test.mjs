@@ -479,7 +479,7 @@ test("accepts ordinary percent-encoded paths and rejects over-limit nested encod
   );
 });
 
-test("renders automatic and Japan home proxy topology", async () => {
+test("renders automatic and Japan AI proxy topology", async () => {
   const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
   const providers = [
     { name: "direct", target: "DIRECT", noResolve: true },
@@ -497,8 +497,10 @@ test("renders automatic and Japan home proxy topology", async () => {
   const streamingGroup = "🎬 流媒体服务";
   const script = renderSubstoreOverride(providers, "https://rules.example.test/release", proxyGroup);
 
-  assert.match(script, /East Asia proxies/);
-  assert.match(script, /TW.*TPE.*Taiwan.*Taipei/);
+  assert.match(script, /Hong Kong proxies/);
+  assert.match(script, /HKG\?/);
+  assert.match(script, /Hong/);
+  assert.match(script, /Kong/);
   assert.match(script, /MATCH,🐟 漏网之鱼/);
   assert.match(script, /reject_domainset/);
   assert.match(script, /reject_domainset\.txt/);
@@ -560,34 +562,32 @@ test("renders automatic and Japan home proxy topology", async () => {
   const foreignGroup = "🌐 国外服务";
   assert.ok(!JSON.stringify(plain).includes("节点选择(东亚)"));
   assert.ok(!JSON.stringify(plain).includes("负载均衡(台湾)"));
-  const japanHomeNodes = ["🇯🇵 家宽01", "日本家宽02", "JP03 家宽", "Japan 04 Residential", "日本家宽05", "Residential JP06"];
-  const mixed = await buildConfig(makeEnv("yuanv4"), [...japanHomeNodes, "香港01", "台湾01", "US-West 01", "Network 01"]);
-  assert.deepEqual(group(mixed, "🤖 国际 AI").proxies, japanHomeNodes);
+  const japanNodes = ["🇯🇵 家宽01", "日本家宽02", "JP03 家宽", "Japan 04 Residential", "日本家宽05", "Residential JP06"];
+  const mixed = await buildConfig(makeEnv("yuanv4"), [...japanNodes, "香港01", "台湾01", "US-West 01", "Network 01"]);
+  assert.deepEqual(group(mixed, "🤖 国际 AI").proxies, japanNodes);
   // Flag-only names must match in Bun as well as Node (Unicode regex mode).
-  const eastAsiaFlags = ["🇭🇰", "🇲🇴", "🇹🇼", "🇯🇵", "🇰🇷"];
-  for (const flag of eastAsiaFlags) {
+  const hongKongFlags = ["🇭🇰"];
+  for (const flag of hongKongFlags) {
     const name = `${flag} 01`;
     const flagOnly = await buildConfig(makeEnv("yuanv4"), [name, "🇺🇸 01"]);
     assert.deepEqual(group(flagOnly, automaticGroup).proxies, [name]);
     assert.deepEqual(group(flagOnly, "🤖 国际 AI").proxies, ["REJECT"]);
   }
-  assert.deepEqual(group(plain, automaticGroup).proxies, [
-    "🇭🇰 香港01", "🇲🇴 澳门01", "🇹🇼 台湾01", "🇯🇵 日本家宽01", "日本02",
-  ]);
-  const eastAsiaNodes = [
-    "🇭🇰 01", "🇲🇴 02", "🇹🇼 03", "🇯🇵 04", "🇰🇷 05",
-    "香港08", "澳门09", "台湾10", "日本11", "韩国12",
-    "HK01", "HKG02", "Hong Kong 03", "Taiwan 05", "JP06", "Tokyo 07",
-    "KR08", "Seoul 09",
+  for (const flag of ["🇲🇴", "🇹🇼", "🇯🇵", "🇰🇷", "🇨🇳", "🇲🇳"]) {
+    await assert.rejects(
+      () => buildConfig(makeEnv("yuanv4"), [`${flag} 01`, "🇺🇸 01"]),
+      /Subscription has no Hong Kong proxies/,
+    );
+  }
+  assert.deepEqual(group(plain, automaticGroup).proxies, ["🇭🇰 香港01"]);
+  const hongKongNodes = [
+    "🇭🇰 01", "香港02", "港03", "HK01", "hk-02", "HKG01", "Hong Kong 01", "HongKong 02",
   ];
-  const mainlandAndMongoliaNodes = [
-    "🇨🇳 06", "🇲🇳 07", "中国13", "蒙古14", "CN10", "China 11", "Mongolia 12",
-  ];
-  const eastAsiaMixed = await buildConfig(
+  const hongKongMixed = await buildConfig(
     makeEnv("yuanv4"),
-    [...eastAsiaNodes, ...mainlandAndMongoliaNodes, "US-West 01", "Network 01"],
+    [...hongKongNodes, "澳门01", "台湾01", "日本01", "韩国01", "中国01", "蒙古01", "US-West 01"],
   );
-  assert.deepEqual(group(eastAsiaMixed, automaticGroup).proxies, eastAsiaNodes);
+  assert.deepEqual(group(hongKongMixed, automaticGroup).proxies, hongKongNodes);
   assert.equal(group(plain, automaticGroup).interval, 300);
   assert.equal(group(plain, automaticGroup).tolerance, 50);
   assert.equal(group(plain, automaticGroup).type, "url-test");
@@ -595,7 +595,7 @@ test("renders automatic and Japan home proxy topology", async () => {
   assert.deepEqual(group(plain, "🇨🇳 国内服务").proxies, standardProxyChoices);
   assert.equal(group(plain, "🇨🇳 国内服务")["default-selected"], "DIRECT");
   assert.ok(plain.rules.indexOf("RULE-SET,cn_services,🇨🇳 国内服务,no-resolve") < plain.rules.indexOf("RULE-SET,foreign_services,🌐 国外服务,no-resolve"));
-  assert.deepEqual(group(plain, "🤖 国际 AI").proxies, ["🇯🇵 日本家宽01"]);
+  assert.deepEqual(group(plain, "🤖 国际 AI").proxies, ["🇯🇵 日本家宽01", "日本02"]);
   assert.equal(group(plain, "🤖 国际 AI").type, "fallback");
   assert.deepEqual(group(plain, developerGroup).proxies, standardProxyChoices);
   assert.equal(group(plain, developerGroup)["default-selected"], automaticGroup);
@@ -658,7 +658,7 @@ test("renders automatic and Japan home proxy topology", async () => {
 
   await assert.rejects(
     () => buildConfig(makeEnv("yuanv4"), ["US-West 01", "Network 01"]),
-    /Subscription has no East Asia proxies/
+    /Subscription has no Hong Kong proxies/
   );
   await assert.rejects(
     () => buildConfig(makeEnv("yuanv4"), []),
