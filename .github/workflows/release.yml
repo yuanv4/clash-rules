@@ -29,12 +29,12 @@ jobs:
 
     steps:
       - name: Checkout source branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 0
 
       - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
         with:
           bun-version: "1.3.14"
 
@@ -62,12 +62,17 @@ jobs:
             exit 1
           fi
           cp -- "${provider_files[@]}" "$release_worktree/rules/"
-          cp -- dist/sub-store-override.js "$release_worktree/"
+          override_files=(dist/sub-store-override*.js)
+          if [[ "${#override_files[@]}" -ne 3 ]]; then
+            echo "Expected exactly 3 sub-store override artifacts, found ${#override_files[@]}." >&2
+            exit 1
+          fi
+          cp -- "${override_files[@]}" "$release_worktree/"
 
           git -C "$release_worktree" add -A
           mapfile -d '' -t tracked_files < <(git -C "$release_worktree" ls-files --cached -z)
           provider_count=${#provider_files[@]}
-          expected_count=$((provider_count + 1))
+          expected_count=$((provider_count + 3))
           if [[ "${#tracked_files[@]}" -ne $expected_count ]]; then
             echo "Expected exactly ${expected_count} tracked publication artifacts, found ${#tracked_files[@]}." >&2
             exit 1
@@ -75,7 +80,7 @@ jobs:
           for tracked_file in "${tracked_files[@]}"; do
             case "$tracked_file" in
               rules/*.yaml|rules/*.txt) ;;
-              sub-store-override.js) ;;
+              sub-store-override.js|sub-store-override-windows.js|sub-store-override-android.js) ;;
               *)
                 echo "Unexpected tracked release artifact: $tracked_file" >&2
                 exit 1
