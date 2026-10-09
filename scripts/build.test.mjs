@@ -642,6 +642,18 @@ test("renders automatic and Japan AI proxy topology", async () => {
   }
   assert.deepEqual(group(plain, "Tailscale").proxies, ["DIRECT"]);
   assert.equal(group(plain, "Tailscale")["default-selected"], "DIRECT");
+  const interfaceOnly = await buildConfig(makeEnv("yuanv4", { "tailscale-interface": "Tailscale" }), ["🇭🇰 香港01"]);
+  assert.deepEqual(interfaceOnly.proxies[0], {
+    name: "TAILSCALE-DIRECT",
+    type: "direct",
+    "interface-name": "Tailscale",
+  });
+  assert.deepEqual(group(interfaceOnly, "Tailscale").proxies, ["TAILSCALE-DIRECT"]);
+  assert.equal(group(interfaceOnly, "Tailscale")["default-selected"], "TAILSCALE-DIRECT");
+  const emptyInterface = await buildConfig(makeEnv("yuanv4", { "tailscale-interface": "" }), ["🇭🇰 香港01"]);
+  assert.equal(emptyInterface.proxies.some((proxy) => proxy.name === "TAILSCALE-DIRECT"), false);
+  assert.deepEqual(group(emptyInterface, "Tailscale").proxies, ["DIRECT"]);
+  assert.equal(group(emptyInterface, "Tailscale")["default-selected"], "DIRECT");
   const expectedTailscaleRules = [
     "IP-CIDR,100.64.0.0/10,Tailscale,no-resolve",
     "IP-CIDR,100.100.100.100/32,Tailscale,no-resolve",
@@ -703,6 +715,19 @@ test("renders automatic and Japan AI proxy topology", async () => {
   assert.deepEqual(group(dynamicTs, "Tailscale").proxies, ["TAILSCALE", "DIRECT"]);
   assert.equal(group(dynamicTs, "Tailscale")["default-selected"], "TAILSCALE");
 
+  const dynamicWithInterfaceEnv = makeEnv("tailscale", {
+    tailscale: dynamicSecret,
+    "tailscale-interface": "Tailscale",
+  });
+  dynamicWithInterfaceEnv.produceArtifact = dynamicEnv.produceArtifact;
+  const dynamicWithInterface = await buildConfig(dynamicWithInterfaceEnv, ["🇭🇰 香港01"]);
+  assert.deepEqual(dynamicWithInterface.proxies.slice(0, 2), [
+    { name: "TAILSCALE-DIRECT", type: "direct", "interface-name": "Tailscale" },
+    dynamicTs.proxies[0],
+  ]);
+  assert.deepEqual(group(dynamicWithInterface, "Tailscale").proxies, ["TAILSCALE-DIRECT", "TAILSCALE"]);
+  assert.equal(group(dynamicWithInterface, "Tailscale")["default-selected"], "TAILSCALE-DIRECT");
+
   const dynamicJsonTs = await buildConfig(
     makeEnv("tailscale", { tailscale: JSON.stringify(dynamicSecret) }),
     ["🇭🇰 香港01"],
@@ -712,6 +737,13 @@ test("renders automatic and Japan AI proxy topology", async () => {
   const dynamicPlain = await buildConfig(makeEnv("tailscale"), ["🇭🇰 香港01"]);
   assert.equal(dynamicPlain.proxies.some((proxy) => proxy.name === "TAILSCALE"), false);
   assert.deepEqual(group(dynamicPlain, "Tailscale").proxies, ["DIRECT"]);
+  const dynamicInterfaceOnly = await buildConfig(makeEnv("tailscale", { "tailscale-interface": "Tailscale" }), ["🇭🇰 香港01"]);
+  assert.deepEqual(group(dynamicInterfaceOnly, "Tailscale").proxies, ["TAILSCALE-DIRECT"]);
+  assert.equal(group(dynamicInterfaceOnly, "Tailscale")["default-selected"], "TAILSCALE-DIRECT");
+  await assert.rejects(
+    () => buildConfig(makeEnv("yuanv4", { "tailscale-interface": 42 }), ["🇭🇰 香港01"]),
+    /Invalid \$options\['tailscale-interface'\]/,
+  );
   await assert.rejects(
     () => buildConfig(makeEnv("tailscale", { tailscale: "not-json" }), ["🇭🇰 香港01"]),
     /Invalid \$options\.tailscale JSON/,
