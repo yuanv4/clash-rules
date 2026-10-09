@@ -5,6 +5,9 @@ async function main(config = {}) {
   const runtimeOptions = typeof $options === 'undefined' ? undefined : $options;
   const dynamicTailscale = fileName === 'tailscale';
   const tailscaleOption = dynamicTailscale && runtimeOptions ? runtimeOptions.tailscale : undefined;
+  const tailscaleInterfaceOption = runtimeOptions ? runtimeOptions['tailscale-interface'] : undefined;
+  if (tailscaleInterfaceOption !== undefined && typeof tailscaleInterfaceOption !== 'string') throw new Error('Invalid $options[\u0027tailscale-interface\u0027]: expected a string');
+  const withTailscaleInterface = typeof tailscaleInterfaceOption === 'string' && tailscaleInterfaceOption !== '';
   const withTailscale = dynamicTailscale ? tailscaleOption != null && tailscaleOption !== '' : fileName.indexOf('tailscale') !== -1;
 
   const names = config.proxies.map((p) => p.name);
@@ -14,12 +17,15 @@ async function main(config = {}) {
   if (!hongKongNames.length) throw new Error('Subscription has no Hong Kong proxies');
   const japanPattern = new RegExp("(?:\\u{1f1ef}\\u{1f1f5}|\\bJP(?=\\b|\\d)|\\bJPN(?=\\b|\\d)|Japan|\\u65E5\\u672C)", 'iu');
   const japanNames = names.filter((name) => japanPattern.test(name));
-  const tailscaleProxies = withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT'];
+  const tailscaleProxies = withTailscaleInterface
+    ? (withTailscale ? ['TAILSCALE-DIRECT', 'TAILSCALE'] : ['TAILSCALE-DIRECT'])
+    : (withTailscale ? ['TAILSCALE', 'DIRECT'] : ['DIRECT']);
+  const tailscaleDefault = withTailscaleInterface ? 'TAILSCALE-DIRECT' : (withTailscale ? 'TAILSCALE' : 'DIRECT');
   const proxyGroups = [
     { name: '♻️ 自动选择', type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies: hongKongNames },
     { name: '🌐 国外服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择'], 'default-selected': '♻️ 自动选择' },
     { name: '🐟 漏网之鱼', type: 'select', proxies: ['DIRECT', '♻️ 自动选择'], 'default-selected': 'DIRECT' },
-    { name: 'Tailscale', type: 'select', proxies: tailscaleProxies, 'default-selected': withTailscale ? 'TAILSCALE' : 'DIRECT' },
+    { name: 'Tailscale', type: 'select', proxies: tailscaleProxies, 'default-selected': tailscaleDefault },
     { name: '🇨🇳 国内服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择'], 'default-selected': 'DIRECT' },
     { name: '🤖 国际 AI', type: 'fallback', url: 'https://cp.cloudflare.com/generate_204', interval: 300, proxies: japanNames.length ? japanNames : ['REJECT'] },
     { name: '🧑‍💻 开发服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择'], 'default-selected': '♻️ 自动选择' },
@@ -60,6 +66,10 @@ async function main(config = {}) {
       'accept-routes': secret['accept-routes'] !== false,
       'ip-version': secret['ip-version'] || 'ipv4-prefer',
     });
+  }
+  if (withTailscaleInterface) {
+    config.proxies = config.proxies.filter((p) => !(p && p.name === 'TAILSCALE-DIRECT'));
+    config.proxies.unshift({ name: 'TAILSCALE-DIRECT', type: 'direct', 'interface-name': tailscaleInterfaceOption });
   }
 
   return config;
