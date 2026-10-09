@@ -667,11 +667,6 @@ test("renders ordinary and Android subscription artifacts with isolated Tailscal
     /Unsupported sub-store override mode: windows/,
   );
   let artifactCalls = 0;
-  const credentials = {
-    hostname: "mihomo-home", "auth-key": "tskey-test", "state-dir": "./tailscale/home",
-    "control-url": "https://controlplane.tailscale.com", ephemeral: true, udp: false,
-    "accept-routes": false, "ip-version": "ipv6-prefer",
-  };
   const ordinaryScript = renderSubstoreOverride(providers, "https://rules.example.test/release", "♻️ 自动选择");
   assert.doesNotMatch(ordinaryScript, /\$file\.name|produceArtifact|runtimeOptions\.tailscale|tailscaleOption/);
   const ordinaryConfig = async (options) => {
@@ -699,30 +694,30 @@ test("renders ordinary and Android subscription artifacts with isolated Tailscal
   const androidScript = renderSubstoreOverride(providers, "https://rules.example.test/release", "♻️ 自动选择", "android");
   assert.doesNotMatch(androidScript, /interface-name|TAILSCALE-DIRECT/);
   assert.doesNotMatch(androidScript, /\$file\.name|produceArtifact/);
-  for (const tailscale of [credentials, JSON.stringify(credentials)]) {
-    const main = new Function("$options", `${androidScript}\nreturn main;`)({ tailscale });
-    const config = await main({ proxies: [{ name: "🇭🇰 香港01" }] });
-    assert.deepEqual(config.proxies[0], {
-      name: "TAILSCALE", type: "tailscale", hostname: "mihomo-home", "auth-key": "tskey-test",
-      "control-url": "https://controlplane.tailscale.com", "state-dir": "./tailscale/home",
-      ephemeral: true, udp: false, "accept-routes": false, "ip-version": "ipv6-prefer",
-    });
-    assert.deepEqual(config["proxy-groups"].find((group) => group.name === "Tailscale").proxies, ["TAILSCALE"]);
-    assert.equal(config["rule-providers"].direct.url, "https://rules.example.test/release/rules/direct.yaml");
+  const androidOptions = { "tailscale-secret": "tskey-test" };
+  const androidMain = (options) => new Function("$options", `${androidScript}\nreturn main;`)(options);
+  const config = await androidMain(androidOptions)({ proxies: [{ name: "🇭🇰 香港01" }] });
+  assert.deepEqual(config.proxies[0], {
+    name: "TAILSCALE", type: "tailscale", "auth-key": "tskey-test", "state-dir": "./tailscale",
+    udp: true, "accept-routes": true, "ip-version": "ipv4-prefer",
+  });
+  assert.deepEqual(config["proxy-groups"].find((group) => group.name === "Tailscale").proxies, ["TAILSCALE"]);
+  assert.equal(config["rule-providers"].direct.url, "https://rules.example.test/release/rules/direct.yaml");
+  for (const options of [undefined, {}, { "tailscale-secret": "" }, { "tailscale-secret": null }, { "tailscale-secret": 42 }, { "tailscale-secret": {} }]) {
+    await assert.rejects(
+      () => androidMain(options)({ proxies: [{ name: "🇭🇰 香港01" }] }),
+      /requires non-empty string \$options/,
+    );
   }
-  for (const options of [undefined, {}, { tailscale: "" }, { tailscale: null }]) {
-    const main = new Function("$options", `${androidScript}\nreturn main;`)(options);
-    await assert.rejects(() => main({ proxies: [{ name: "🇭🇰 香港01" }] }), /requires non-empty \$options\.tailscale/);
-  }
-  for (const tailscale of ["not-json", { hostname: "missing-fields" }, []]) {
-    const main = new Function("$options", `${androidScript}\nreturn main;`)({ tailscale });
-    const expected = tailscale === "not-json"
-      ? /Invalid \$options\.tailscale JSON/
-      : tailscale && typeof tailscale === "object" && !Array.isArray(tailscale)
-        ? /require hostname, auth-key, and state-dir/
-        : /Invalid Tailscale options/;
-    await assert.rejects(() => main({ proxies: [{ name: "🇭🇰 香港01" }] }), expected);
-  }
+  const legacyTailscale = { hostname: "old-name", "auth-key": "old-key", "state-dir": "./old" };
+  await assert.rejects(
+    () => androidMain({ tailscale: legacyTailscale })({ proxies: [{ name: "🇭🇰 香港01" }] }),
+    /requires non-empty string \$options/,
+  );
+  const ignoredLegacy = await androidMain({ ...androidOptions, tailscale: legacyTailscale })(
+    { proxies: [{ name: "🇭🇰 香港01" }] },
+  );
+  assert.deepEqual(ignoredLegacy.proxies[0], config.proxies[0]);
   assert.equal(artifactCalls, 0);
 });
 

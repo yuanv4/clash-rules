@@ -92,8 +92,8 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup, mo
   if (isAndroid) {
     runtimeSetup.push(
       "  const runtimeOptions = typeof $options === 'undefined' ? undefined : $options;",
-      "  const tailscaleOption = runtimeOptions ? runtimeOptions.tailscale : undefined;",
-      "  if (tailscaleOption === undefined || tailscaleOption === null || tailscaleOption === '') throw new Error('Android subscription requires non-empty $options.tailscale credentials');",
+      "  const tailscaleSecret = runtimeOptions === undefined ? undefined : runtimeOptions['tailscale-secret'];",
+      "  if (typeof tailscaleSecret !== 'string' || tailscaleSecret.length === 0) throw new Error('Android subscription requires non-empty string $options[\\u0027tailscale-secret\\u0027]');",
       "",
     );
   } else {
@@ -109,24 +109,13 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup, mo
   if (isAndroid) {
     tailscaleNodeSetup.push(
       "  config.proxies = config.proxies.filter((p) => !(p && p.name === 'TAILSCALE'));",
-      "  let secret;",
-      "  try {",
-      "    secret = typeof tailscaleOption === 'string' ? JSON.parse(tailscaleOption) : tailscaleOption;",
-      "  } catch {",
-      "    throw new Error('Invalid $options.tailscale JSON');",
-      "  }",
-      "  if (!secret || typeof secret !== 'object' || Array.isArray(secret)) throw new Error('Invalid Tailscale options');",
-      "  if (!secret.hostname || !secret['auth-key'] || !secret['state-dir']) throw new Error('Tailscale options require hostname, auth-key, and state-dir');",
       "  config.proxies.unshift({",
       "    name: 'TAILSCALE', type: 'tailscale',",
-      "    hostname: secret.hostname,",
-      "    'auth-key': secret['auth-key'],",
-      "    'control-url': secret['control-url'],",
-      "    'state-dir': secret['state-dir'],",
-      "    ephemeral: !!secret.ephemeral,",
-      "    udp: secret.udp !== false,",
-      "    'accept-routes': secret['accept-routes'] !== false,",
-      "    'ip-version': secret['ip-version'] || 'ipv4-prefer',",
+      "    'auth-key': tailscaleSecret,",
+      "    'state-dir': './tailscale',",
+      "    udp: true,",
+      "    'accept-routes': true,",
+      "    'ip-version': 'ipv4-prefer',",
       "  });",
     );
   } else {
