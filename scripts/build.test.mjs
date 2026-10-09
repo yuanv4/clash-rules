@@ -510,20 +510,12 @@ test("renders automatic and Japan AI proxy topology", async () => {
   assert.match(script, /adult_content\.yaml/);
   assert.doesNotMatch(script, /reject_non_ip|reject_ip/);
 
-  const files = {
-    "tailscale-secret": JSON.stringify({
-      hostname: "flclash-android",
-      "auth-key": "tskey-test",
-      "control-url": "https://controlplane.tailscale.com",
-      "state-dir": "./tailscale",
-      ephemeral: false,
-      udp: true,
-      "accept-routes": true,
-      "ip-version": "ipv4-prefer",
-    }),
-  };
-  const makeEnv = (fileName, options) => ({
-    produceArtifact: async ({ name }) => files[name],
+  let artifactCalls = 0;
+  const makeEnv = (fileName, options = {}) => ({
+    produceArtifact: async () => {
+      artifactCalls += 1;
+      throw new Error("produceArtifact must not be called");
+    },
     $file: { name: fileName },
     $options: options,
   });
@@ -642,31 +634,39 @@ test("renders automatic and Japan AI proxy topology", async () => {
   }
   assert.deepEqual(group(plain, "Tailscale").proxies, ["DIRECT"]);
   assert.equal(group(plain, "Tailscale")["default-selected"], "DIRECT");
-  const interfaceOnly = await buildConfig(makeEnv("yuanv4", { "tailscale-interface": "Tailscale" }), ["🇭🇰 香港01"]);
-  assert.deepEqual(interfaceOnly.proxies[0], {
-    name: "TAILSCALE-DIRECT",
-    type: "direct",
-    "interface-name": "Tailscale",
-  });
-  assert.deepEqual(group(interfaceOnly, "Tailscale").proxies, ["TAILSCALE-DIRECT"]);
-  assert.equal(group(interfaceOnly, "Tailscale")["default-selected"], "TAILSCALE-DIRECT");
-  const emptyInterface = await buildConfig(makeEnv("yuanv4", { "tailscale-interface": "" }), ["🇭🇰 香港01"]);
-  assert.equal(emptyInterface.proxies.some((proxy) => proxy.name === "TAILSCALE-DIRECT"), false);
-  assert.deepEqual(group(emptyInterface, "Tailscale").proxies, ["DIRECT"]);
-  assert.equal(group(emptyInterface, "Tailscale")["default-selected"], "DIRECT");
   const expectedTailscaleRules = [
     "IP-CIDR,100.64.0.0/10,Tailscale,no-resolve",
     "IP-CIDR,100.100.100.100/32,Tailscale,no-resolve",
     "DOMAIN-SUFFIX,ts.net,Tailscale",
   ];
   assert.deepEqual(plain.rules.slice(0, 3), expectedTailscaleRules);
-  assert.equal(plain.proxies.some((p) => p.name === "TAILSCALE"), false);
+  assert.equal(plain.proxies.some((p) => p.name === "TAILSCALE" || p.name === "TAILSCALE-DIRECT"), false);
   assert.equal(plain.rules.at(-1), "MATCH,🐟 漏网之鱼");
 
   const singleNode = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 香港01"]);
   assert.deepEqual(group(singleNode, automaticGroup).proxies, ["🇭🇰 香港01"]);
   assert.deepEqual(group(singleNode, "🤖 国际 AI").proxies, ["REJECT"]);
   assert.deepEqual(group(singleNode, "Tailscale").proxies, ["DIRECT"]);
+  assert.deepEqual(group((await buildConfig(makeEnv("windows-backup"), ["🇭🇰 香港01"])), "Tailscale").proxies, ["DIRECT"]);
+  const optionsMustNotBeRead = Object.defineProperty({}, "tailscale", {
+    get() { throw new Error("ordinary subscriptions must not read Tailscale options"); },
+  });
+  const ordinaryWithGuard = await buildConfig(makeEnv("other", optionsMustNotBeRead), ["🇭🇰 香港01"]);
+  assert.deepEqual(group(ordinaryWithGuard, "Tailscale").proxies, ["DIRECT"]);
+  const ordinaryWithTailscaleNamedNodes = await buildConfig(
+    makeEnv("other"),
+    ["🇭🇰 香港01", "TAILSCALE", "TAILSCALE-DIRECT"],
+  );
+  assert.deepEqual(
+    ordinaryWithTailscaleNamedNodes.proxies.map((proxy) => proxy.name),
+    ["🇭🇰 香港01", "TAILSCALE", "TAILSCALE-DIRECT"],
+  );
+  assert.deepEqual(group(ordinaryWithTailscaleNamedNodes, "Tailscale").proxies, ["DIRECT"]);
+
+  const windows = await buildConfig(makeEnv("windows", { tailscale: { invalid: true } }), ["🇭🇰 香港01"]);
+  assert.deepEqual(windows.proxies[0], { name: "TAILSCALE-DIRECT", type: "direct", "interface-name": "Tailscale" });
+  assert.deepEqual(group(windows, "Tailscale").proxies, ["TAILSCALE-DIRECT"]);
+  assert.equal(group(windows, "Tailscale")["default-selected"], "TAILSCALE-DIRECT");
 
   await assert.rejects(
     () => buildConfig(makeEnv("yuanv4"), ["US-West 01", "Network 01"]),
@@ -676,14 +676,6 @@ test("renders automatic and Japan AI proxy topology", async () => {
     () => buildConfig(makeEnv("yuanv4"), []),
     /Subscription has no proxies/
   );
-
-  const withTs = await buildConfig(makeEnv("yuanv4-with-tailscale"), ["🇭🇰 香港01"]);
-  assert.equal(withTs.proxies[0].name, "TAILSCALE");
-  assert.deepEqual(group(withTs, "🤖 国际 AI").proxies, ["REJECT"]);
-  assert.deepEqual(group(withTs, "Tailscale").proxies, ["TAILSCALE", "DIRECT"]);
-  assert.equal(group(withTs, "Tailscale")["default-selected"], "TAILSCALE");
-  assert.deepEqual(withTs.rules.slice(0, 3), expectedTailscaleRules);
-  assert.deepEqual(withTs.rules, plain.rules);
 
   const dynamicSecret = {
     hostname: "mihomo-home",
@@ -695,63 +687,39 @@ test("renders automatic and Japan AI proxy topology", async () => {
     "accept-routes": false,
     "ip-version": "ipv6-prefer",
   };
-  const dynamicEnv = makeEnv("tailscale", { tailscale: dynamicSecret });
-  dynamicEnv.produceArtifact = async () => {
-    throw new Error("dynamic Tailscale must not read a stored artifact");
-  };
-  const dynamicTs = await buildConfig(dynamicEnv, ["🇭🇰 香港01"]);
-  assert.deepEqual(dynamicTs.proxies[0], {
-    name: "TAILSCALE",
-    type: "tailscale",
-    hostname: "mihomo-home",
-    "auth-key": "tskey-dynamic-test",
-    "control-url": "https://controlplane.tailscale.com",
-    "state-dir": "./tailscale/home",
-    ephemeral: true,
-    udp: false,
-    "accept-routes": false,
-    "ip-version": "ipv6-prefer",
-  });
-  assert.deepEqual(group(dynamicTs, "Tailscale").proxies, ["TAILSCALE", "DIRECT"]);
-  assert.equal(group(dynamicTs, "Tailscale")["default-selected"], "TAILSCALE");
-
-  const dynamicWithInterfaceEnv = makeEnv("tailscale", {
-    tailscale: dynamicSecret,
-    "tailscale-interface": "Tailscale",
-  });
-  dynamicWithInterfaceEnv.produceArtifact = dynamicEnv.produceArtifact;
-  const dynamicWithInterface = await buildConfig(dynamicWithInterfaceEnv, ["🇭🇰 香港01"]);
-  assert.deepEqual(dynamicWithInterface.proxies.slice(0, 2), [
-    { name: "TAILSCALE-DIRECT", type: "direct", "interface-name": "Tailscale" },
-    dynamicTs.proxies[0],
-  ]);
-  assert.deepEqual(group(dynamicWithInterface, "Tailscale").proxies, ["TAILSCALE-DIRECT", "TAILSCALE"]);
-  assert.equal(group(dynamicWithInterface, "Tailscale")["default-selected"], "TAILSCALE-DIRECT");
-
-  const dynamicJsonTs = await buildConfig(
-    makeEnv("tailscale", { tailscale: JSON.stringify(dynamicSecret) }),
-    ["🇭🇰 香港01"],
-  );
-  assert.equal(dynamicJsonTs.proxies[0].hostname, "mihomo-home");
-
-  const dynamicPlain = await buildConfig(makeEnv("tailscale"), ["🇭🇰 香港01"]);
-  assert.equal(dynamicPlain.proxies.some((proxy) => proxy.name === "TAILSCALE"), false);
-  assert.deepEqual(group(dynamicPlain, "Tailscale").proxies, ["DIRECT"]);
-  const dynamicInterfaceOnly = await buildConfig(makeEnv("tailscale", { "tailscale-interface": "Tailscale" }), ["🇭🇰 香港01"]);
-  assert.deepEqual(group(dynamicInterfaceOnly, "Tailscale").proxies, ["TAILSCALE-DIRECT"]);
-  assert.equal(group(dynamicInterfaceOnly, "Tailscale")["default-selected"], "TAILSCALE-DIRECT");
+  for (const credentials of [dynamicSecret, JSON.stringify(dynamicSecret)]) {
+    const configured = await buildConfig(makeEnv("android", { tailscale: credentials }), ["🇭🇰 香港01"]);
+    assert.deepEqual(configured.proxies[0], {
+      name: "TAILSCALE",
+      type: "tailscale",
+      hostname: "mihomo-home",
+      "auth-key": "tskey-dynamic-test",
+      "control-url": "https://controlplane.tailscale.com",
+      "state-dir": "./tailscale/home",
+      ephemeral: true,
+      udp: false,
+      "accept-routes": false,
+      "ip-version": "ipv6-prefer",
+    });
+    assert.deepEqual(group(configured, "Tailscale").proxies, ["TAILSCALE"]);
+    assert.equal(group(configured, "Tailscale")["default-selected"], "TAILSCALE");
+    assert.equal(configured.proxies.some((proxy) => proxy.name === "TAILSCALE-DIRECT"), false);
+  }
+  for (const options of [undefined, {}, { tailscale: "" }, { tailscale: null }]) {
+    await assert.rejects(
+      () => buildConfig(makeEnv("android", options), ["🇭🇰 香港01"]),
+      /Android subscription requires non-empty \$options\.tailscale credentials/,
+    );
+  }
   await assert.rejects(
-    () => buildConfig(makeEnv("yuanv4", { "tailscale-interface": 42 }), ["🇭🇰 香港01"]),
-    /Invalid \$options\['tailscale-interface'\]/,
-  );
-  await assert.rejects(
-    () => buildConfig(makeEnv("tailscale", { tailscale: "not-json" }), ["🇭🇰 香港01"]),
+    () => buildConfig(makeEnv("android", { tailscale: "not-json" }), ["🇭🇰 香港01"]),
     /Invalid \$options\.tailscale JSON/,
   );
   await assert.rejects(
-    () => buildConfig(makeEnv("tailscale", { tailscale: { hostname: "missing-fields" } }), ["🇭🇰 香港01"]),
+    () => buildConfig(makeEnv("android", { tailscale: { hostname: "missing-fields" } }), ["🇭🇰 香港01"]),
     /require hostname, auth-key, and state-dir/,
   );
+  assert.equal(artifactCalls, 0);
 });
 
 test("orders proxy groups after merging foreign services", async () => {
@@ -768,9 +736,10 @@ test("orders proxy groups after merging foreign services", async () => {
     { name: "unknown", target: "UNDECLARED", noResolve: true },
   ];
   const script = renderSubstoreOverride(providers, "https://rules.example.test/release", "♻️ 自动选择");
-  const main = new Function("produceArtifact", "$file", `${script}\nreturn main;`)(
+  const main = new Function("produceArtifact", "$file", "$options", `${script}\nreturn main;`)(
     async () => "{}",
     { name: "yuanv4" },
+    { "tailscale-interface": "Tailscale" },
   );
   const config = await main({ proxies: [{ name: "🇭🇰 香港01" }, { name: "🇹🇼 台湾01" }] });
 
