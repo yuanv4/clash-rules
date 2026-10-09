@@ -8,8 +8,8 @@ async function main(config = {}) {
   if (!hongKongNames.length) throw new Error('Subscription has no Hong Kong proxies');
   const japanPattern = new RegExp("(?:\\u{1f1ef}\\u{1f1f5}|\\bJP(?=\\b|\\d)|\\bJPN(?=\\b|\\d)|Japan|\\u65E5\\u672C)", 'iu');
   const japanNames = names.filter((name) => japanPattern.test(name));
-  const tailscaleProxies = ['DIRECT'];
-  const tailscaleDefault = 'DIRECT';
+  const tailscaleProxies = ['TAILSCALE-DIRECT'];
+  const tailscaleDefault = 'TAILSCALE-DIRECT';
   const proxyGroups = [
     { name: '♻️ 自动选择', type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 300, tolerance: 50, proxies: hongKongNames },
     { name: '🌐 国外服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择'], 'default-selected': '♻️ 自动选择' },
@@ -30,6 +30,8 @@ async function main(config = {}) {
   config['rule-providers'] = {"direct":{"type":"http","behavior":"classical","format":"yaml","interval":86400,"url":"https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/direct.yaml"},"reject_domainset":{"type":"http","behavior":"domain","format":"text","interval":86400,"url":"https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/reject_domainset.txt"},"reject":{"type":"http","behavior":"classical","format":"yaml","interval":86400,"url":"https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/reject.yaml"},"adult_content":{"type":"http","behavior":"classical","format":"yaml","interval":86400,"url":"https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/adult_content.yaml"},"ai":{"type":"http","behavior":"classical","format":"yaml","interval":86400,"url":"https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/ai.yaml"},"dev_services":{"type":"http","behavior":"classical","format":"yaml","interval":86400,"url":"https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/dev_services.yaml"},"streaming_services":{"type":"http","behavior":"classical","format":"yaml","interval":86400,"url":"https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/streaming_services.yaml"},"cn_services":{"type":"http","behavior":"classical","format":"yaml","interval":86400,"url":"https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/cn_services.yaml"},"foreign_services":{"type":"http","behavior":"classical","format":"yaml","interval":86400,"url":"https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/foreign_services.yaml"}};
   config.rules = ["IP-CIDR,100.64.0.0/10,Tailscale,no-resolve","IP-CIDR,100.100.100.100/32,Tailscale,no-resolve","DOMAIN-SUFFIX,ts.net,Tailscale","RULE-SET,direct,DIRECT,no-resolve","RULE-SET,reject_domainset,🛑 广告过滤,no-resolve","RULE-SET,reject,🛑 广告过滤,no-resolve","RULE-SET,adult_content,🔞 成人内容,no-resolve","RULE-SET,ai,🤖 国际 AI,no-resolve","RULE-SET,dev_services,🧑‍💻 开发服务,no-resolve","RULE-SET,streaming_services,🎬 流媒体服务,no-resolve","RULE-SET,cn_services,🇨🇳 国内服务,no-resolve","RULE-SET,foreign_services,🌐 国外服务,no-resolve","MATCH,🐟 漏网之鱼"];
 
+  config.proxies = config.proxies.filter((p) => !(p && p.name === 'TAILSCALE-DIRECT'));
+  config.proxies.unshift({ name: 'TAILSCALE-DIRECT', type: 'direct', 'interface-name': 'Tailscale' });
 
   return config;
 }
