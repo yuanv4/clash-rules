@@ -18,7 +18,6 @@ const MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
 const MAX_PATH_DECODE_PASSES = 8;
 export const SUBSTORE_OVERRIDE_ARTIFACTS = [
   { file: "sub-store-override.js", mode: "ordinary" },
-  { file: "sub-store-override-windows.js", mode: "windows" },
   { file: "sub-store-override-android.js", mode: "android" },
 ];
 
@@ -154,7 +153,7 @@ const resolveInputSourceUrl = (relativePath, input, context) => {
   try {
     decodedBasePath = decodeURIComponent(input.baseUrl.pathname);
     decodedResolvedPath = decodeURIComponent(resolved.pathname);
-  } catch (error) {
+  } catch {
     throw new Error(`${context} path produces invalid URL encoding`);
   }
   if (/[\u0000-\u001F\u007F-\u009F\u2028\u2029]/u.test(decodedBasePath + decodedResolvedPath)) {
