@@ -2,8 +2,8 @@
 // Consumed by the DS420 sub-store mihomoConfig override (Script Operator, mode=link).
 async function main(config = {}) {
   const runtimeOptions = typeof $options === 'undefined' ? undefined : $options;
-  const tailscaleOption = runtimeOptions ? runtimeOptions.tailscale : undefined;
-  if (tailscaleOption === undefined || tailscaleOption === null || tailscaleOption === '') throw new Error('Android subscription requires non-empty $options.tailscale credentials');
+  const tailscaleSecret = runtimeOptions === undefined ? undefined : runtimeOptions['tailscale-secret'];
+  if (typeof tailscaleSecret !== 'string' || tailscaleSecret.length === 0) throw new Error('Android subscription requires non-empty string $options[\u0027tailscale-secret\u0027]');
 
   const names = config.proxies.map((p) => p.name);
   if (!names.length) throw new Error('Subscription has no proxies');
@@ -35,24 +35,13 @@ async function main(config = {}) {
   config.rules = ["IP-CIDR,100.64.0.0/10,Tailscale,no-resolve","IP-CIDR,100.100.100.100/32,Tailscale,no-resolve","DOMAIN-SUFFIX,ts.net,Tailscale","RULE-SET,direct,DIRECT,no-resolve","RULE-SET,reject_domainset,🛑 广告过滤,no-resolve","RULE-SET,reject,🛑 广告过滤,no-resolve","RULE-SET,adult_content,🔞 成人内容,no-resolve","RULE-SET,ai,🤖 国际 AI,no-resolve","RULE-SET,dev_services,🧑‍💻 开发服务,no-resolve","RULE-SET,streaming_services,🎬 流媒体服务,no-resolve","RULE-SET,cn_services,🇨🇳 国内服务,no-resolve","RULE-SET,foreign_services,🌐 国外服务,no-resolve","MATCH,🐟 漏网之鱼"];
 
   config.proxies = config.proxies.filter((p) => !(p && p.name === 'TAILSCALE'));
-  let secret;
-  try {
-    secret = typeof tailscaleOption === 'string' ? JSON.parse(tailscaleOption) : tailscaleOption;
-  } catch {
-    throw new Error('Invalid $options.tailscale JSON');
-  }
-  if (!secret || typeof secret !== 'object' || Array.isArray(secret)) throw new Error('Invalid Tailscale options');
-  if (!secret.hostname || !secret['auth-key'] || !secret['state-dir']) throw new Error('Tailscale options require hostname, auth-key, and state-dir');
   config.proxies.unshift({
     name: 'TAILSCALE', type: 'tailscale',
-    hostname: secret.hostname,
-    'auth-key': secret['auth-key'],
-    'control-url': secret['control-url'],
-    'state-dir': secret['state-dir'],
-    ephemeral: !!secret.ephemeral,
-    udp: secret.udp !== false,
-    'accept-routes': secret['accept-routes'] !== false,
-    'ip-version': secret['ip-version'] || 'ipv4-prefer',
+    'auth-key': tailscaleSecret,
+    'state-dir': './tailscale',
+    udp: true,
+    'accept-routes': true,
+    'ip-version': 'ipv4-prefer',
   });
 
   return config;
