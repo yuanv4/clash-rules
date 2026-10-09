@@ -63,8 +63,8 @@ jobs:
           fi
           cp -- "${provider_files[@]}" "$release_worktree/rules/"
           override_files=(dist/sub-store-override*.js)
-          if [[ "${#override_files[@]}" -ne 3 ]]; then
-            echo "Expected exactly 3 sub-store override artifacts, found ${#override_files[@]}." >&2
+          if [[ "${#override_files[@]}" -ne 2 ]]; then
+            echo "Expected exactly 2 sub-store override artifacts, found ${#override_files[@]}." >&2
             exit 1
           fi
           cp -- "${override_files[@]}" "$release_worktree/"
@@ -72,7 +72,7 @@ jobs:
           git -C "$release_worktree" add -A
           mapfile -d '' -t tracked_files < <(git -C "$release_worktree" ls-files --cached -z)
           provider_count=${#provider_files[@]}
-          expected_count=$((provider_count + 3))
+          expected_count=$((provider_count + 2))
           if [[ "${#tracked_files[@]}" -ne $expected_count ]]; then
             echo "Expected exactly ${expected_count} tracked publication artifacts, found ${#tracked_files[@]}." >&2
             exit 1
@@ -80,7 +80,7 @@ jobs:
           for tracked_file in "${tracked_files[@]}"; do
             case "$tracked_file" in
               rules/*.yaml|rules/*.txt) ;;
-              sub-store-override.js|sub-store-override-windows.js|sub-store-override-android.js) ;;
+              sub-store-override.js|sub-store-override-android.js) ;;
               *)
                 echo "Unexpected tracked release artifact: $tracked_file" >&2
                 exit 1

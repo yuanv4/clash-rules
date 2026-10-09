@@ -655,64 +655,73 @@ test("renders automatic and Japan AI proxy topology", async () => {
   assert.equal(artifactCalls, 0);
 });
 
-test("renders independent ordinary, Windows, and Android subscription artifacts", async () => {
+test("renders ordinary and Android subscription artifacts with isolated Tailscale options", async () => {
   const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
   assert.deepEqual(SUBSTORE_OVERRIDE_ARTIFACTS, [
     { file: "sub-store-override.js", mode: "ordinary" },
-    { file: "sub-store-override-windows.js", mode: "windows" },
     { file: "sub-store-override-android.js", mode: "android" },
   ]);
   const providers = [{ name: "direct", target: "DIRECT", noResolve: true }];
-  const modes = ["ordinary", "windows", "android"];
+  assert.throws(
+    () => renderSubstoreOverride(providers, "https://rules.example.test/release", "♻️ 自动选择", "windows"),
+    /Unsupported sub-store override mode: windows/,
+  );
   let artifactCalls = 0;
   const credentials = {
     hostname: "mihomo-home", "auth-key": "tskey-test", "state-dir": "./tailscale/home",
     "control-url": "https://controlplane.tailscale.com", ephemeral: true, udp: false,
     "accept-routes": false, "ip-version": "ipv6-prefer",
   };
-  for (const mode of modes) {
-    const script = renderSubstoreOverride(providers, "https://rules.example.test/release", "♻️ 自动选择", mode);
-    assert.doesNotMatch(script, /\$file\.name|produceArtifact/);
-    if (mode !== "android") assert.doesNotMatch(script, /\$options/);
-    const main = mode === "android"
-      ? new Function("$options", `${script}\nreturn main;`)({ tailscale: credentials })
-      : new Function(`${script}\nreturn main;`)();
-    const config = await main({ proxies: [{ name: "🇭🇰 香港01" }] });
+  const ordinaryScript = renderSubstoreOverride(providers, "https://rules.example.test/release", "♻️ 自动选择");
+  assert.doesNotMatch(ordinaryScript, /\$file\.name|produceArtifact|runtimeOptions\.tailscale|tailscaleOption/);
+  const ordinaryConfig = async (options) => {
+    const main = new Function("$options", `${ordinaryScript}\nreturn main;`)(options);
+    return main({ proxies: [{ name: "🇭🇰 香港01" }] });
+  };
+  for (const options of [undefined, {}, { "interface-name": "" }, { "interface-name": "", tailscale: "must-not-be-read" }]) {
+    const config = await ordinaryConfig(options);
     const tailscale = config["proxy-groups"].find((group) => group.name === "Tailscale");
-    const expectedProxy = mode === "windows" ? "TAILSCALE-DIRECT" : mode === "android" ? "TAILSCALE" : "DIRECT";
-    assert.deepEqual(tailscale.proxies, [expectedProxy]);
-    assert.deepEqual(config.rules.slice(0, 3), [
-      "IP-CIDR,100.64.0.0/10,Tailscale,no-resolve",
-      "IP-CIDR,100.100.100.100/32,Tailscale,no-resolve",
-      "DOMAIN-SUFFIX,ts.net,Tailscale",
-    ]);
-    assert.equal(config["rule-providers"].direct.url, "https://rules.example.test/release/rules/direct.yaml");
-    assert.equal(config.proxies.some((proxy) => proxy.name === "TAILSCALE"), mode === "android");
-    assert.equal(config.proxies.some((proxy) => proxy.name === "TAILSCALE-DIRECT"), mode === "windows");
+    assert.deepEqual(tailscale.proxies, ["DIRECT"]);
+    assert.equal(tailscale["default-selected"], "DIRECT");
+    assert.equal(config.proxies.some((proxy) => proxy.name === "TAILSCALE-DIRECT"), false);
   }
-  const windowsScript = renderSubstoreOverride(providers, "https://rules.example.test/release", "♻️ 自动选择", "windows");
-  const windowsMain = new Function(`${windowsScript}\nreturn main;`)();
-  assert.deepEqual((await windowsMain({ proxies: [{ name: "🇭🇰 香港01" }] })).proxies[0], {
+  const boundConfig = await ordinaryConfig({ "interface-name": "Tailscale", tailscale: "must-not-be-read" });
+  const boundGroup = boundConfig["proxy-groups"].find((group) => group.name === "Tailscale");
+  assert.deepEqual(boundGroup.proxies, ["TAILSCALE-DIRECT"]);
+  assert.equal(boundGroup["default-selected"], "TAILSCALE-DIRECT");
+  assert.deepEqual(boundConfig.proxies[0], {
     name: "TAILSCALE-DIRECT", type: "direct", "interface-name": "Tailscale",
   });
+  for (const interfaceName of [null, 42, {}, false]) {
+    await assert.rejects(() => ordinaryConfig({ "interface-name": interfaceName }), /\$options\.interface-name must be a string/);
+  }
+
   const androidScript = renderSubstoreOverride(providers, "https://rules.example.test/release", "♻️ 自动选择", "android");
-  const androidMain = new Function("$options", `${androidScript}\nreturn main;`)({ tailscale: JSON.stringify(credentials) });
-  const androidConfig = await androidMain({ proxies: [{ name: "🇭🇰 香港01" }] });
-  assert.deepEqual(androidConfig.proxies[0], {
-    name: "TAILSCALE", type: "tailscale", hostname: "mihomo-home", "auth-key": "tskey-test",
-    "control-url": "https://controlplane.tailscale.com", "state-dir": "./tailscale/home",
-    ephemeral: true, udp: false, "accept-routes": false, "ip-version": "ipv6-prefer",
-  });
+  assert.doesNotMatch(androidScript, /interface-name|TAILSCALE-DIRECT/);
+  assert.doesNotMatch(androidScript, /\$file\.name|produceArtifact/);
+  for (const tailscale of [credentials, JSON.stringify(credentials)]) {
+    const main = new Function("$options", `${androidScript}\nreturn main;`)({ tailscale });
+    const config = await main({ proxies: [{ name: "🇭🇰 香港01" }] });
+    assert.deepEqual(config.proxies[0], {
+      name: "TAILSCALE", type: "tailscale", hostname: "mihomo-home", "auth-key": "tskey-test",
+      "control-url": "https://controlplane.tailscale.com", "state-dir": "./tailscale/home",
+      ephemeral: true, udp: false, "accept-routes": false, "ip-version": "ipv6-prefer",
+    });
+    assert.deepEqual(config["proxy-groups"].find((group) => group.name === "Tailscale").proxies, ["TAILSCALE"]);
+    assert.equal(config["rule-providers"].direct.url, "https://rules.example.test/release/rules/direct.yaml");
+  }
   for (const options of [undefined, {}, { tailscale: "" }, { tailscale: null }]) {
     const main = new Function("$options", `${androidScript}\nreturn main;`)(options);
     await assert.rejects(() => main({ proxies: [{ name: "🇭🇰 香港01" }] }), /requires non-empty \$options\.tailscale/);
   }
-  for (const tailscale of ["not-json", { hostname: "missing-fields" }]) {
+  for (const tailscale of ["not-json", { hostname: "missing-fields" }, []]) {
     const main = new Function("$options", `${androidScript}\nreturn main;`)({ tailscale });
-    await assert.rejects(
-      () => main({ proxies: [{ name: "🇭🇰 香港01" }] }),
-      tailscale === "not-json" ? /Invalid \$options\.tailscale JSON/ : /require hostname, auth-key, and state-dir/,
-    );
+    const expected = tailscale === "not-json"
+      ? /Invalid \$options\.tailscale JSON/
+      : tailscale && typeof tailscale === "object" && !Array.isArray(tailscale)
+        ? /require hostname, auth-key, and state-dir/
+        : /Invalid Tailscale options/;
+    await assert.rejects(() => main({ proxies: [{ name: "🇭🇰 香港01" }] }), expected);
   }
   assert.equal(artifactCalls, 0);
 });
