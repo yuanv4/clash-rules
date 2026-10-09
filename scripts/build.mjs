@@ -16,6 +16,11 @@ const FETCH_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 300;
 const MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
 const MAX_PATH_DECODE_PASSES = 8;
+export const SUBSTORE_OVERRIDE_ARTIFACTS = [
+  { file: "sub-store-override.js", mode: "ordinary" },
+  { file: "sub-store-override-windows.js", mode: "windows" },
+  { file: "sub-store-override-android.js", mode: "android" },
+];
 
 const usage = () => {
   process.stdout.write(
@@ -342,7 +347,13 @@ const loadConfiguration = async () => {
 
 const requestText = (urlString) =>
   new Promise((resolve, reject) => {
-    const url = new URL(urlString);
+    let url;
+    try {
+      url = new URL(urlString);
+    } catch (error) {
+      reject(error);
+      return;
+    }
     const transport = url.protocol === "https:" ? https : http;
     const request = transport.get(
       url,
@@ -805,20 +816,21 @@ const build = async (outputDir) => {
       await fs.writeFile(path.join(stagingRulesDir, `${provider.name}.${extension}`), output, "utf8");
     }
 
-    await fs.writeFile(
-      path.join(stagingDir, "sub-store-override.js"),
-      renderSubstoreOverride(providers, releaseBaseUrl, proxyGroup),
-      "utf8"
-    );
+    for (const { file, mode } of SUBSTORE_OVERRIDE_ARTIFACTS) {
+      await fs.writeFile(
+        path.join(stagingDir, file),
+        renderSubstoreOverride(providers, releaseBaseUrl, proxyGroup, mode),
+        "utf8"
+      );
+    }
 
-    const stagedRootEntries = await fs.readdir(stagingDir);
+    const stagedRootEntries = (await fs.readdir(stagingDir)).sort();
+    const expectedRootEntries = ["rules", ...SUBSTORE_OVERRIDE_ARTIFACTS.map(({ file }) => file)].sort();
     const stagedProviderFiles = await fs.readdir(stagingRulesDir);
+    const expectedProviderFiles = providers.map((provider) => `${provider.name}.${provider.behavior === "domain" ? "txt" : "yaml"}`).sort();
     if (
-      stagedRootEntries.length !== 2 ||
-      !stagedRootEntries.includes("rules") ||
-      !stagedRootEntries.includes("sub-store-override.js") ||
-      stagedProviderFiles.length !== providers.length ||
-      stagedProviderFiles.some((file) => !/\.(?:yaml|txt)$/u.test(file))
+      JSON.stringify(stagedRootEntries) !== JSON.stringify(expectedRootEntries) ||
+      JSON.stringify(stagedProviderFiles.sort()) !== JSON.stringify(expectedProviderFiles)
     ) {
       throw new Error("Staging directory does not contain exactly the configured publication artifacts");
     }
