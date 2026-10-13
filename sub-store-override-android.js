@@ -10,8 +10,10 @@ async function main(config = {}) {
   const hongKongPattern = new RegExp("(?:\\u{1f1ed}\\u{1f1f0}|\\bHKG?(?=\\b|\\d)|Hong\\s*Kong|\\u9999\\u6E2F|\\u6E2F)", 'iu');
   const hongKongNames = names.filter((name) => hongKongPattern.test(name));
   if (!hongKongNames.length) throw new Error('Subscription has no Hong Kong proxies');
-  const japanPattern = new RegExp("(?:\\u{1f1ef}\\u{1f1f5}|\\bJP(?=\\b|\\d)|\\bJPN(?=\\b|\\d)|Japan|\\u65E5\\u672C)", 'iu');
-  const japanNames = names.filter((name) => japanPattern.test(name));
+  const aiRegionPattern = new RegExp("(?:\\u{1f1ef}\\u{1f1f5}|\\u{1f1f0}\\u{1f1f7}|\\u{1f1f9}\\u{1f1fc}|\\u{1f1f8}\\u{1f1ec}|\\u65E5\\u672C|\\u97E9\\u56FD|\\u53F0\\u7063|\\u53F0\\u6E7E|\\u65B0\\u52A0\\u5761|Japan|South\\s*Korea|Korea|Taiwan|Singapore|(?<![\\p{L}\\p{N}])(?:JP|JPN|KR|KOR|TW|TWN|SG|SGP)(?=$|[^\\p{L}\\p{N}]|\\d))", 'iu');
+  const aiResidentialPattern = new RegExp("(?:\\u5BB6\\u5BBD|\\u5BB6\\u5BEC|\\u4F4F\\u5B85|Residential|(?<![\\p{L}\\p{N}])ISP(?![\\p{L}\\p{N}]))", 'iu');
+  const aiExcludedRegionPattern = new RegExp("(?:\\u{1f1ed}\\u{1f1f0}|\\u{1f1f2}\\u{1f1f4}|\\u9999\\u6E2F|\\u6FB3\\u95E8|\\u6FB3\\u9580|Hong\\s*Kong|Macao|Macau|(?<![\\p{L}\\p{N}])(?:HK|HKG|MO|MAC)(?=$|[^\\p{L}\\p{N}]|\\d))", 'iu');
+  const aiNames = names.filter((name) => aiRegionPattern.test(name) && aiResidentialPattern.test(name) && !aiExcludedRegionPattern.test(name));
   const tailscaleProxies = ['TAILSCALE'];
   const tailscaleDefault = 'TAILSCALE';
   const proxyGroups = [
@@ -20,7 +22,7 @@ async function main(config = {}) {
     { name: '🐟 漏网之鱼', type: 'select', proxies: ['DIRECT', '♻️ 自动选择'], 'default-selected': 'DIRECT' },
     { name: 'Tailscale', type: 'select', proxies: tailscaleProxies, 'default-selected': tailscaleDefault },
     { name: '🇨🇳 国内服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择'], 'default-selected': 'DIRECT' },
-    { name: '🤖 国际 AI', type: 'fallback', url: 'https://cp.cloudflare.com/generate_204', interval: 300, proxies: japanNames.length ? japanNames : ['REJECT'] },
+    { name: '🤖 国际 AI', type: 'select', proxies: aiNames.length ? aiNames : ['REJECT'] },
     { name: '🧑‍💻 开发服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择'], 'default-selected': '♻️ 自动选择' },
     { name: '🎬 流媒体服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择'], 'default-selected': '♻️ 自动选择' },
     { name: '🛑 广告过滤', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' },
