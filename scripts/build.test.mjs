@@ -480,7 +480,7 @@ test("accepts ordinary percent-encoded paths and rejects over-limit nested encod
   );
 });
 
-test("renders automatic and Japan AI proxy topology", async () => {
+test("renders automatic and residential Japan, Korea, Taiwan, and Singapore AI proxy topology", async () => {
   const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
   const providers = [
     { name: "direct", target: "DIRECT", noResolve: true },
@@ -551,9 +551,18 @@ test("renders automatic and Japan AI proxy topology", async () => {
   const foreignGroup = "🌐 国外服务";
   assert.ok(!JSON.stringify(plain).includes("节点选择(东亚)"));
   assert.ok(!JSON.stringify(plain).includes("负载均衡(台湾)"));
-  const japanNodes = ["🇯🇵 家宽01", "日本家宽02", "JP03 家宽", "Japan 04 Residential", "日本家宽05", "Residential JP06"];
-  const mixed = await buildConfig(makeEnv("yuanv4"), [...japanNodes, "香港01", "台湾01", "US-West 01", "Network 01"]);
-  assert.deepEqual(group(mixed, "🤖 国际 AI").proxies, japanNodes);
+  const eligibleAiNodes = [
+    "🇯🇵 家宽01", "日本家宽02", "JP03 家宽", "JPN04 住宅", "Japan 05 Residential", "Residential JP06", "JP07 ISP",
+    "🇰🇷 韩国家宽01", "South Korea 02 Residential", "KOR03 ISP", "🇹🇼 台湾住宅01", "Taiwan 02 家宽", "TWN03 ISP",
+    "🇸🇬 新加坡家宽01", "Singapore 02 Residential", "SGP03 ISP",
+  ];
+  const mixed = await buildConfig(makeEnv("yuanv4"), [
+    ...eligibleAiNodes, "日本02", "韩国家宽但香港出口", "🇯🇵 香港家宽", "Singapore Macau ISP", "香港01", "台湾01", "US-West 01", "Network 01",
+  ]);
+  assert.deepEqual(group(mixed, "🤖 国际 AI").proxies, eligibleAiNodes);
+  assert.equal(group(mixed, "🤖 国际 AI").type, "select");
+  assert.equal("url" in group(mixed, "🤖 国际 AI"), false);
+  assert.equal("interval" in group(mixed, "🤖 国际 AI"), false);
   // Flag-only names must match in Bun as well as Node (Unicode regex mode).
   const hongKongFlags = ["🇭🇰"];
   for (const flag of hongKongFlags) {
@@ -584,8 +593,8 @@ test("renders automatic and Japan AI proxy topology", async () => {
   assert.deepEqual(group(plain, "🇨🇳 国内服务").proxies, standardProxyChoices);
   assert.equal(group(plain, "🇨🇳 国内服务")["default-selected"], "DIRECT");
   assert.ok(plain.rules.indexOf("RULE-SET,cn_services,🇨🇳 国内服务,no-resolve") < plain.rules.indexOf("RULE-SET,foreign_services,🌐 国外服务,no-resolve"));
-  assert.deepEqual(group(plain, "🤖 国际 AI").proxies, ["🇯🇵 日本家宽01", "日本02"]);
-  assert.equal(group(plain, "🤖 国际 AI").type, "fallback");
+  assert.deepEqual(group(plain, "🤖 国际 AI").proxies, ["🇯🇵 日本家宽01"]);
+  assert.equal(group(plain, "🤖 国际 AI").type, "select");
   assert.deepEqual(group(plain, developerGroup).proxies, standardProxyChoices);
   assert.equal(group(plain, developerGroup)["default-selected"], automaticGroup);
   assert.ok(plain.rules.indexOf("RULE-SET,dev_services,🧑‍💻 开发服务,no-resolve") < plain.rules.indexOf("RULE-SET,streaming_services,🎬 流媒体服务,no-resolve"));
@@ -696,12 +705,18 @@ test("renders ordinary and Android subscription artifacts with isolated Tailscal
   assert.doesNotMatch(androidScript, /\$file\.name|produceArtifact/);
   const androidOptions = { "tailscale-secret": "tskey-test" };
   const androidMain = (options) => new Function("$options", `${androidScript}\nreturn main;`)(options);
-  const config = await androidMain(androidOptions)({ proxies: [{ name: "🇭🇰 香港01" }] });
+  const androidAiNodes = ["🇰🇷 韩国住宅01", "Taiwan 02 ISP"];
+  const config = await androidMain(androidOptions)({ proxies: [
+    { name: "🇭🇰 香港01" }, ...androidAiNodes.map((name) => ({ name })), { name: "日本02" }, { name: "🇸🇬 香港家宽" },
+  ] });
   assert.deepEqual(config.proxies[0], {
     name: "TAILSCALE", type: "tailscale", "auth-key": "tskey-test", "state-dir": "./tailscale",
     udp: true, "accept-routes": true, "ip-version": "ipv4-prefer",
   });
   assert.deepEqual(config["proxy-groups"].find((group) => group.name === "Tailscale").proxies, ["TAILSCALE"]);
+  const androidAiGroup = config["proxy-groups"].find((group) => group.name === "🤖 国际 AI");
+  assert.equal(androidAiGroup.type, "select");
+  assert.deepEqual(androidAiGroup.proxies, androidAiNodes);
   assert.equal(config["rule-providers"].direct.url, "https://rules.example.test/release/rules/direct.yaml");
   for (const options of [undefined, {}, { "tailscale-secret": "" }, { "tailscale-secret": null }, { "tailscale-secret": 42 }, { "tailscale-secret": {} }]) {
     await assert.rejects(

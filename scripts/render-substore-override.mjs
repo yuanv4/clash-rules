@@ -26,7 +26,9 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup, mo
   const adultContentGroup = "🔞 成人内容";
   const fallbackGroup = "🐟 漏网之鱼";
   const automaticGroup = proxyGroup;
-  const japanNodePattern = String.raw`(?:🇯🇵|\bJP(?=\b|\d)|\bJPN(?=\b|\d)|Japan|日本)`;
+  const aiRegionPattern = String.raw`(?:🇯🇵|🇰🇷|🇹🇼|🇸🇬|日本|韩国|台灣|台湾|新加坡|Japan|South\s*Korea|Korea|Taiwan|Singapore|(?<![\p{L}\p{N}])(?:JP|JPN|KR|KOR|TW|TWN|SG|SGP)(?=$|[^\p{L}\p{N}]|\d))`;
+  const aiResidentialPattern = String.raw`(?:家宽|家寬|住宅|Residential|(?<![\p{L}\p{N}])ISP(?![\p{L}\p{N}]))`;
+  const aiExcludedRegionPattern = String.raw`(?:🇭🇰|🇲🇴|香港|澳门|澳門|Hong\s*Kong|Macao|Macau|(?<![\p{L}\p{N}])(?:HK|HKG|MO|MAC)(?=$|[^\p{L}\p{N}]|\d))`;
   const tailscaleGroup = "Tailscale";
   const testUrl = "https://cp.cloudflare.com/generate_204";
   const hongKongNodePattern = String.raw`(?:🇭🇰|\bHKG?(?=\b|\d)|Hong\s*Kong|香港|港)`;
@@ -137,8 +139,10 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup, mo
     `  const hongKongPattern = new RegExp(${JSON.stringify(hongKongNodePattern)}, 'iu');`,
     "  const hongKongNames = names.filter((name) => hongKongPattern.test(name));",
     "  if (!hongKongNames.length) throw new Error('Subscription has no Hong Kong proxies');",
-    `  const japanPattern = new RegExp(${JSON.stringify(japanNodePattern)}, 'iu');`,
-    "  const japanNames = names.filter((name) => japanPattern.test(name));",
+    `  const aiRegionPattern = new RegExp(${JSON.stringify(aiRegionPattern)}, 'iu');`,
+    `  const aiResidentialPattern = new RegExp(${JSON.stringify(aiResidentialPattern)}, 'iu');`,
+    `  const aiExcludedRegionPattern = new RegExp(${JSON.stringify(aiExcludedRegionPattern)}, 'iu');`,
+    "  const aiNames = names.filter((name) => aiRegionPattern.test(name) && aiResidentialPattern.test(name) && !aiExcludedRegionPattern.test(name));",
     ...(!isAndroid ? [
       "  const tailscaleProxies = tailscaleInterfaceName ? ['TAILSCALE-DIRECT'] : ['DIRECT'];",
       "  const tailscaleDefault = tailscaleInterfaceName ? 'TAILSCALE-DIRECT' : 'DIRECT';",
@@ -152,7 +156,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup, mo
     `    { name: '${fallbackGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': 'DIRECT' },`,
     `    { name: '${tailscaleGroup}', type: 'select', proxies: tailscaleProxies, 'default-selected': tailscaleDefault },`,
     `    { name: '${domesticGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': 'DIRECT' },`,
-    `    { name: '${foreignAiGroup}', type: 'fallback', url: '${testUrl}', interval: 300, proxies: japanNames.length ? japanNames : ['REJECT'] },`,
+    `    { name: '${foreignAiGroup}', type: 'select', proxies: aiNames.length ? aiNames : ['REJECT'] },`,
     `    { name: '${developerGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': '${automaticGroup}' },`,
     `    { name: '${streamingGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': '${automaticGroup}' },`,
     `    { name: '${adBlockGroup}', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' },`,
