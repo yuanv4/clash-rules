@@ -142,7 +142,8 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup, mo
     `  const aiRegionPattern = new RegExp(${JSON.stringify(aiRegionPattern)}, 'iu');`,
     `  const aiResidentialPattern = new RegExp(${JSON.stringify(aiResidentialPattern)}, 'iu');`,
     `  const aiExcludedRegionPattern = new RegExp(${JSON.stringify(aiExcludedRegionPattern)}, 'iu');`,
-    "  const aiNames = names.filter((name) => aiRegionPattern.test(name) && aiResidentialPattern.test(name) && !aiExcludedRegionPattern.test(name));",
+    "  const aiCandidates = names.filter((name) => aiRegionPattern.test(name) && !aiExcludedRegionPattern.test(name));",
+    "  const aiNames = [...aiCandidates.filter((name) => aiResidentialPattern.test(name)), ...aiCandidates.filter((name) => !aiResidentialPattern.test(name))];",
     ...(!isAndroid ? [
       "  const tailscaleProxies = tailscaleInterfaceName ? ['TAILSCALE-DIRECT'] : ['DIRECT'];",
       "  const tailscaleDefault = tailscaleInterfaceName ? 'TAILSCALE-DIRECT' : 'DIRECT';",
@@ -156,7 +157,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup, mo
     `    { name: '${fallbackGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': 'DIRECT' },`,
     `    { name: '${tailscaleGroup}', type: 'select', proxies: tailscaleProxies, 'default-selected': tailscaleDefault },`,
     `    { name: '${domesticGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': 'DIRECT' },`,
-    `    { name: '${foreignAiGroup}', type: 'fallback', url: '${testUrl}', interval: 300, proxies: aiNames.length ? aiNames : ['REJECT'] },`,
+    `    { name: '${foreignAiGroup}', type: 'fallback', url: '${testUrl}', interval: 60, lazy: false, proxies: aiNames.length ? aiNames : ['REJECT'] },`,
     `    { name: '${developerGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': '${automaticGroup}' },`,
     `    { name: '${streamingGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': '${automaticGroup}' },`,
     `    { name: '${adBlockGroup}', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' },`,

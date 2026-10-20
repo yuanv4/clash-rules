@@ -480,7 +480,7 @@ test("accepts ordinary percent-encoded paths and rejects over-limit nested encod
   );
 });
 
-test("renders automatic and residential Japan, Korea, Taiwan, and Singapore AI proxy topology", async () => {
+test("renders automatic and residential-first Japan, Korea, Taiwan, and Singapore AI proxy topology", async () => {
   const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
   const providers = [
     { name: "direct", target: "DIRECT", noResolve: true },
@@ -557,12 +557,16 @@ test("renders automatic and residential Japan, Korea, Taiwan, and Singapore AI p
     "🇸🇬 新加坡家宽01", "Singapore 02 Residential", "SGP03 ISP",
   ];
   const mixed = await buildConfig(makeEnv("yuanv4"), [
-    ...eligibleAiNodes, "日本02", "韩国家宽但香港出口", "🇯🇵 香港家宽", "Singapore Macau ISP", "香港01", "台湾01", "US-West 01", "Network 01",
+    "日本02", ...eligibleAiNodes, "韩国家宽但香港出口", "🇯🇵 香港家宽", "Singapore Macau ISP", "香港01", "台湾01", "US-West 01", "🇺🇸 美国住宅01", "USA Residential", "Network 01",
   ]);
-  assert.deepEqual(group(mixed, "🤖 国际 AI").proxies, eligibleAiNodes);
+  assert.deepEqual(group(mixed, "🤖 国际 AI").proxies, [...eligibleAiNodes, "日本02", "台湾01"]);
+  const ordinaryAiNodes = ["🇯🇵 01", "KR02", "TW03", "SG04", "Japan 05", "韩国06", "Taiwan 07", "Singapore 08"];
+  const ordinaryOnly = await buildConfig(makeEnv("yuanv4"), ["香港01", ...ordinaryAiNodes, "美国住宅01"]);
+  assert.deepEqual(group(ordinaryOnly, "🤖 国际 AI").proxies, ordinaryAiNodes);
   assert.equal(group(mixed, "🤖 国际 AI").type, "fallback");
   assert.equal(group(mixed, "🤖 国际 AI").url, "https://cp.cloudflare.com/generate_204");
-  assert.equal(group(mixed, "🤖 国际 AI").interval, 300);
+  assert.equal(group(mixed, "🤖 国际 AI").interval, 60);
+  assert.equal(group(mixed, "🤖 国际 AI").lazy, false);
   // Flag-only names must match in Bun as well as Node (Unicode regex mode).
   const hongKongFlags = ["🇭🇰"];
   for (const flag of hongKongFlags) {
@@ -593,10 +597,11 @@ test("renders automatic and residential Japan, Korea, Taiwan, and Singapore AI p
   assert.deepEqual(group(plain, "🇨🇳 国内服务").proxies, standardProxyChoices);
   assert.equal(group(plain, "🇨🇳 国内服务")["default-selected"], "DIRECT");
   assert.ok(plain.rules.indexOf("RULE-SET,cn_services,🇨🇳 国内服务,no-resolve") < plain.rules.indexOf("RULE-SET,foreign_services,🌐 国外服务,no-resolve"));
-  assert.deepEqual(group(plain, "🤖 国际 AI").proxies, ["🇯🇵 日本家宽01"]);
+  assert.deepEqual(group(plain, "🤖 国际 AI").proxies, ["🇯🇵 日本家宽01", "🇹🇼 台湾01", "日本02"]);
   assert.equal(group(plain, "🤖 国际 AI").type, "fallback");
   assert.equal(group(plain, "🤖 国际 AI").url, "https://cp.cloudflare.com/generate_204");
-  assert.equal(group(plain, "🤖 国际 AI").interval, 300);
+  assert.equal(group(plain, "🤖 国际 AI").interval, 60);
+  assert.equal(group(plain, "🤖 国际 AI").lazy, false);
   assert.deepEqual(group(plain, developerGroup).proxies, standardProxyChoices);
   assert.equal(group(plain, developerGroup)["default-selected"], automaticGroup);
   assert.ok(plain.rules.indexOf("RULE-SET,dev_services,🧑‍💻 开发服务,no-resolve") < plain.rules.indexOf("RULE-SET,streaming_services,🎬 流媒体服务,no-resolve"));
@@ -719,14 +724,16 @@ test("renders ordinary and Android subscription artifacts with isolated Tailscal
   const androidAiGroup = config["proxy-groups"].find((group) => group.name === "🤖 国际 AI");
   assert.equal(androidAiGroup.type, "fallback");
   assert.equal(androidAiGroup.url, "https://cp.cloudflare.com/generate_204");
-  assert.equal(androidAiGroup.interval, 300);
-  assert.deepEqual(androidAiGroup.proxies, androidAiNodes);
+  assert.equal(androidAiGroup.interval, 60);
+  assert.equal(androidAiGroup.lazy, false);
+  assert.deepEqual(androidAiGroup.proxies, [...androidAiNodes, "日本02"]);
   const androidNoAiConfig = await androidMain(androidOptions)({ proxies: [{ name: "🇭🇰 香港01" }, { name: "US-West 01" }] });
   const androidNoAiGroup = androidNoAiConfig["proxy-groups"].find((group) => group.name === "🤖 国际 AI");
   assert.deepEqual(androidNoAiGroup.proxies, ["REJECT"]);
   assert.equal(androidNoAiGroup.type, "fallback");
   assert.equal(androidNoAiGroup.url, "https://cp.cloudflare.com/generate_204");
-  assert.equal(androidNoAiGroup.interval, 300);
+  assert.equal(androidNoAiGroup.interval, 60);
+  assert.equal(androidNoAiGroup.lazy, false);
   assert.equal(config["rule-providers"].direct.url, "https://rules.example.test/release/rules/direct.yaml");
   for (const options of [undefined, {}, { "tailscale-secret": "" }, { "tailscale-secret": null }, { "tailscale-secret": 42 }, { "tailscale-secret": {} }]) {
     await assert.rejects(
