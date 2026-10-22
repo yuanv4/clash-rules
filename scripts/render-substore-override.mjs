@@ -26,7 +26,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup, mo
   const adultContentGroup = "🔞 成人内容";
   const fallbackGroup = "🐟 漏网之鱼";
   const automaticGroup = proxyGroup;
-  const aiRegionPattern = String.raw`(?:🇯🇵|🇰🇷|🇹🇼|🇸🇬|日本|韩国|台灣|台湾|新加坡|Japan|South\s*Korea|Korea|Taiwan|Singapore|(?<![\p{L}\p{N}])(?:JP|JPN|KR|KOR|TW|TWN|SG|SGP)(?=$|[^\p{L}\p{N}]|\d))`;
+  const aiRegionPattern = String.raw`(?:🇯🇵|🇹🇼|🇸🇬|日本|台灣|台湾|新加坡|Japan|Taiwan|Singapore|(?<![\p{L}\p{N}])(?:JP|JPN|TW|TWN|SG|SGP)(?=$|[^\p{L}\p{N}]|\d))`;
   const aiResidentialPattern = String.raw`(?:家宽|家寬|住宅|Residential|(?<![\p{L}\p{N}])ISP(?![\p{L}\p{N}]))`;
   const aiExcludedRegionPattern = String.raw`(?:🇭🇰|🇲🇴|香港|澳门|澳門|Hong\s*Kong|Macao|Macau|(?<![\p{L}\p{N}])(?:HK|HKG|MO|MAC)(?=$|[^\p{L}\p{N}]|\d))`;
   const tailscaleGroup = "Tailscale";
@@ -157,7 +157,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup, mo
     `    { name: '${fallbackGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': 'DIRECT' },`,
     `    { name: '${tailscaleGroup}', type: 'select', proxies: tailscaleProxies, 'default-selected': tailscaleDefault },`,
     `    { name: '${domesticGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': 'DIRECT' },`,
-    `    { name: '${foreignAiGroup}', type: 'fallback', url: '${testUrl}', interval: 60, lazy: false, proxies: aiNames.length ? aiNames : ['REJECT'] },`,
+    `    { name: '${foreignAiGroup}', type: 'fallback', url: '${testUrl}', interval: 30, lazy: false, proxies: aiNames.length ? aiNames : ['REJECT'] },`,
     `    { name: '${developerGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': '${automaticGroup}' },`,
     `    { name: '${streamingGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': '${automaticGroup}' },`,
     `    { name: '${adBlockGroup}', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' },`,
