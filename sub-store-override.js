@@ -24,7 +24,7 @@ async function main(config = {}) {
     config.proxies.push(...injectedProxies);
   }
 
-  const names = config.proxies.map((p) => p.name);
+  const names = config.proxies.map((p) => p?.name);
   if (!names.length) throw new Error('Subscription has no proxies');
   const hongKongPattern = new RegExp("(?:\\u{1f1ed}\\u{1f1f0}|\\bHKG?(?=\\b|\\d)|Hong\\s*Kong|\\u9999\\u6E2F|\\u6E2F)", 'iu');
   const hongKongNames = names.filter((name) => hongKongPattern.test(name));
@@ -57,6 +57,13 @@ async function main(config = {}) {
   if (tailscaleInterfaceName) {
     config.proxies = config.proxies.filter((p) => !(p && p.name === 'TAILSCALE-DIRECT'));
     config.proxies.unshift({ name: 'TAILSCALE-DIRECT', type: 'direct', 'interface-name': tailscaleInterfaceName });
+  }
+
+  // Enable X25519MLKEM768 REALITY handshakes for Mihomo/FlClash compatibility with Xray 26.x.
+  for (const proxy of config.proxies) {
+    if (proxy !== null && typeof proxy === 'object' && proxy.type === 'vless' && proxy['reality-opts'] !== null && typeof proxy['reality-opts'] === 'object') {
+      proxy['reality-opts']['support-x25519mlkem768'] = true;
+    }
   }
 
   return config;
