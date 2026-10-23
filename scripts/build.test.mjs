@@ -225,11 +225,10 @@ test("sources.json removes domestic AI routing while preserving provider provena
   assert.equal(directProvider.behavior, "classical");
   assert.equal(directProvider.noResolve, true);
   assert.deepEqual(directProvider.inputs.map((input) => input.sourceUrl), [
-    "https://raw.githubusercontent.com/yuanv4/clash-rules/main/custom/tag.txt",
     "https://raw.githubusercontent.com/SukkaLab/ruleset.skk.moe/master/Clash/non_ip/lan.txt",
     "https://raw.githubusercontent.com/SukkaLab/ruleset.skk.moe/master/Clash/ip/lan.txt",
   ]);
-  assert.deepEqual(directProvider.inputs.map((input) => input.inputFormat), ["raw-list", "raw-list", "raw-list"]);
+  assert.deepEqual(directProvider.inputs.map((input) => input.inputFormat), ["raw-list", "raw-list"]);
   for (const name of ["google", "telegram", "steam", "microsoft", "apple"]) {
     assert.equal(providerNames.includes(name), false);
   }
@@ -344,9 +343,8 @@ test("sources.json removes domestic AI routing while preserving provider provena
   assert.ok(aiRendered.includes("# License 3 [MetaCubeX/meta-rules-dat]: GPL-3.0 (https://github.com/MetaCubeX/meta-rules-dat/blob/master/LICENSE)"));
 
   const directRendered = renderYaml(directProvider, []);
-  assert.ok(directRendered.includes("# Source 1 [custom/tag]:"));
+  assert.ok(directRendered.includes("# Source 1 [SukkaLab/ruleset.skk.moe]:"));
   assert.ok(directRendered.includes("# Source 2 [SukkaLab/ruleset.skk.moe]:"));
-  assert.ok(directRendered.includes("# Source 3 [SukkaLab/ruleset.skk.moe]:"));
   const foreignServicesRendered = renderYaml(foreignServicesProvider, []);
   assert.ok(foreignServicesRendered.includes("# Source 1 [MetaCubeX/meta-rules-dat]:"));
   assert.ok(foreignServicesRendered.includes("# Source 8 [MetaCubeX/meta-rules-dat]:"));
