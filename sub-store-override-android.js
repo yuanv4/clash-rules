@@ -5,16 +5,33 @@ async function main(config = {}) {
   const tailscaleSecret = runtimeOptions === undefined ? undefined : runtimeOptions['tailscale-secret'];
   if (typeof tailscaleSecret !== 'string' || tailscaleSecret.length === 0) throw new Error('Android subscription requires non-empty string $options[\u0027tailscale-secret\u0027]');
 
+  const nodeLinks = runtimeOptions === undefined ? undefined : runtimeOptions.links;
+  if (nodeLinks !== undefined && typeof nodeLinks !== 'string') throw new Error('$options.links must be a string');
+  if (typeof nodeLinks === 'string' && nodeLinks.trim()) {
+    if (typeof ProxyUtils === 'undefined' || typeof ProxyUtils.parse !== 'function') throw new Error('Node links require ProxyUtils.parse');
+    const injectedProxies = [];
+    const reservedNames = new Set(["DIRECT","REJECT","PASS","COMPATIBLE","TAILSCALE","Tailscale","🛑 广告过滤","🔞 成人内容","🇨🇳 国内服务","🌐 国外服务","🤖 国际 AI","🧑‍💻 开发服务","🎬 流媒体服务","🐟 漏网之鱼","♻️ 自动选择"]);
+    for (const [index, line] of nodeLinks.split(/\r?\n/).entries()) {
+      if (!line.trim()) continue;
+      if (!/^[a-z][a-z0-9+.-]*:\/\/\S+$/i.test(line.trim()) || /^https?:\/\//i.test(line.trim())) throw new Error('Invalid node link at line ' + (index + 1));
+      let parsed;
+      try { parsed = ProxyUtils.parse(line.trim()); } catch { throw new Error('Could not parse node link at line ' + (index + 1)); }
+      if (!Array.isArray(parsed) || parsed.length !== 1 || !parsed[0] || typeof parsed[0].name !== 'string' || !parsed[0].name.trim()) throw new Error('Node link at line ' + (index + 1) + ' must produce exactly one named proxy');
+      const name = parsed[0].name;
+      if (reservedNames.has(name) || config.proxies.some((proxy) => proxy && proxy.name === name) || injectedProxies.some((proxy) => proxy.name === name)) throw new Error('Duplicate or reserved node name at line ' + (index + 1));
+      injectedProxies.push(parsed[0]);
+    }
+    config.proxies.push(...injectedProxies);
+  }
+
   const names = config.proxies.map((p) => p.name);
   if (!names.length) throw new Error('Subscription has no proxies');
   const hongKongPattern = new RegExp("(?:\\u{1f1ed}\\u{1f1f0}|\\bHKG?(?=\\b|\\d)|Hong\\s*Kong|\\u9999\\u6E2F|\\u6E2F)", 'iu');
   const hongKongNames = names.filter((name) => hongKongPattern.test(name));
   if (!hongKongNames.length) throw new Error('Subscription has no Hong Kong proxies');
-  const aiRegionPattern = new RegExp("(?:\\u{1f1ef}\\u{1f1f5}|\\u{1f1f9}\\u{1f1fc}|\\u{1f1f8}\\u{1f1ec}|\\u65E5\\u672C|\\u53F0\\u7063|\\u53F0\\u6E7E|\\u65B0\\u52A0\\u5761|Japan|Taiwan|Singapore|(?<![\\p{L}\\p{N}])(?:JP|JPN|TW|TWN|SG|SGP)(?=$|[^\\p{L}\\p{N}]|\\d))", 'iu');
-  const aiResidentialPattern = new RegExp("(?:\\u5BB6\\u5BBD|\\u5BB6\\u5BEC|\\u4F4F\\u5B85|Residential|(?<![\\p{L}\\p{N}])ISP(?![\\p{L}\\p{N}]))", 'iu');
+  const aiRegionPattern = new RegExp("(?:\\u{1f1f8}\\u{1f1ec}|\\u65B0\\u52A0\\u5761|Singapore|(?<![\\p{L}\\p{N}])(?:SG|SGP)(?=$|[^\\p{L}\\p{N}]|\\d))", 'iu');
   const aiExcludedRegionPattern = new RegExp("(?:\\u{1f1ed}\\u{1f1f0}|\\u{1f1f2}\\u{1f1f4}|\\u9999\\u6E2F|\\u6FB3\\u95E8|\\u6FB3\\u9580|Hong\\s*Kong|Macao|Macau|(?<![\\p{L}\\p{N}])(?:HK|HKG|MO|MAC)(?=$|[^\\p{L}\\p{N}]|\\d))", 'iu');
-  const aiCandidates = names.filter((name) => aiRegionPattern.test(name) && !aiExcludedRegionPattern.test(name));
-  const aiNames = [...aiCandidates.filter((name) => aiResidentialPattern.test(name)), ...aiCandidates.filter((name) => !aiResidentialPattern.test(name))];
+  const aiNames = names.filter((name) => aiRegionPattern.test(name) && !aiExcludedRegionPattern.test(name));
   const tailscaleProxies = ['TAILSCALE'];
   const tailscaleDefault = 'TAILSCALE';
   const proxyGroups = [
@@ -23,7 +40,7 @@ async function main(config = {}) {
     { name: '🐟 漏网之鱼', type: 'select', proxies: ['DIRECT', '♻️ 自动选择'], 'default-selected': 'DIRECT' },
     { name: 'Tailscale', type: 'select', proxies: tailscaleProxies, 'default-selected': tailscaleDefault },
     { name: '🇨🇳 国内服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择'], 'default-selected': 'DIRECT' },
-    { name: '🤖 国际 AI', type: 'fallback', url: 'https://cp.cloudflare.com/generate_204', interval: 30, lazy: false, proxies: aiNames.length ? aiNames : ['REJECT'] },
+    { name: '🤖 国际 AI', type: 'select', proxies: aiNames.length ? aiNames : ['REJECT'] },
     { name: '🧑‍💻 开发服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择'], 'default-selected': '♻️ 自动选择' },
     { name: '🎬 流媒体服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择'], 'default-selected': '♻️ 自动选择' },
     { name: '🛑 广告过滤', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' },
