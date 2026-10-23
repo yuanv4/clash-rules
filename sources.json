@@ -33,16 +33,6 @@
       "input_format": "clash-yaml"
     },
     {
-      "name": "custom/tag",
-      "repository": "https://github.com/yuanv4/clash-rules",
-      "base_url": "https://raw.githubusercontent.com/yuanv4/clash-rules/main/",
-      "license": {
-        "id": "MIT",
-        "url": "https://github.com/yuanv4/clash-rules"
-      },
-      "input_format": "raw-list"
-    },
-    {
       "name": "TG-Twilight/AWAvenue-Ads-Rule",
       "repository": "https://github.com/TG-Twilight/AWAvenue-Ads-Rule",
       "base_url": "https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/",
@@ -59,7 +49,6 @@
       "target": "DIRECT",
       "no_resolve": true,
       "inputs": [
-        {"input": "custom/tag", "path": "custom/tag.txt"},
         {"input": "SukkaLab/ruleset.skk.moe", "path": "Clash/non_ip/lan.txt"},
         {"input": "SukkaLab/ruleset.skk.moe", "path": "Clash/ip/lan.txt"}
       ]
