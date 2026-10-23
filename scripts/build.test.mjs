@@ -828,6 +828,36 @@ test("injects validated share links before proxy-name and group selection in bot
   }
 });
 
+test("enables X25519MLKEM768 for VLESS REALITY proxies in both modes", async () => {
+  const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
+  const providers = [{ name: "direct", target: "DIRECT", noResolve: true }];
+  const run = (mode, config) => {
+    const options = mode === "android" ? { "tailscale-secret": "tskey-test", links: "vless://injected@sg.example" } : { links: "vless://injected@sg.example" };
+    const script = renderSubstoreOverride(providers, "https://rules.example.test/release", "♻️ 自动选择", mode);
+    const main = new Function("$options", "ProxyUtils", `${script}\nreturn main;`)(options, {
+      parse: () => [{ name: "Singapore injected", type: "vless", "reality-opts": {} }],
+    });
+    return main(config);
+  };
+
+  for (const mode of ["ordinary", "android"]) {
+    const reality = { name: "🇭🇰 香港 REALITY", type: "vless", "reality-opts": { servername: "example.test" } };
+    const noReality = { name: "no reality", type: "vless" };
+    const otherProtocol = { name: "other protocol", type: "ss", "reality-opts": { untouched: true } };
+    const nullEntry = null;
+    const malformedEntry = "malformed";
+    const result = await run(mode, { proxies: [reality, noReality, otherProtocol, nullEntry, malformedEntry] });
+
+    assert.equal(reality["reality-opts"]["support-x25519mlkem768"], true);
+    assert.equal(Object.hasOwn(noReality, "reality-opts"), false);
+    assert.deepEqual(otherProtocol["reality-opts"], { untouched: true });
+    assert.equal(result.proxies.includes(nullEntry), true);
+    assert.equal(result.proxies.includes(malformedEntry), true);
+    const injected = result.proxies.find((proxy) => proxy?.name === "Singapore injected");
+    assert.equal(injected["reality-opts"]["support-x25519mlkem768"], true);
+  }
+});
+
 test("orders proxy groups after merging foreign services", async () => {
   const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
   const developerGroup = "🧑‍💻 开发服务";
