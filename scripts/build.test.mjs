@@ -480,7 +480,7 @@ test("accepts ordinary percent-encoded paths and rejects over-limit nested encod
   );
 });
 
-test("renders automatic and residential-first Japan, Korea, Taiwan, and Singapore AI proxy topology", async () => {
+test("renders automatic selection and manual Singapore-only AI proxy", async () => {
   const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
   const providers = [
     { name: "direct", target: "DIRECT", noResolve: true },
@@ -552,21 +552,19 @@ test("renders automatic and residential-first Japan, Korea, Taiwan, and Singapor
   assert.ok(!JSON.stringify(plain).includes("节点选择(东亚)"));
   assert.ok(!JSON.stringify(plain).includes("负载均衡(台湾)"));
   const eligibleAiNodes = [
-    "🇯🇵 家宽01", "日本家宽02", "JP03 家宽", "JPN04 住宅", "Japan 05 Residential", "Residential JP06", "JP07 ISP",
-    "🇹🇼 台湾住宅01", "Taiwan 02 家宽", "TWN03 ISP",
-    "🇸🇬 新加坡家宽01", "Singapore 02 Residential", "SGP03 ISP",
+    "🇸🇬 新加坡家宽01", "Singapore 02 Residential", "SGP03 ISP", "SG04", "SGP05",
   ];
   const mixed = await buildConfig(makeEnv("yuanv4"), [
     "日本02", ...eligibleAiNodes, "🇰🇷 韩国家宽01", "韩国02 Residential", "South Korea 03 ISP", "KOR04", "韩国家宽但香港出口", "🇯🇵 香港家宽", "Singapore Macau ISP", "香港01", "台湾01", "US-West 01", "🇺🇸 美国住宅01", "USA Residential", "Network 01",
   ]);
-  assert.deepEqual(group(mixed, "🤖 国际 AI").proxies, [...eligibleAiNodes, "日本02", "台湾01"]);
-  const ordinaryAiNodes = ["🇯🇵 01", "TW03", "SG04", "Japan 05", "Taiwan 07", "Singapore 08"];
+  assert.deepEqual(group(mixed, "🤖 国际 AI").proxies, eligibleAiNodes);
+  const ordinaryAiNodes = ["🇸🇬 01", "SG03", "SGP04", "Singapore 05", "新加坡06"];
   const ordinaryOnly = await buildConfig(makeEnv("yuanv4"), ["香港01", ...ordinaryAiNodes, "美国住宅01"]);
   assert.deepEqual(group(ordinaryOnly, "🤖 国际 AI").proxies, ordinaryAiNodes);
-  assert.equal(group(mixed, "🤖 国际 AI").type, "fallback");
-  assert.equal(group(mixed, "🤖 国际 AI").url, "https://cp.cloudflare.com/generate_204");
-  assert.equal(group(mixed, "🤖 国际 AI").interval, 30);
-  assert.equal(group(mixed, "🤖 国际 AI").lazy, false);
+  assert.equal(group(mixed, "🤖 国际 AI").type, "select");
+  assert.equal("url" in group(mixed, "🤖 国际 AI"), false);
+  assert.equal("interval" in group(mixed, "🤖 国际 AI"), false);
+  assert.equal("lazy" in group(mixed, "🤖 国际 AI"), false);
   // Flag-only names must match in Bun as well as Node (Unicode regex mode).
   const hongKongFlags = ["🇭🇰"];
   for (const flag of hongKongFlags) {
@@ -597,11 +595,11 @@ test("renders automatic and residential-first Japan, Korea, Taiwan, and Singapor
   assert.deepEqual(group(plain, "🇨🇳 国内服务").proxies, standardProxyChoices);
   assert.equal(group(plain, "🇨🇳 国内服务")["default-selected"], "DIRECT");
   assert.ok(plain.rules.indexOf("RULE-SET,cn_services,🇨🇳 国内服务,no-resolve") < plain.rules.indexOf("RULE-SET,foreign_services,🌐 国外服务,no-resolve"));
-  assert.deepEqual(group(plain, "🤖 国际 AI").proxies, ["🇯🇵 日本家宽01", "🇹🇼 台湾01", "日本02"]);
-  assert.equal(group(plain, "🤖 国际 AI").type, "fallback");
-  assert.equal(group(plain, "🤖 国际 AI").url, "https://cp.cloudflare.com/generate_204");
-  assert.equal(group(plain, "🤖 国际 AI").interval, 30);
-  assert.equal(group(plain, "🤖 国际 AI").lazy, false);
+  assert.deepEqual(group(plain, "🤖 国际 AI").proxies, ["REJECT"]);
+  assert.equal(group(plain, "🤖 国际 AI").type, "select");
+  assert.equal("url" in group(plain, "🤖 国际 AI"), false);
+  assert.equal("interval" in group(plain, "🤖 国际 AI"), false);
+  assert.equal("lazy" in group(plain, "🤖 国际 AI"), false);
   assert.deepEqual(group(plain, developerGroup).proxies, standardProxyChoices);
   assert.equal(group(plain, developerGroup)["default-selected"], automaticGroup);
   assert.ok(plain.rules.indexOf("RULE-SET,dev_services,🧑‍💻 开发服务,no-resolve") < plain.rules.indexOf("RULE-SET,streaming_services,🎬 流媒体服务,no-resolve"));
@@ -712,7 +710,7 @@ test("renders ordinary and Android subscription artifacts with isolated Tailscal
   assert.doesNotMatch(androidScript, /\$file\.name|produceArtifact/);
   const androidOptions = { "tailscale-secret": "tskey-test" };
   const androidMain = (options) => new Function("$options", `${androidScript}\nreturn main;`)(options);
-  const androidAiNodes = ["🇰🇷 韩国住宅01", "Taiwan 02 ISP", "Korea 03 ISP", "KR04"];
+  const androidAiNodes = ["🇸🇬 新加坡住宅01", "Singapore 02 ISP", "SGP03"];
   const config = await androidMain(androidOptions)({ proxies: [
     { name: "🇭🇰 香港01" }, ...androidAiNodes.map((name) => ({ name })), { name: "日本02" }, { name: "🇸🇬 香港家宽" },
   ] });
@@ -722,18 +720,18 @@ test("renders ordinary and Android subscription artifacts with isolated Tailscal
   });
   assert.deepEqual(config["proxy-groups"].find((group) => group.name === "Tailscale").proxies, ["TAILSCALE"]);
   const androidAiGroup = config["proxy-groups"].find((group) => group.name === "🤖 国际 AI");
-  assert.equal(androidAiGroup.type, "fallback");
-  assert.equal(androidAiGroup.url, "https://cp.cloudflare.com/generate_204");
-  assert.equal(androidAiGroup.interval, 30);
-  assert.equal(androidAiGroup.lazy, false);
-  assert.deepEqual(androidAiGroup.proxies, ["Taiwan 02 ISP", "日本02"]);
+  assert.equal(androidAiGroup.type, "select");
+  assert.equal("url" in androidAiGroup, false);
+  assert.equal("interval" in androidAiGroup, false);
+  assert.equal("lazy" in androidAiGroup, false);
+  assert.deepEqual(androidAiGroup.proxies, androidAiNodes);
   const androidNoAiConfig = await androidMain(androidOptions)({ proxies: [{ name: "🇭🇰 香港01" }, { name: "US-West 01" }] });
   const androidNoAiGroup = androidNoAiConfig["proxy-groups"].find((group) => group.name === "🤖 国际 AI");
   assert.deepEqual(androidNoAiGroup.proxies, ["REJECT"]);
-  assert.equal(androidNoAiGroup.type, "fallback");
-  assert.equal(androidNoAiGroup.url, "https://cp.cloudflare.com/generate_204");
-  assert.equal(androidNoAiGroup.interval, 30);
-  assert.equal(androidNoAiGroup.lazy, false);
+  assert.equal(androidNoAiGroup.type, "select");
+  assert.equal("url" in androidNoAiGroup, false);
+  assert.equal("interval" in androidNoAiGroup, false);
+  assert.equal("lazy" in androidNoAiGroup, false);
   assert.equal(config["rule-providers"].direct.url, "https://rules.example.test/release/rules/direct.yaml");
   for (const options of [undefined, {}, { "tailscale-secret": "" }, { "tailscale-secret": null }, { "tailscale-secret": 42 }, { "tailscale-secret": {} }]) {
     await assert.rejects(
@@ -751,6 +749,83 @@ test("renders ordinary and Android subscription artifacts with isolated Tailscal
   );
   assert.deepEqual(ignoredLegacy.proxies[0], config.proxies[0]);
   assert.equal(artifactCalls, 0);
+});
+
+test("injects validated share links before proxy-name and group selection in both modes", async () => {
+  const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
+  const providers = [{ name: "direct", target: "DIRECT", noResolve: true }];
+  const run = (mode, options, config, parse = (uri) => [{ name: uri.includes("jp") ? "JP ISP injected" : "🇭🇰 香港01", type: "ss" }]) => {
+    const script = renderSubstoreOverride(providers, "https://rules.example.test/release", "♻️ 自动选择", mode);
+    const main = new Function("$options", "ProxyUtils", `${script}\nreturn main;`)(options, parse === null ? undefined : { parse });
+    return main(config);
+  };
+  const config = () => ({ proxies: [{ name: "🇭🇰 香港01" }] });
+  const optionsFor = (mode, links) => mode === "android" ? { "tailscale-secret": "tskey-test", links } : { links };
+
+  for (const mode of ["ordinary", "android"]) {
+    const calls = [];
+    const input = config();
+    const links = `  ss://credential@jp.example  ${String.fromCharCode(10)} vless://dummy@sg.example `;
+    const result = await run(mode, optionsFor(mode, links), input, (uri) => {
+      calls.push(uri);
+      return [{ name: uri.includes("jp") ? "JP ISP injected" : "Singapore ISP injected", type: "ss" }];
+    });
+    assert.deepEqual(calls, ["ss://credential@jp.example", "vless://dummy@sg.example"]);
+    assert.deepEqual(result.proxies.map((proxy) => proxy.name), mode === "android"
+      ? ["TAILSCALE", "🇭🇰 香港01", "JP ISP injected", "Singapore ISP injected"]
+      : ["🇭🇰 香港01", "JP ISP injected", "Singapore ISP injected"]);
+    assert.deepEqual(result["proxy-groups"].find((group) => group.name === "♻️ 自动选择").proxies, ["🇭🇰 香港01"]);
+    assert.deepEqual(result["proxy-groups"].find((group) => group.name === "🤖 国际 AI").proxies, ["Singapore ISP injected"]);
+
+    for (const links of [undefined, "", " \n\r\n"]) {
+      const unchanged = config();
+      const blankResult = await run(mode, optionsFor(mode, links), unchanged, null);
+      assert.equal(blankResult.proxies.some((proxy) => proxy.name === "JP ISP injected"), false);
+      assert.equal(blankResult.proxies.some((proxy) => proxy.name === "🇭🇰 香港01"), true);
+    }
+    for (const links of [42, null, {}]) {
+      const invalid = config();
+      const originalProxies = invalid.proxies;
+      await assert.rejects(run(mode, optionsFor(mode, links), invalid), (error) => error.message.includes("$options.links must be a string"));
+      assert.equal(invalid.proxies, originalProxies);
+    }
+  }
+
+  for (const mode of ["ordinary", "android"]) {
+    for (const [links, parse, error] of [
+      ["https://subscription.example/secret", undefined, /Invalid node link at line 1/],
+      ["ss://secret@jp.example", () => { throw new Error("parser secret"); }, /Could not parse node link at line 1/],
+      ["ss://secret@jp.example", () => [], /exactly one named proxy/],
+      ["ss://secret@jp.example", () => [{ name: "one" }, { name: "two" }], /exactly one named proxy/],
+      ["ss://secret@jp.example", () => ({ name: "one" }), /exactly one named proxy/],
+      ["ss://secret@jp.example", () => [{ type: "ss" }], /exactly one named proxy/],
+      ["ss://secret@jp.example", null, /ProxyUtils.parse/],
+    ]) {
+      const failed = config();
+      const before = structuredClone(failed);
+      await assert.rejects(run(mode, optionsFor(mode, links), failed, parse), (actual) => {
+        assert.match(actual.message, error);
+        assert.doesNotMatch(actual.message, /secret|parser secret/);
+        return true;
+      });
+      assert.deepEqual(failed, before);
+    }
+
+    for (const reservedName of ["🇭🇰 香港01", "DIRECT", "TAILSCALE", "Tailscale", "♻️ 自动选择", "🇨🇳 国内服务"]) {
+      const failed = config();
+      await assert.rejects(run(mode, optionsFor(mode, "ss://secret@jp.example"), failed, () => [{ name: reservedName }]), /Duplicate or reserved node name/);
+      assert.deepEqual(failed, config());
+    }
+    await assert.rejects(run(mode, optionsFor(mode, `ss://one@x.invalid${String.fromCharCode(10)}ss://two@x.invalid`), config(), () => [{ name: "Same name" }]), /Duplicate or reserved node name/);
+
+    const partial = config();
+    const before = structuredClone(partial);
+    await assert.rejects(run(mode, optionsFor(mode, `ss://first@x.invalid${String.fromCharCode(10)}ss://second@x.invalid`), partial, (uri) => {
+      if (uri.includes("second")) return [];
+      return [{ name: "First injected" }];
+    }), /Node link at line 2 must produce exactly one named proxy/);
+    assert.deepEqual(partial, before);
+  }
 });
 
 test("orders proxy groups after merging foreign services", async () => {

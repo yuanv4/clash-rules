@@ -26,8 +26,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup, mo
   const adultContentGroup = "🔞 成人内容";
   const fallbackGroup = "🐟 漏网之鱼";
   const automaticGroup = proxyGroup;
-  const aiRegionPattern = String.raw`(?:🇯🇵|🇹🇼|🇸🇬|日本|台灣|台湾|新加坡|Japan|Taiwan|Singapore|(?<![\p{L}\p{N}])(?:JP|JPN|TW|TWN|SG|SGP)(?=$|[^\p{L}\p{N}]|\d))`;
-  const aiResidentialPattern = String.raw`(?:家宽|家寬|住宅|Residential|(?<![\p{L}\p{N}])ISP(?![\p{L}\p{N}]))`;
+  const aiRegionPattern = String.raw`(?:🇸🇬|新加坡|Singapore|(?<![\p{L}\p{N}])(?:SG|SGP)(?=$|[^\p{L}\p{N}]|\d))`;
   const aiExcludedRegionPattern = String.raw`(?:🇭🇰|🇲🇴|香港|澳门|澳門|Hong\s*Kong|Macao|Macau|(?<![\p{L}\p{N}])(?:HK|HKG|MO|MAC)(?=$|[^\p{L}\p{N}]|\d))`;
   const tailscaleGroup = "Tailscale";
   const testUrl = "https://cp.cloudflare.com/generate_204";
@@ -106,6 +105,27 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup, mo
       "",
     );
   }
+  runtimeSetup.push(
+    "  const nodeLinks = runtimeOptions === undefined ? undefined : runtimeOptions.links;",
+    "  if (nodeLinks !== undefined && typeof nodeLinks !== 'string') throw new Error('$options.links must be a string');",
+    "  if (typeof nodeLinks === 'string' && nodeLinks.trim()) {",
+    "    if (typeof ProxyUtils === 'undefined' || typeof ProxyUtils.parse !== 'function') throw new Error('Node links require ProxyUtils.parse');",
+    "    const injectedProxies = [];",
+    `    const reservedNames = new Set(${JSON.stringify([...new Set(['DIRECT', 'REJECT', 'PASS', 'COMPATIBLE', 'TAILSCALE', ...(!isAndroid ? ['TAILSCALE-DIRECT'] : []), ...businessGroups, automaticGroup])])});`,
+    "    for (const [index, line] of nodeLinks.split(/\\r?\\n/).entries()) {",
+    "      if (!line.trim()) continue;",
+    "      if (!/^[a-z][a-z0-9+.-]*:\\/\\/\\S+$/i.test(line.trim()) || /^https?:\\/\\//i.test(line.trim())) throw new Error('Invalid node link at line ' + (index + 1));",
+    "      let parsed;",
+    "      try { parsed = ProxyUtils.parse(line.trim()); } catch { throw new Error('Could not parse node link at line ' + (index + 1)); }",
+    "      if (!Array.isArray(parsed) || parsed.length !== 1 || !parsed[0] || typeof parsed[0].name !== 'string' || !parsed[0].name.trim()) throw new Error('Node link at line ' + (index + 1) + ' must produce exactly one named proxy');",
+    "      const name = parsed[0].name;",
+    "      if (reservedNames.has(name) || config.proxies.some((proxy) => proxy && proxy.name === name) || injectedProxies.some((proxy) => proxy.name === name)) throw new Error('Duplicate or reserved node name at line ' + (index + 1));",
+    "      injectedProxies.push(parsed[0]);",
+    "    }",
+    "    config.proxies.push(...injectedProxies);",
+    "  }",
+    "",
+  );
 
   const tailscaleNodeSetup = [];
   if (isAndroid) {
@@ -140,10 +160,8 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup, mo
     "  const hongKongNames = names.filter((name) => hongKongPattern.test(name));",
     "  if (!hongKongNames.length) throw new Error('Subscription has no Hong Kong proxies');",
     `  const aiRegionPattern = new RegExp(${JSON.stringify(aiRegionPattern)}, 'iu');`,
-    `  const aiResidentialPattern = new RegExp(${JSON.stringify(aiResidentialPattern)}, 'iu');`,
     `  const aiExcludedRegionPattern = new RegExp(${JSON.stringify(aiExcludedRegionPattern)}, 'iu');`,
-    "  const aiCandidates = names.filter((name) => aiRegionPattern.test(name) && !aiExcludedRegionPattern.test(name));",
-    "  const aiNames = [...aiCandidates.filter((name) => aiResidentialPattern.test(name)), ...aiCandidates.filter((name) => !aiResidentialPattern.test(name))];",
+    "  const aiNames = names.filter((name) => aiRegionPattern.test(name) && !aiExcludedRegionPattern.test(name));",
     ...(!isAndroid ? [
       "  const tailscaleProxies = tailscaleInterfaceName ? ['TAILSCALE-DIRECT'] : ['DIRECT'];",
       "  const tailscaleDefault = tailscaleInterfaceName ? 'TAILSCALE-DIRECT' : 'DIRECT';",
@@ -157,7 +175,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup, mo
     `    { name: '${fallbackGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': 'DIRECT' },`,
     `    { name: '${tailscaleGroup}', type: 'select', proxies: tailscaleProxies, 'default-selected': tailscaleDefault },`,
     `    { name: '${domesticGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': 'DIRECT' },`,
-    `    { name: '${foreignAiGroup}', type: 'fallback', url: '${testUrl}', interval: 30, lazy: false, proxies: aiNames.length ? aiNames : ['REJECT'] },`,
+    `    { name: '${foreignAiGroup}', type: 'select', proxies: aiNames.length ? aiNames : ['REJECT'] },`,
     `    { name: '${developerGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': '${automaticGroup}' },`,
     `    { name: '${streamingGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': '${automaticGroup}' },`,
     `    { name: '${adBlockGroup}', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' },`,
