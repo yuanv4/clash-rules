@@ -40,7 +40,7 @@ async function main(config = {}) {
     { name: '🐟 漏网之鱼', type: 'select', proxies: ['DIRECT', '♻️ 自动选择'], 'default-selected': 'DIRECT' },
     { name: 'Tailscale', type: 'select', proxies: tailscaleProxies, 'default-selected': tailscaleDefault },
     { name: '🇨🇳 国内服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择'], 'default-selected': 'DIRECT' },
-    { name: '🤖 国际 AI', type: 'url-test', url: 'https://cp.cloudflare.com/generate_204', interval: 60, tolerance: 50, proxies: aiNames.length ? aiNames : ['REJECT'] },
+    { name: '🤖 国际 AI', type: 'url-test', url: 'https://chatgpt.com/', 'expected-status': 200, interval: 300, timeout: 5000, tolerance: 50, lazy: false, proxies: aiNames.length ? aiNames : ['REJECT'] },
     { name: '🧑‍💻 开发服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择'], 'default-selected': '♻️ 自动选择' },
     { name: '🎬 流媒体服务', type: 'select', proxies: ['DIRECT', '♻️ 自动选择'], 'default-selected': '♻️ 自动选择' },
     { name: '🛑 广告过滤', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' },
