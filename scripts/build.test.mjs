@@ -478,7 +478,7 @@ test("accepts ordinary percent-encoded paths and rejects over-limit nested encod
   );
 });
 
-test("renders automatic selection and manual Singapore-only AI proxy", async () => {
+test("renders automatic selection and Japan/Taiwan/Singapore AI proxy", async () => {
   const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
   const providers = [
     { name: "direct", target: "DIRECT", noResolve: true },
@@ -555,10 +555,12 @@ test("renders automatic selection and manual Singapore-only AI proxy", async () 
   const mixed = await buildConfig(makeEnv("yuanv4"), [
     "日本02", ...eligibleAiNodes, "🇰🇷 韩国家宽01", "韩国02 Residential", "South Korea 03 ISP", "KOR04", "韩国家宽但香港出口", "🇯🇵 香港家宽", "Singapore Macau ISP", "香港01", "台湾01", "US-West 01", "🇺🇸 美国住宅01", "USA Residential", "Network 01",
   ]);
-  assert.deepEqual(group(mixed, "🤖 国际 AI").proxies, eligibleAiNodes);
+  assert.deepEqual(group(mixed, "🤖 国际 AI").proxies, ["日本02", ...eligibleAiNodes, "台湾01"]);
   const ordinaryAiNodes = ["🇸🇬 01", "SG03", "SGP04", "Singapore 05", "新加坡06"];
   const ordinaryOnly = await buildConfig(makeEnv("yuanv4"), ["香港01", ...ordinaryAiNodes, "美国住宅01"]);
   assert.deepEqual(group(ordinaryOnly, "🤖 国际 AI").proxies, ordinaryAiNodes);
+  const cityMixed = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 香港01", "东京01", "大阪02", "台北03", "首尔04"]);
+  assert.deepEqual(group(cityMixed, "🤖 国际 AI").proxies, ["东京01", "大阪02", "台北03"]);
   assert.equal(group(mixed, "🤖 国际 AI").type, "url-test");
   assert.equal(group(mixed, "🤖 国际 AI").url, "https://cp.cloudflare.com/generate_204");
   assert.equal(group(mixed, "🤖 国际 AI").interval, 60);
@@ -595,7 +597,7 @@ test("renders automatic selection and manual Singapore-only AI proxy", async () 
   assert.deepEqual(group(plain, "🇨🇳 国内服务").proxies, standardProxyChoices);
   assert.equal(group(plain, "🇨🇳 国内服务")["default-selected"], "DIRECT");
   assert.ok(plain.rules.indexOf("RULE-SET,cn_services,🇨🇳 国内服务,no-resolve") < plain.rules.indexOf("RULE-SET,foreign_services,🌐 国外服务,no-resolve"));
-  assert.deepEqual(group(plain, "🤖 国际 AI").proxies, ["REJECT"]);
+  assert.deepEqual(group(plain, "🤖 国际 AI").proxies, ["🇹🇼 台湾01", "🇯🇵 日本家宽01", "日本02"]);
   assert.equal(group(plain, "🤖 国际 AI").type, "url-test");
   assert.equal(group(plain, "🤖 国际 AI").url, "https://cp.cloudflare.com/generate_204");
   assert.equal(group(plain, "🤖 国际 AI").interval, 60);
@@ -728,7 +730,7 @@ test("renders ordinary and Android subscription artifacts with isolated Tailscal
   assert.equal(androidAiGroup.tolerance, 50);
   assert.equal("timeout" in androidAiGroup, false);
   assert.equal("lazy" in androidAiGroup, false);
-  assert.deepEqual(androidAiGroup.proxies, androidAiNodes);
+  assert.deepEqual(androidAiGroup.proxies, [...androidAiNodes, "日本02"]);
   const androidNoAiConfig = await androidMain(androidOptions)({ proxies: [{ name: "🇭🇰 香港01" }, { name: "US-West 01" }] });
   const androidNoAiGroup = androidNoAiConfig["proxy-groups"].find((group) => group.name === "🤖 国际 AI");
   assert.deepEqual(androidNoAiGroup.proxies, ["REJECT"]);
@@ -781,7 +783,7 @@ test("injects validated share links before proxy-name and group selection in bot
       ? ["TAILSCALE", "🇭🇰 香港01", "JP ISP injected", "Singapore ISP injected"]
       : ["🇭🇰 香港01", "JP ISP injected", "Singapore ISP injected"]);
     assert.deepEqual(result["proxy-groups"].find((group) => group.name === "♻️ 自动选择").proxies, ["🇭🇰 香港01"]);
-    assert.deepEqual(result["proxy-groups"].find((group) => group.name === "🤖 国际 AI").proxies, ["Singapore ISP injected"]);
+    assert.deepEqual(result["proxy-groups"].find((group) => group.name === "🤖 国际 AI").proxies, ["JP ISP injected", "Singapore ISP injected"]);
 
     for (const links of [undefined, "", " \n\r\n"]) {
       const unchanged = config();
