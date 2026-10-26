@@ -564,7 +564,7 @@ test("renders automatic selection and Japan/Taiwan/Singapore AI proxy", async ()
   assert.equal(group(mixed, "🤖 国际 AI").type, "url-test");
   assert.equal(group(mixed, "🤖 国际 AI").url, "https://chatgpt.com/");
   assert.equal(group(mixed, "🤖 国际 AI")["expected-status"], 200);
-  assert.equal(group(mixed, "🤖 国际 AI").interval, 300);
+  assert.equal(group(mixed, "🤖 国际 AI").interval, 90);
   assert.equal(group(mixed, "🤖 国际 AI").timeout, 5000);
   assert.equal(group(mixed, "🤖 国际 AI").tolerance, 50);
   assert.equal(group(mixed, "🤖 国际 AI").lazy, false);
@@ -602,7 +602,7 @@ test("renders automatic selection and Japan/Taiwan/Singapore AI proxy", async ()
   assert.equal(group(plain, "🤖 国际 AI").type, "url-test");
   assert.equal(group(plain, "🤖 国际 AI").url, "https://chatgpt.com/");
   assert.equal(group(plain, "🤖 国际 AI")["expected-status"], 200);
-  assert.equal(group(plain, "🤖 国际 AI").interval, 300);
+  assert.equal(group(plain, "🤖 国际 AI").interval, 90);
   assert.equal(group(plain, "🤖 国际 AI").timeout, 5000);
   assert.equal(group(plain, "🤖 国际 AI").tolerance, 50);
   assert.equal(group(plain, "🤖 国际 AI").lazy, false);
@@ -729,7 +729,7 @@ test("renders ordinary and Android subscription artifacts with isolated Tailscal
   assert.equal(androidAiGroup.type, "url-test");
   assert.equal(androidAiGroup.url, "https://chatgpt.com/");
   assert.equal(androidAiGroup["expected-status"], 200);
-  assert.equal(androidAiGroup.interval, 300);
+  assert.equal(androidAiGroup.interval, 90);
   assert.equal(androidAiGroup.timeout, 5000);
   assert.equal(androidAiGroup.tolerance, 50);
   assert.equal(androidAiGroup.lazy, false);
@@ -740,7 +740,7 @@ test("renders ordinary and Android subscription artifacts with isolated Tailscal
   assert.equal(androidNoAiGroup.type, "url-test");
   assert.equal(androidNoAiGroup.url, "https://chatgpt.com/");
   assert.equal(androidNoAiGroup["expected-status"], 200);
-  assert.equal(androidNoAiGroup.interval, 300);
+  assert.equal(androidNoAiGroup.interval, 90);
   assert.equal(androidNoAiGroup.timeout, 5000);
   assert.equal(androidNoAiGroup.tolerance, 50);
   assert.equal(androidNoAiGroup.lazy, false);
