@@ -30,6 +30,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup, mo
   const aiExcludedRegionPattern = String.raw`(?:🇭🇰|🇲🇴|香港|澳门|澳門|Hong\s*Kong|Macao|Macau|(?<![\p{L}\p{N}])(?:HK|HKG|MO|MAC)(?=$|[^\p{L}\p{N}]|\d))`;
   const tailscaleGroup = "Tailscale";
   const testUrl = "https://cp.cloudflare.com/generate_204";
+  const aiTestUrl = "https://chatgpt.com/";
   const hongKongNodePattern = String.raw`(?:🇭🇰|\bHKG?(?=\b|\d)|Hong\s*Kong|香港|港)`;
 
   const ruleProviders = Object.fromEntries(
@@ -175,7 +176,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup, mo
     `    { name: '${fallbackGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': 'DIRECT' },`,
     `    { name: '${tailscaleGroup}', type: 'select', proxies: tailscaleProxies, 'default-selected': tailscaleDefault },`,
     `    { name: '${domesticGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': 'DIRECT' },`,
-    `    { name: '${foreignAiGroup}', type: 'url-test', url: '${testUrl}', interval: 60, tolerance: 50, proxies: aiNames.length ? aiNames : ['REJECT'] },`,
+    `    { name: '${foreignAiGroup}', type: 'url-test', url: '${aiTestUrl}', 'expected-status': 200, interval: 300, timeout: 5000, tolerance: 50, lazy: false, proxies: aiNames.length ? aiNames : ['REJECT'] },`,
     `    { name: '${developerGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': '${automaticGroup}' },`,
     `    { name: '${streamingGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': '${automaticGroup}' },`,
     `    { name: '${adBlockGroup}', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' },`,

@@ -562,11 +562,12 @@ test("renders automatic selection and Japan/Taiwan/Singapore AI proxy", async ()
   const cityMixed = await buildConfig(makeEnv("yuanv4"), ["🇭🇰 香港01", "东京01", "大阪02", "台北03", "首尔04"]);
   assert.deepEqual(group(cityMixed, "🤖 国际 AI").proxies, ["东京01", "大阪02", "台北03"]);
   assert.equal(group(mixed, "🤖 国际 AI").type, "url-test");
-  assert.equal(group(mixed, "🤖 国际 AI").url, "https://cp.cloudflare.com/generate_204");
-  assert.equal(group(mixed, "🤖 国际 AI").interval, 60);
+  assert.equal(group(mixed, "🤖 国际 AI").url, "https://chatgpt.com/");
+  assert.equal(group(mixed, "🤖 国际 AI")["expected-status"], 200);
+  assert.equal(group(mixed, "🤖 国际 AI").interval, 300);
+  assert.equal(group(mixed, "🤖 国际 AI").timeout, 5000);
   assert.equal(group(mixed, "🤖 国际 AI").tolerance, 50);
-  assert.equal("timeout" in group(mixed, "🤖 国际 AI"), false);
-  assert.equal("lazy" in group(mixed, "🤖 国际 AI"), false);
+  assert.equal(group(mixed, "🤖 国际 AI").lazy, false);
   // Flag-only names must match in Bun as well as Node (Unicode regex mode).
   const hongKongFlags = ["🇭🇰"];
   for (const flag of hongKongFlags) {
@@ -599,11 +600,12 @@ test("renders automatic selection and Japan/Taiwan/Singapore AI proxy", async ()
   assert.ok(plain.rules.indexOf("RULE-SET,cn_services,🇨🇳 国内服务,no-resolve") < plain.rules.indexOf("RULE-SET,foreign_services,🌐 国外服务,no-resolve"));
   assert.deepEqual(group(plain, "🤖 国际 AI").proxies, ["🇹🇼 台湾01", "🇯🇵 日本家宽01", "日本02"]);
   assert.equal(group(plain, "🤖 国际 AI").type, "url-test");
-  assert.equal(group(plain, "🤖 国际 AI").url, "https://cp.cloudflare.com/generate_204");
-  assert.equal(group(plain, "🤖 国际 AI").interval, 60);
+  assert.equal(group(plain, "🤖 国际 AI").url, "https://chatgpt.com/");
+  assert.equal(group(plain, "🤖 国际 AI")["expected-status"], 200);
+  assert.equal(group(plain, "🤖 国际 AI").interval, 300);
+  assert.equal(group(plain, "🤖 国际 AI").timeout, 5000);
   assert.equal(group(plain, "🤖 国际 AI").tolerance, 50);
-  assert.equal("timeout" in group(plain, "🤖 国际 AI"), false);
-  assert.equal("lazy" in group(plain, "🤖 国际 AI"), false);
+  assert.equal(group(plain, "🤖 国际 AI").lazy, false);
   assert.deepEqual(group(plain, developerGroup).proxies, standardProxyChoices);
   assert.equal(group(plain, developerGroup)["default-selected"], automaticGroup);
   assert.ok(plain.rules.indexOf("RULE-SET,dev_services,🧑‍💻 开发服务,no-resolve") < plain.rules.indexOf("RULE-SET,streaming_services,🎬 流媒体服务,no-resolve"));
@@ -725,21 +727,23 @@ test("renders ordinary and Android subscription artifacts with isolated Tailscal
   assert.deepEqual(config["proxy-groups"].find((group) => group.name === "Tailscale").proxies, ["TAILSCALE"]);
   const androidAiGroup = config["proxy-groups"].find((group) => group.name === "🤖 国际 AI");
   assert.equal(androidAiGroup.type, "url-test");
-  assert.equal(androidAiGroup.url, "https://cp.cloudflare.com/generate_204");
-  assert.equal(androidAiGroup.interval, 60);
+  assert.equal(androidAiGroup.url, "https://chatgpt.com/");
+  assert.equal(androidAiGroup["expected-status"], 200);
+  assert.equal(androidAiGroup.interval, 300);
+  assert.equal(androidAiGroup.timeout, 5000);
   assert.equal(androidAiGroup.tolerance, 50);
-  assert.equal("timeout" in androidAiGroup, false);
-  assert.equal("lazy" in androidAiGroup, false);
+  assert.equal(androidAiGroup.lazy, false);
   assert.deepEqual(androidAiGroup.proxies, [...androidAiNodes, "日本02"]);
   const androidNoAiConfig = await androidMain(androidOptions)({ proxies: [{ name: "🇭🇰 香港01" }, { name: "US-West 01" }] });
   const androidNoAiGroup = androidNoAiConfig["proxy-groups"].find((group) => group.name === "🤖 国际 AI");
   assert.deepEqual(androidNoAiGroup.proxies, ["REJECT"]);
   assert.equal(androidNoAiGroup.type, "url-test");
-  assert.equal(androidNoAiGroup.url, "https://cp.cloudflare.com/generate_204");
-  assert.equal(androidNoAiGroup.interval, 60);
+  assert.equal(androidNoAiGroup.url, "https://chatgpt.com/");
+  assert.equal(androidNoAiGroup["expected-status"], 200);
+  assert.equal(androidNoAiGroup.interval, 300);
+  assert.equal(androidNoAiGroup.timeout, 5000);
   assert.equal(androidNoAiGroup.tolerance, 50);
-  assert.equal("timeout" in androidNoAiGroup, false);
-  assert.equal("lazy" in androidNoAiGroup, false);
+  assert.equal(androidNoAiGroup.lazy, false);
   assert.equal(config["rule-providers"].direct.url, "https://rules.example.test/release/rules/direct.yaml");
   for (const options of [undefined, {}, { "tailscale-secret": "" }, { "tailscale-secret": null }, { "tailscale-secret": 42 }, { "tailscale-secret": {} }]) {
     await assert.rejects(
