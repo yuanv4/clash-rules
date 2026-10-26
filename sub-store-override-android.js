@@ -29,7 +29,7 @@ async function main(config = {}) {
   const hongKongPattern = new RegExp("(?:\\u{1f1ed}\\u{1f1f0}|\\bHKG?(?=\\b|\\d)|Hong\\s*Kong|\\u9999\\u6E2F|\\u6E2F)", 'iu');
   const hongKongNames = names.filter((name) => hongKongPattern.test(name));
   if (!hongKongNames.length) throw new Error('Subscription has no Hong Kong proxies');
-  const aiRegionPattern = new RegExp("(?:\\u{1f1f8}\\u{1f1ec}|\\u65B0\\u52A0\\u5761|Singapore|(?<![\\p{L}\\p{N}])(?:SG|SGP)(?=$|[^\\p{L}\\p{N}]|\\d))", 'iu');
+  const aiRegionPattern = new RegExp("(?:\\u{1f1ef}\\u{1f1f5}|\\u{1f1f9}\\u{1f1fc}|\\u{1f1f8}\\u{1f1ec}|\\u65E5\\u672C|\\u6771\\u4EAC|\\u4E1C\\u4EAC|\\u5927\\u962A|\\u53F0\\u7063|\\u53F0\\u6E7E|\\u53F0\\u5317|\\u65B0\\u52A0\\u5761|Japan|Tokyo|Osaka|Taiwan|Taipei|Singapore|(?<![\\p{L}\\p{N}])(?:JP|JPN|TW|TWN|SG|SGP)(?=$|[^\\p{L}\\p{N}]|\\d))", 'iu');
   const aiExcludedRegionPattern = new RegExp("(?:\\u{1f1ed}\\u{1f1f0}|\\u{1f1f2}\\u{1f1f4}|\\u9999\\u6E2F|\\u6FB3\\u95E8|\\u6FB3\\u9580|Hong\\s*Kong|Macao|Macau|(?<![\\p{L}\\p{N}])(?:HK|HKG|MO|MAC)(?=$|[^\\p{L}\\p{N}]|\\d))", 'iu');
   const aiNames = names.filter((name) => aiRegionPattern.test(name) && !aiExcludedRegionPattern.test(name));
   const tailscaleProxies = ['TAILSCALE'];
