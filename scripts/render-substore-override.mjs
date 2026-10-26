@@ -26,7 +26,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup, mo
   const adultContentGroup = "🔞 成人内容";
   const fallbackGroup = "🐟 漏网之鱼";
   const automaticGroup = proxyGroup;
-  const aiRegionPattern = String.raw`(?:🇸🇬|新加坡|Singapore|(?<![\p{L}\p{N}])(?:SG|SGP)(?=$|[^\p{L}\p{N}]|\d))`;
+  const aiRegionPattern = String.raw`(?:🇯🇵|🇹🇼|🇸🇬|日本|東京|东京|大阪|台灣|台湾|台北|新加坡|Japan|Tokyo|Osaka|Taiwan|Taipei|Singapore|(?<![\p{L}\p{N}])(?:JP|JPN|TW|TWN|SG|SGP)(?=$|[^\p{L}\p{N}]|\d))`;
   const aiExcludedRegionPattern = String.raw`(?:🇭🇰|🇲🇴|香港|澳门|澳門|Hong\s*Kong|Macao|Macau|(?<![\p{L}\p{N}])(?:HK|HKG|MO|MAC)(?=$|[^\p{L}\p{N}]|\d))`;
   const tailscaleGroup = "Tailscale";
   const testUrl = "https://cp.cloudflare.com/generate_204";
