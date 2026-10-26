@@ -176,7 +176,7 @@ export const renderSubstoreOverride = (providers, releaseBaseUrl, proxyGroup, mo
     `    { name: '${fallbackGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': 'DIRECT' },`,
     `    { name: '${tailscaleGroup}', type: 'select', proxies: tailscaleProxies, 'default-selected': tailscaleDefault },`,
     `    { name: '${domesticGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': 'DIRECT' },`,
-    `    { name: '${foreignAiGroup}', type: 'url-test', url: '${aiTestUrl}', 'expected-status': 200, interval: 300, timeout: 5000, tolerance: 50, lazy: false, proxies: aiNames.length ? aiNames : ['REJECT'] },`,
+    `    { name: '${foreignAiGroup}', type: 'url-test', url: '${aiTestUrl}', 'expected-status': 200, interval: 90, timeout: 5000, tolerance: 50, lazy: false, proxies: aiNames.length ? aiNames : ['REJECT'] },`,
     `    { name: '${developerGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': '${automaticGroup}' },`,
     `    { name: '${streamingGroup}', type: 'select', proxies: ['DIRECT', '${automaticGroup}'], 'default-selected': '${automaticGroup}' },`,
     `    { name: '${adBlockGroup}', type: 'select', proxies: ['REJECT', 'DIRECT'], 'default-selected': 'REJECT' },`,
