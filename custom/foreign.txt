@@ -1,0 +1,2 @@
+# 69shuba — Chinese web novel site; direct access is blocked, so route it through the proxy.
+DOMAIN-SUFFIX,69shuba.com
