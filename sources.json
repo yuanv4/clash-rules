@@ -41,6 +41,16 @@
         "url": "https://github.com/TG-Twilight/AWAvenue-Ads-Rule/blob/main/LICENSE"
       },
       "input_format": "clash-yaml"
+    },
+    {
+      "name": "yuanv4/clash-rules",
+      "repository": "https://github.com/yuanv4/clash-rules",
+      "base_url": "https://raw.githubusercontent.com/yuanv4/clash-rules/release/",
+      "license": {
+        "id": "MIT",
+        "url": "https://spdx.org/licenses/MIT.html"
+      },
+      "input_format": "raw-list"
     }
   ],
   "providers": [
@@ -130,7 +140,8 @@
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/steam.yaml"},
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/microsoft.yaml"},
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/apple.yaml"},
-        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/geolocation-!cn.yaml"}
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/geolocation-!cn.yaml"},
+        {"input": "yuanv4/clash-rules", "path": "custom/foreign.txt"}
       ]
     }
   ]

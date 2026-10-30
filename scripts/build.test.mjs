@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { test } from "bun:test";
 import {
+  loadSource,
   mergeRules,
   normalizeConfiguration,
   parseRules,
@@ -12,6 +14,24 @@ import {
 } from "./build.mjs";
 
 const sourceUrl = "https://example.test/rules";
+
+test("loads the checkout custom rules and merges them with remote rules", async () => {
+  const config = JSON.parse(await readFile(new URL("../sources.json", import.meta.url), "utf8"));
+  const provider = normalizeConfiguration(config).providers.find(({ name }) => name === "foreign_services");
+  const custom = provider.inputs.at(-1);
+  const text = await loadSource(custom, () => { throw new Error("custom source must not fetch"); });
+  const remote = provider.inputs[0];
+  const remoteText = await loadSource(remote, (url) => {
+    assert.equal(url, remote.sourceUrl);
+    return "payload:\n  - DOMAIN,remote.example\n  - DOMAIN,remote.example\n";
+  });
+  const rules = mergeRules([parseRules(remoteText, remote.sourceUrl, remote.inputFormat), parseRules(text, custom.sourceUrl, custom.inputFormat)]);
+  assert.deepEqual(rules.map(serializeRule), ["DOMAIN,remote.example", "DOMAIN-SUFFIX,69shuba.com"]);
+  const output = renderYaml(provider, rules);
+  assert.ok(output.includes(custom.sourceUrl));
+  assert.equal((output.match(/DOMAIN-SUFFIX,69shuba\.com/g) ?? []).length, 1);
+  assert.ok(output.includes("DOMAIN,remote.example"));
+});
 
 test("parses raw lists into canonical rules with stable deduplication", () => {
   const rules = parseRules(
@@ -322,10 +342,15 @@ test("sources.json removes domestic AI routing while preserving provider provena
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/microsoft.yaml",
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/apple.yaml",
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/geolocation-!cn.yaml",
+    "https://raw.githubusercontent.com/yuanv4/clash-rules/release/custom/foreign.txt",
   ]);
   assert.deepEqual(foreignServicesProvider.inputs.map((input) => input.inputFormat), [
-    "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml",
+    "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "raw-list",
   ]);
+  assert.equal(foreignServicesProvider.inputs[8].sourceRepository, "https://github.com/yuanv4/clash-rules");
+  assert.equal(foreignServicesProvider.inputs[8].license.id, "MIT");
+  assert.equal(foreignServicesProvider.inputs[8].license.url, "https://spdx.org/licenses/MIT.html");
+
   assert.equal(config.inputs.some((input) => input.name === "Loyalsoldier/clash-rules"), false);
 
   const rejectRendered = renderYaml(rejectProvider, []);
@@ -349,6 +374,8 @@ test("sources.json removes domestic AI routing while preserving provider provena
   assert.ok(foreignServicesRendered.includes("# Source 1 [MetaCubeX/meta-rules-dat]:"));
   assert.ok(foreignServicesRendered.includes("# Source 8 [MetaCubeX/meta-rules-dat]:"));
   assert.ok(foreignServicesRendered.includes("geo/geosite/geolocation-!cn.yaml"));
+  assert.ok(foreignServicesRendered.includes("# Source 9 [yuanv4/clash-rules]: https://github.com/yuanv4/clash-rules (https://raw.githubusercontent.com/yuanv4/clash-rules/release/custom/foreign.txt)"));
+  assert.ok(foreignServicesRendered.includes("# License 9 [yuanv4/clash-rules]: MIT (https://spdx.org/licenses/MIT.html)"));
 });
 
 test("merges inputs with first-occurrence canonical deduplication", () => {
