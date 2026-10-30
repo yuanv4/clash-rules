@@ -12,6 +12,7 @@ on:
       - "scripts/build.test.mjs"
       - "scripts/render-*.mjs"
       - "sources.json"
+      - "custom/**"
   schedule:
     - cron: "30 22 * * *"
 
@@ -53,14 +54,20 @@ jobs:
           trap 'git worktree remove --force "$release_worktree"' EXIT
 
           git -C "$release_worktree" rm -r -- .
-          mkdir -p "$release_worktree/rules"
+          mkdir -p "$release_worktree/rules" "$release_worktree/custom"
           shopt -s nullglob
           provider_files=(dist/rules/*.yaml dist/rules/*.txt)
           if [[ "${#provider_files[@]}" -eq 0 ]]; then
             echo "No rule provider artifacts found." >&2
             exit 1
           fi
+          custom_files=(custom/*.txt)
+          if [[ "${#custom_files[@]}" -eq 0 ]]; then
+            echo "No custom source files found." >&2
+            exit 1
+          fi
           cp -- "${provider_files[@]}" "$release_worktree/rules/"
+          cp -- "${custom_files[@]}" "$release_worktree/custom/"
           override_files=(dist/sub-store-override*.js)
           if [[ "${#override_files[@]}" -ne 2 ]]; then
             echo "Expected exactly 2 sub-store override artifacts, found ${#override_files[@]}." >&2
@@ -71,7 +78,8 @@ jobs:
           git -C "$release_worktree" add -A
           mapfile -d '' -t tracked_files < <(git -C "$release_worktree" ls-files --cached -z)
           provider_count=${#provider_files[@]}
-          expected_count=$((provider_count + 2))
+          custom_count=${#custom_files[@]}
+          expected_count=$((provider_count + custom_count + 2))
           if [[ "${#tracked_files[@]}" -ne $expected_count ]]; then
             echo "Expected exactly ${expected_count} tracked publication artifacts, found ${#tracked_files[@]}." >&2
             exit 1
@@ -79,6 +87,7 @@ jobs:
           for tracked_file in "${tracked_files[@]}"; do
             case "$tracked_file" in
               rules/*.yaml|rules/*.txt) ;;
+              custom/*.txt) ;;
               sub-store-override.js|sub-store-override-android.js) ;;
               *)
                 echo "Unexpected tracked release artifact: $tracked_file" >&2

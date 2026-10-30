@@ -415,6 +415,13 @@ const fetchSource = async (url) => {
   throw new Error(`Failed to fetch ${url}: ${lastError.message}`);
 };
 
+// Only the configured custom source is local; never derive a filesystem path from a URL.
+export const loadSource = (input, fetch = fetchSource) =>
+  input.inputName === "yuanv4/clash-rules" &&
+  input.sourceUrl === "https://raw.githubusercontent.com/yuanv4/clash-rules/release/custom/foreign.txt"
+    ? fs.readFile(path.join(ROOT_DIR, "custom", "foreign.txt"), "utf8")
+    : fetch(input.sourceUrl);
+
 const CLASSICAL_RULE_TYPES = new Set([
   "DOMAIN",
   "DOMAIN-SUFFIX",
@@ -804,7 +811,7 @@ const build = async (outputDir) => {
     for (const provider of providers) {
       const inputRules = [];
       for (const input of provider.inputs) {
-        const sourceText = await fetchSource(input.sourceUrl);
+        const sourceText = await loadSource(input);
         inputRules.push(parseRules(sourceText, input.sourceUrl, input.inputFormat));
       }
       const rules = mergeRules(inputRules);
