@@ -1010,6 +1010,8 @@ test("publishes the checkout fake-ip-filter through the generated override", asy
     "+.githubusercontent.com",
     "+.githubassets.com",
     "+.github.io",
+    "+.msftncsi.com",
+    "+.msftconnecttest.com",
   ]);
 
   const script = renderSubstoreOverride(providers, releaseBaseUrl, proxyGroup, "ordinary", fakeIpFilter);

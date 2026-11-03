@@ -14,9 +14,17 @@ The list lives in [`sources.json`](../sources.json) under the root key `fake_ip_
   "+.github.com",
   "+.githubusercontent.com",
   "+.githubassets.com",
-  "+.github.io"
+  "+.github.io",
+  "+.msftncsi.com",
+  "+.msftconnecttest.com"
 ]
 ```
+
+GitHub entries exist because the editor and CLI tooling want real addresses instead of fake ones.
+The two Microsoft entries cover Windows connectivity probes: mihomo's built-in defaults contain
+`dns.msftnsci.com` and `www.msftnsci.com` (note `msftnsci`), so the real `msftncsi.com` probe name never
+matches them; `+.msftncsi.com` and `+.msftconnecttest.com` cover `dns.msftncsi.com`,
+`www.msftconnecttest.com`, and their siblings.
 
 Entries must be domain suffixes: `example.com` or `+.example.com` (the `+.` form covers the domain and
 its subdomains). Wildcards, CIDR ranges, and other mihomo filter syntax are rejected so the shared
