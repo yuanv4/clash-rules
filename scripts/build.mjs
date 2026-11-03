@@ -181,14 +181,45 @@ const validateLicense = (license, inputName) => {
   return { id: license.id, url: license.url };
 };
 
+const FAKE_IP_FILTER_ENTRY_PATTERN = /^(?:\+\.)?(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$/u;
+
+const normalizeFakeIpFilter = (value) => {
+  if (value === undefined) {
+    return [];
+  }
+  if (!Array.isArray(value)) {
+    throw new Error("fake_ip_filter must be an array of domain suffixes");
+  }
+  const seen = new Set();
+  const normalized = [];
+  for (const [index, entry] of value.entries()) {
+    const context = `fake_ip_filter entry ${index + 1}`;
+    assertSafeText(entry, context);
+    if (!FAKE_IP_FILTER_ENTRY_PATTERN.test(entry)) {
+      throw new Error(`${context} must be a domain suffix such as "+.example.com"`);
+    }
+    if (seen.has(entry)) {
+      continue;
+    }
+    seen.add(entry);
+    normalized.push(entry);
+  }
+  return normalized;
+};
+
 export const normalizeConfiguration = (config) => {
   if (!config || typeof config !== "object" || Array.isArray(config)) {
     throw new Error("sources.json must contain a configuration object");
   }
-  assertKnownKeys(config, new Set(["release_base_url", "proxy_group", "inputs", "providers"]), "Root configuration");
+  assertKnownKeys(
+    config,
+    new Set(["release_base_url", "proxy_group", "fake_ip_filter", "inputs", "providers"]),
+    "Root configuration"
+  );
 
   assertSafeText(config.release_base_url, "release_base_url");
   assertSafeText(config.proxy_group, "proxy_group");
+  const fakeIpFilter = normalizeFakeIpFilter(config.fake_ip_filter);
 
   const releaseBaseUrl = parseHttpsUrl(config.release_base_url, "release_base_url");
   if (config.release_base_url.endsWith("/")) {
@@ -331,7 +362,12 @@ export const normalizeConfiguration = (config) => {
     }
   }
 
-  return { releaseBaseUrl: releaseBaseUrl.toString().replace(/\/$/u, ""), proxyGroup: config.proxy_group, providers };
+  return {
+    releaseBaseUrl: releaseBaseUrl.toString().replace(/\/$/u, ""),
+    proxyGroup: config.proxy_group,
+    fakeIpFilter,
+    providers,
+  };
 };
 
 const loadConfiguration = async () => {
@@ -800,7 +836,7 @@ const replaceOutputDirectory = async (stagingDir, outputDir) => {
 };
 
 const build = async (outputDir) => {
-  const { releaseBaseUrl, proxyGroup, providers } = await loadConfiguration();
+  const { releaseBaseUrl, proxyGroup, fakeIpFilter, providers } = await loadConfiguration();
   await fs.mkdir(path.dirname(outputDir), { recursive: true });
   const stagingDir = await fs.mkdtemp(path.join(path.dirname(outputDir), `.${path.basename(outputDir)}-staging-`));
   let outputCommitted = false;
@@ -825,7 +861,7 @@ const build = async (outputDir) => {
     for (const { file, mode } of SUBSTORE_OVERRIDE_ARTIFACTS) {
       await fs.writeFile(
         path.join(stagingDir, file),
-        renderSubstoreOverride(providers, releaseBaseUrl, proxyGroup, mode),
+        renderSubstoreOverride(providers, releaseBaseUrl, proxyGroup, mode, fakeIpFilter),
         "utf8"
       );
     }
