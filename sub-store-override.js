@@ -55,7 +55,7 @@ async function main(config = {}) {
   config.rules = ["IP-CIDR,100.64.0.0/10,Tailscale,no-resolve","IP-CIDR,100.100.100.100/32,Tailscale,no-resolve","DOMAIN-SUFFIX,ts.net,Tailscale","RULE-SET,direct,DIRECT,no-resolve","RULE-SET,reject_domainset,🛑 广告过滤,no-resolve","RULE-SET,reject,🛑 广告过滤,no-resolve","RULE-SET,adult_content,🔞 成人内容,no-resolve","RULE-SET,ai,🤖 国际 AI,no-resolve","RULE-SET,dev_services,🧑‍💻 开发服务,no-resolve","RULE-SET,streaming_services,🎬 流媒体服务,no-resolve","RULE-SET,cn_services,🇨🇳 国内服务,no-resolve","RULE-SET,foreign_services,🌐 国外服务,no-resolve","MATCH,🐟 漏网之鱼"];
 
   // Device-agnostic DNS exemptions shipped from the shared subscription; merge, never replace.
-  const sharedFakeIpFilter = ["+.github.com","+.githubusercontent.com","+.githubassets.com","+.github.io"];
+  const sharedFakeIpFilter = ["+.github.com","+.githubusercontent.com","+.githubassets.com","+.github.io","+.msftncsi.com","+.msftconnecttest.com"];
   const sharedDns = config.dns !== null && typeof config.dns === 'object' && !Array.isArray(config.dns) ? config.dns : {};
   const existingFakeIpFilter = Array.isArray(sharedDns['fake-ip-filter']) ? sharedDns['fake-ip-filter'] : [];
   config.dns = { ...sharedDns, 'fake-ip-filter': [...new Set([...existingFakeIpFilter, ...sharedFakeIpFilter])] };
