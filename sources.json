@@ -5,7 +5,9 @@
     "+.github.com",
     "+.githubusercontent.com",
     "+.githubassets.com",
-    "+.github.io"
+    "+.github.io",
+    "+.msftncsi.com",
+    "+.msftconnecttest.com"
   ],
   "inputs": [
     {
