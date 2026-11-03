@@ -937,3 +937,84 @@ test("orders proxy groups after merging foreign services", async () => {
     "MATCH,🐟 漏网之鱼",
   ]);
 });
+
+test("normalizes the shared fake-ip-filter list", () => {
+  assert.deepEqual(normalizeConfiguration(makeConfig()).fakeIpFilter, []);
+
+  const config = makeConfig();
+  config.fake_ip_filter = ["+.github.com", "+.github.com", "github.com"];
+  assert.deepEqual(normalizeConfiguration(config).fakeIpFilter, ["+.github.com", "github.com"]);
+
+  for (const invalid of ["+.github.com", [1], [""], ["+.github.com "], ["*.github.com"], [".github.com"], ["1.2.3.0/24"], ["+.github\r.com"]]) {
+    const invalidConfig = makeConfig();
+    invalidConfig.fake_ip_filter = invalid;
+    assert.throws(
+      () => normalizeConfiguration(invalidConfig),
+      /fake_ip_filter|non-empty string|unsafe control|domain suffix/,
+      JSON.stringify(invalid),
+    );
+  }
+});
+
+test("leaves client DNS untouched when no shared fake-ip-filter is configured", async () => {
+  const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
+  const script = renderSubstoreOverride(
+    [{ name: "foreign_services", target: "🌐 国外服务", noResolve: true }],
+    "https://rules.example.test/release",
+    "♻️ 自动选择",
+  );
+  const main = new Function(`${script}\nreturn main;`)();
+  const config = await main({ proxies: [{ name: "🇭🇰 香港01" }] });
+
+  assert.equal(Object.hasOwn(config, "dns"), false);
+});
+
+test("merges the shared fake-ip-filter into existing DNS state", async () => {
+  const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
+  const script = renderSubstoreOverride(
+    [{ name: "foreign_services", target: "🌐 国外服务", noResolve: true }],
+    "https://rules.example.test/release",
+    "♻️ 自动选择",
+    "ordinary",
+    ["+.github.com", "+.github.io"],
+  );
+  const main = new Function(`${script}\nreturn main;`)();
+  const config = await main({
+    proxies: [{ name: "🇭🇰 香港01" }],
+    dns: { enable: true, "enhanced-mode": "fake-ip", "fake-ip-filter": ["+.existing.test", "+.github.com"] },
+  });
+
+  assert.deepEqual(config.dns, {
+    enable: true,
+    "enhanced-mode": "fake-ip",
+    "fake-ip-filter": ["+.existing.test", "+.github.com", "+.github.io"],
+  });
+  assert.equal(Object.hasOwn(config.dns, "nameserver"), false);
+
+  const bare = await main({ proxies: [{ name: "🇭🇰 香港01" }] });
+  assert.deepEqual(bare.dns, { "fake-ip-filter": ["+.github.com", "+.github.io"] });
+
+  assert.throws(
+    () => renderSubstoreOverride([{ name: "foreign_services", target: "🌐 国外服务", noResolve: true }], "https://rules.example.test/release", "♻️ 自动选择", "ordinary", "not-an-array"),
+    /fakeIpFilter/,
+  );
+});
+
+test("publishes the checkout fake-ip-filter through the generated override", async () => {
+  const { renderSubstoreOverride } = await import("./render-substore-override.mjs");
+  const config = JSON.parse(await readFile(new URL("../sources.json", import.meta.url), "utf8"));
+  const { providers, releaseBaseUrl, proxyGroup, fakeIpFilter } = normalizeConfiguration(config);
+
+  assert.deepEqual(fakeIpFilter, [
+    "+.github.com",
+    "+.githubusercontent.com",
+    "+.githubassets.com",
+    "+.github.io",
+  ]);
+
+  const script = renderSubstoreOverride(providers, releaseBaseUrl, proxyGroup, "ordinary", fakeIpFilter);
+  const main = new Function(`${script}\nreturn main;`)();
+  const result = await main({ proxies: [{ name: "🇭🇰 香港01" }] });
+
+  assert.deepEqual(result.dns["fake-ip-filter"], fakeIpFilter);
+});
