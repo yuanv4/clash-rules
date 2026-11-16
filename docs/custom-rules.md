@@ -32,7 +32,7 @@ The file uses the same classical syntax as the other inputs. It currently contai
 DOMAIN-SUFFIX,69shuba.com
 ```
 
-The build merges it into `dist/rules/foreign_services.yaml`; the Sub-Store override still emits
+The build merges it into `dist/rules/foreign_services.yaml`; the generated FlClash profile still emits
 `RULE-SET,foreign_services,🌐 国外服务,no-resolve`. No `custom` rule-provider entry is generated.
 
 ## Release publication
@@ -40,16 +40,15 @@ The build merges it into `dist/rules/foreign_services.yaml`; the Sub-Store overr
 The release branch is the single public artifact branch. It contains:
 
 - `custom/*.txt` source files;
-- `rules/*.yaml` and `rules/*.txt` providers;
-- `sub-store-override.js` and `sub-store-override-android.js`.
+- `rules/*.yaml` and `rules/*.txt` providers.
 
 The build reads `custom/foreign.txt` from the checkout, while retaining its release URL
 for provenance. Other configured sources are fetched over HTTPS. After a successful build, **Sync release branch** publishes the custom sources
 and generated artifacts together in one commit.
 
-At runtime the override's `rule-providers` URL also points at release:
+At runtime the profile's `rule-providers` URL also points at release:
 `https://raw.githubusercontent.com/yuanv4/clash-rules/release/rules/foreign_services.yaml`
-([render-substore-override.mjs:44](../scripts/render-substore-override.mjs#L44)).
+([render-flclash-profile.mjs](../scripts/render-flclash-profile.mjs)).
 
 ## Ordering
 

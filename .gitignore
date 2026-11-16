@@ -1,2 +1,5 @@
 dist/
 .slim/deepwork/
+.cf-build/
+.cf-token
+.cf-account

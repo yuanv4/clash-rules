@@ -5,7 +5,6 @@ import http from "node:http";
 import https from "node:https";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { renderSubstoreOverride } from "./render-substore-override.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(SCRIPT_DIR, "..");
@@ -16,15 +15,11 @@ const FETCH_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 300;
 const MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
 const MAX_PATH_DECODE_PASSES = 8;
-export const SUBSTORE_OVERRIDE_ARTIFACTS = [
-  { file: "sub-store-override.js", mode: "ordinary" },
-  { file: "sub-store-override-android.js", mode: "android" },
-];
 
 const usage = () => {
   process.stdout.write(
     "Usage: bun scripts/build.mjs [--output-dir DIR]\n\n" +
-      "Build the complete publication directory. DIR defaults to dist.\n"
+      "Build the rule provider publication directory. DIR defaults to dist.\n"
   );
 };
 
@@ -836,7 +831,7 @@ const replaceOutputDirectory = async (stagingDir, outputDir) => {
 };
 
 const build = async (outputDir) => {
-  const { releaseBaseUrl, proxyGroup, fakeIpFilter, providers } = await loadConfiguration();
+  const { providers } = await loadConfiguration();
   await fs.mkdir(path.dirname(outputDir), { recursive: true });
   const stagingDir = await fs.mkdtemp(path.join(path.dirname(outputDir), `.${path.basename(outputDir)}-staging-`));
   let outputCommitted = false;
@@ -858,16 +853,8 @@ const build = async (outputDir) => {
       await fs.writeFile(path.join(stagingRulesDir, `${provider.name}.${extension}`), output, "utf8");
     }
 
-    for (const { file, mode } of SUBSTORE_OVERRIDE_ARTIFACTS) {
-      await fs.writeFile(
-        path.join(stagingDir, file),
-        renderSubstoreOverride(providers, releaseBaseUrl, proxyGroup, mode, fakeIpFilter),
-        "utf8"
-      );
-    }
-
     const stagedRootEntries = (await fs.readdir(stagingDir)).sort();
-    const expectedRootEntries = ["rules", ...SUBSTORE_OVERRIDE_ARTIFACTS.map(({ file }) => file)].sort();
+    const expectedRootEntries = ["rules"];
     const stagedProviderFiles = await fs.readdir(stagingRulesDir);
     const expectedProviderFiles = providers.map((provider) => `${provider.name}.${provider.behavior === "domain" ? "txt" : "yaml"}`).sort();
     if (
@@ -880,7 +867,7 @@ const build = async (outputDir) => {
     await replaceOutputDirectory(stagingDir, outputDir);
     outputCommitted = true;
     process.stdout.write(
-      `Built ${stagedProviderFiles.length} rule providers and sub-store override in ${outputDir}\n`
+      `Built ${stagedProviderFiles.length} rule providers in ${outputDir}\n`
     );
   } finally {
     if (!outputCommitted) {

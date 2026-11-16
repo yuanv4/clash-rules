@@ -31,21 +31,25 @@ its subdomains). Wildcards, CIDR ranges, and other mihomo filter syntax are reje
 list cannot silently change resolver behavior beyond DNS exemptions. Order is preserved and duplicate
 entries are dropped.
 
-The build validates the list in `normalizeConfiguration` and passes it to
-[`renderSubstoreOverride`](../scripts/render-substore-override.mjs), which emits a merge step into the
-generated `sub-store-override*.js` artifacts:
+The build validates the list in `normalizeConfiguration`, and
+[`render-flclash-profile.mjs`](../scripts/render-flclash-profile.mjs) emits it directly into the
+generated profile's `dns` section:
 
-```js
-const sharedFakeIpFilter = ["+.github.com", /* ... */];
-const sharedDns = config.dns !== null && typeof config.dns === 'object' && !Array.isArray(config.dns) ? config.dns : {};
-const existingFakeIpFilter = Array.isArray(sharedDns['fake-ip-filter']) ? sharedDns['fake-ip-filter'] : [];
-config.dns = { ...sharedDns, 'fake-ip-filter': [...new Set([...existingFakeIpFilter, ...sharedFakeIpFilter])] };
+```yaml
+dns:
+  enable: true
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  nameserver:
+    - https://223.5.5.5/dns-query
+    - https://1.12.12.12/dns-query
+  fake-ip-filter:
+    - "+.github.com"
+    # ...
 ```
 
-The merge is deliberate: an upstream subscription or another Sub-Store script may already publish
-`dns.fake-ip-filter`, and replacing the array would drop those entries. The override only contributes
-this array — it never writes `enhanced-mode`, `nameserver`, or any other DNS key, which stay
-client-specific.
+The generated profile is the single source for this list, so clients consuming it inherit the entries
+without any per-device override. Other DNS keys are fixed by the generator, not per device.
 
 ## Scope and limits
 
