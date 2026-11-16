@@ -61,13 +61,19 @@ profile 里只留占位符，Tailscale 节点由 **Worker 在请求时按查询�
 |---|---|---|
 | `…/s/<secret>` 或 `?ts=off` | 无节点，`Tailscale` 组只有 `DIRECT` | 不使用 Tailscale 的设备 |
 | `…/s/<secret>?ts=interface` | `TAILSCALE-DIRECT`（`type: direct` + `interface-name`） | 桌面端，系统 Tailscale 已登录 |
-| `…/s/<secret>?ts=tsnet` | `TAILSCALE`（`type: tailscale` 内嵌 tsnet） | Android，系统只允许一个 VPN |
-| `…/s/<secret>?ts=both` | 两个都注入，默认选 `TAILSCALE-DIRECT` | 需要手动切换的设备 |
+| `…/s/<secret>?ts=tsnet&tskey=tskey-auth-...` | `TAILSCALE`（`type: tailscale` 内嵌 tsnet） | Android，系统只允许一个 VPN |
+| `…/s/<secret>?ts=both&tskey=...` | 两个都注入，默认选 `TAILSCALE-DIRECT` | 需要手动切换的设备 |
+
+**tsnet 的 auth key 由链接注入**，和旧 Sub-Store 的 `tailscale-secret` 行为一致：
+
+- 参数名 `tskey`，也接受旧名 `tailscale-secret`
+- 链接里的 key 优先；没带时才回退到 Worker 的 `TS_AUTH_KEY` secret（可选，不推荐）
+- key 不会出现在 `ts=interface` / `off` 的响应里
+- 每台设备可以用各自的 key，不受一份共享密钥限制
 
 可调参数：
 
 - `iface=<名称>`：覆盖网卡名，默认取 Worker 绑定 `TS_INTERFACE`，再默认 `Tailscale`
-- `ts=tsnet` 需要 Worker 侧配置 `TS_AUTH_KEY` secret，否则返回 400 说明原因
 
 路由规则固定（走 `Tailscale` 组）：
 
