@@ -14,6 +14,11 @@
  *                    "- {name: 香港 02, ...}"]
  *   }
  *
+ * Tailscale 出口（可选，两者可同时配置）：
+ *   TAILSCALE_INTERFACE  桌面端：生成 TAILSCALE-DIRECT 节点，绑定系统 Tailscale 网卡
+ *   TAILSCALE_AUTH_KEY   Android：生成 type: tailscale 的内嵌节点（FlClash 单 VPN 槽位时使用）
+ *   都不配置时 Tailscale 组只含 DIRECT。
+ *
  * 输出：stdout 或 --output 指定文件。
  *
  * 只依赖 Node 内置能力，Bun / Node 均可运行。
@@ -31,6 +36,8 @@ const TEST_URL = "https://cp.cloudflare.com/generate_204";
 const AI_TEST_URL = "https://chatgpt.com/";
 
 const TAILSCALE_GROUP = "Tailscale";
+const TAILSCALE_NODE = "TAILSCALE";
+const TAILSCALE_DIRECT_NODE = "TAILSCALE-DIRECT";
 const MANUAL_GROUP = "🚀 节点选择";
 const FALLBACK_GROUP = "🐟 漏网之鱼";
 const AD_BLOCK_GROUP = "🛑 广告过滤";
@@ -41,17 +48,49 @@ const AI_GROUP = "🤖 国际 AI";
 const DEV_GROUP = "🧑‍💻 开发服务";
 const STREAMING_GROUP = "🎬 流媒体服务";
 
-// 机场会在节点列表里塞「剩余流量 / 到期时间」这类假节点，统一剔除。
+// 机场会在节点列表里塞「剩余流量 / 到期时间」这类假节点，统一剔除；
+// Tailscale 出口节点也不该进入节点组（它有独立的 Tailscale 策略组）。
 const FAKE_NODE_ALT =
   "当前流量|剩余流量|距離下次重置|距离下次重置|到期时间|过期时间|套餐|官网|群组|订阅地址";
-const FAKE_NODE_PATTERN = `(?:${FAKE_NODE_ALT})`;
+const TAILSCALE_NODE_ALT = "^(?:TAILSCALE|TAILSCALE-DIRECT)$";
+const NODE_EXCLUDE_ALT = `${FAKE_NODE_ALT}|${TAILSCALE_NODE_ALT}`;
+const NODE_EXCLUDE_PATTERN = `(?:${NODE_EXCLUDE_ALT})`;
 
 // mihomo 的 filter 走 Go RE2，不支持环视断言，所以台湾/香港匹配改用边界分组。
 const AI_REGION_PATTERN =
   "(?i)(?:台灣|台湾|台北|taiwan|taipei|🇹🇼|(?:^|[^a-z0-9])(?:tw|twn)(?:$|[^a-z0-9]))";
 const AI_EXCLUDED_ALT =
   "🇭🇰|🇲🇴|香港|澳门|澳門|hong\\s*kong|macao|macau|(?:^|[^a-z0-9])(?:hk|hkg|mo|mac)(?:$|[^a-z0-9])";
-const AI_EXCLUDE_PATTERN = `(?i)(?:${AI_EXCLUDED_ALT}|${FAKE_NODE_ALT})`;
+const AI_EXCLUDE_PATTERN = `(?i)(?:${AI_EXCLUDED_ALT}|${NODE_EXCLUDE_ALT})`;
+
+/** Tailscale 可选配置：接口名直连（桌面端）或 tsnet 内嵌节点（Android）。 */
+const readTailscaleConfig = () => ({
+  interfaceName: (process.env.TAILSCALE_INTERFACE || "").trim(),
+  authKey: (process.env.TAILSCALE_AUTH_KEY || "").trim(),
+});
+
+const buildTailscaleProxies = ({ interfaceName, authKey }) => {
+  const lines = [];
+  if (interfaceName) {
+    lines.push(
+      `  - name: ${q(TAILSCALE_DIRECT_NODE)}`,
+      "    type: direct",
+      `    interface-name: ${q(interfaceName)}`
+    );
+  }
+  if (authKey) {
+    lines.push(
+      `  - name: ${q(TAILSCALE_NODE)}`,
+      "    type: tailscale",
+      `    auth-key: ${q(authKey)}`,
+      "    state-dir: ./tailscale",
+      "    udp: true",
+      "    accept-routes: true",
+      "    ip-version: ipv4-prefer"
+    );
+  }
+  return lines;
+};
 
 /** YAML 双引号标量；JSON 字符串转义是 YAML 双引号风格的安全子集。 */
 const q = (value) => JSON.stringify(String(value));
@@ -182,7 +221,7 @@ const buildRuleProviders = (sourceProviders, releaseBaseUrl) =>
     })
     .join("\n");
 
-const buildGroups = (proxyGroup, providerNames) => {
+const buildGroups = (proxyGroup, tailscale) => {
   const businessGroups = [
     TAILSCALE_GROUP,
     AD_BLOCK_GROUP,
@@ -198,6 +237,12 @@ const buildGroups = (proxyGroup, providerNames) => {
   const excludedFromNodeGroups = new Set([TAILSCALE_GROUP, ...nodeGroups]);
   const orderedBusiness = businessGroups.filter((name) => !excludedFromNodeGroups.has(name));
 
+  const tailscaleProxies = [];
+  if (tailscale.interfaceName) tailscaleProxies.push(TAILSCALE_DIRECT_NODE);
+  if (tailscale.authKey) tailscaleProxies.push(TAILSCALE_NODE);
+  tailscaleProxies.push("DIRECT");
+  const tailscaleDefault = tailscaleProxies[0];
+
   const lines = [];
   const push = (...items) => lines.push(...items);
 
@@ -205,17 +250,18 @@ const buildGroups = (proxyGroup, providerNames) => {
     `  - name: ${q(MANUAL_GROUP)}
     type: select
     include-all: true
-    exclude-filter: ${q(FAKE_NODE_PATTERN)}`,
+    exclude-filter: ${q(NODE_EXCLUDE_PATTERN)}`,
     `  - name: ${q(proxyGroup)}
     type: url-test
     url: ${q(TEST_URL)}
     interval: 300
     tolerance: 50
     include-all: true
-    exclude-filter: ${q(FAKE_NODE_PATTERN)}`,
+    exclude-filter: ${q(NODE_EXCLUDE_PATTERN)}`,
     `  - name: ${q(TAILSCALE_GROUP)}
     type: select
-    proxies: [DIRECT]`
+    proxies: [${tailscaleProxies.join(", ")}]
+    default-selected: ${tailscaleDefault}`
   );
 
   for (const name of orderedBusiness) {
@@ -261,8 +307,6 @@ const buildGroups = (proxyGroup, providerNames) => {
     default-selected: ${q(proxyGroup)}`);
   }
 
-  // providerNames 仅用于自检，确保订阅没被漏掉。
-  if (providerNames.length === 0) throw new Error("No proxy providers to reference");
   return lines.join("\n");
 };
 
@@ -306,6 +350,10 @@ const main = async () => {
   const proxyGroup = source.proxy_group;
   if (!proxyGroup) throw new Error("sources.json is missing proxy_group");
 
+  const tailscale = readTailscaleConfig();
+  const tailscaleProxyLines = buildTailscaleProxies(tailscale);
+  const proxyLines = [...tailscaleProxyLines, ...staticProxyLines];
+
   const sections = [];
 
   sections.push(
@@ -323,17 +371,12 @@ const main = async () => {
 
   sections.push(`proxy-providers:\n${buildProxyProviders(subscriptions)}`);
 
-  if (staticProxyLines.length > 0) {
-    sections.push(`proxies:\n${staticProxyLines.join("\n")}`);
+  if (proxyLines.length > 0) {
+    sections.push(`proxies:\n${proxyLines.join("\n")}`);
   }
 
   sections.push(`rule-providers:\n${buildRuleProviders(source.providers, source.release_base_url)}`);
-  sections.push(
-    `proxy-groups:\n${buildGroups(
-      proxyGroup,
-      subscriptions.map((provider) => provider.name)
-    )}`
-  );
+  sections.push(`proxy-groups:\n${buildGroups(proxyGroup, tailscale)}`);
   sections.push(`rules:\n${buildRules(source.providers)}`);
   if (fakeIpFilter.length > 0) sections.push(`dns:\n${buildDns(fakeIpFilter)}`);
 
@@ -349,9 +392,12 @@ const main = async () => {
   if (output) {
     await fs.mkdir(path.dirname(output), { recursive: true });
     await fs.writeFile(output, profile, "utf8");
+    const tailscaleSummary =
+      [tailscale.interfaceName ? `interface=${tailscale.interfaceName}` : null,
+       tailscale.authKey ? "tsnet=on" : null].filter(Boolean).join(", ") || "none";
     process.stderr.write(
       `Wrote ${output} (${Buffer.byteLength(profile)} bytes, ${subscriptions.length} providers, ` +
-        `${staticProxyLines.length} static nodes)\n`
+        `${staticProxyLines.length} static nodes, tailscale: ${tailscaleSummary})\n`
     );
     return;
   }

@@ -53,6 +53,8 @@ jobs:
       - name: Render profile
         env:
           SUBSCRIPTIONS_JSON: ${{ secrets.SUBSCRIPTIONS_JSON }}
+          TAILSCALE_INTERFACE: ${{ secrets.TAILSCALE_INTERFACE }}
+          TAILSCALE_AUTH_KEY: ${{ secrets.TAILSCALE_AUTH_KEY }}
         run: node scripts/render-flclash-profile.mjs --output "$RUNNER_TEMP/profile.yaml"
 
       - name: Publish to Cloudflare KV

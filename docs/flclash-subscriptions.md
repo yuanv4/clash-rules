@@ -52,11 +52,37 @@ Amytelecom 就属于这种：链接约 10 分钟失效且绑定住宅 IP，GitHu
 2. 去掉第一行 `proxies:`
 3. 剩下的每一行（形如 `- {...}`）作为数组的一个元素，替换掉 `amytelecom` 数组
 
+## Tailscale 出口
+
+配置里的 `Tailscale` 策略组需要一个真正的出口节点，否则 tailnet 流量只会走 `DIRECT`。
+两个可选 Secret 控制生成为哪种：
+
+| Secret | 值 | 生成的节点 | 适用 |
+|---|---|---|---|
+| `TAILSCALE_INTERFACE` | `Tailscale` | `TAILSCALE-DIRECT`，`type: direct` + `interface-name` | 桌面端（系统 Tailscale 已登录、网卡存在） |
+| `TAILSCALE_AUTH_KEY` | `tskey-auth-...` | `TAILSCALE`，`type: tailscale` 内嵌 tsnet 节点 | Android（系统只允许一个 VPN，无法同时跑 Tailscale App） |
+
+两者可以同时配置，此时策略组为 `[TAILSCALE-DIRECT, TAILSCALE, DIRECT]`，默认选中第一个。
+都不配置时组内只有 `DIRECT`。
+
+路由规则固定为：
+
+```yaml
+- IP-CIDR,100.64.0.0/10,Tailscale,no-resolve
+- IP-CIDR,100.100.100.100/32,Tailscale,no-resolve
+- DOMAIN-SUFFIX,ts.net,Tailscale
+```
+
+Tailscale 节点会从 `🚀 节点选择` / `♻️ 自动选择` / `🤖 国际 AI` 中排除（通过 `exclude-filter`），
+避免它被当作机场节点参与延迟测速。
+
 ## 相关 Secrets
 
 | Secret | 说明 |
 |---|---|
 | `SUBSCRIPTIONS_JSON` | 本文档的 JSON，唯一的订阅配置入口 |
+| `TAILSCALE_INTERFACE` | 可选，桌面端 Tailscale 网卡名（如 `Tailscale`） |
+| `TAILSCALE_AUTH_KEY` | 可选，Android 内嵌 tsnet 的 auth key |
 | `CF_API_TOKEN` | 只需 `Account → Workers KV Storage → Edit` |
 | `CF_ACCOUNT_ID` | Cloudflare 账号 ID |
 | `CF_KV_NAMESPACE_ID` | KV 命名空间 ID |
