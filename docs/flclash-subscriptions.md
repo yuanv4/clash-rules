@@ -54,18 +54,22 @@ Amytelecom 就属于这种：链接约 10 分钟失效且绑定住宅 IP，GitHu
 
 ## Tailscale 出口
 
-配置里的 `Tailscale` 策略组需要一个真正的出口节点，否则 tailnet 流量只会走 `DIRECT`。
-两个可选 Secret 控制生成为哪种：
+profile 里只留占位符，Tailscale 节点由 **Worker 在请求时按查询参数注入**，
+所以同一条配置可以服务桌面端和 Android，不必各出一份。
 
-| Secret | 值 | 生成的节点 | 适用 |
-|---|---|---|---|
-| `TAILSCALE_INTERFACE` | `Tailscale` | `TAILSCALE-DIRECT`，`type: direct` + `interface-name` | 桌面端（系统 Tailscale 已登录、网卡存在） |
-| `TAILSCALE_AUTH_KEY` | `tskey-auth-...` | `TAILSCALE`，`type: tailscale` 内嵌 tsnet 节点 | Android（系统只允许一个 VPN，无法同时跑 Tailscale App） |
+| 订阅地址 | 注入结果 | 适用 |
+|---|---|---|
+| `…/s/<secret>` 或 `?ts=off` | 无节点，`Tailscale` 组只有 `DIRECT` | 不使用 Tailscale 的设备 |
+| `…/s/<secret>?ts=interface` | `TAILSCALE-DIRECT`（`type: direct` + `interface-name`） | 桌面端，系统 Tailscale 已登录 |
+| `…/s/<secret>?ts=tsnet` | `TAILSCALE`（`type: tailscale` 内嵌 tsnet） | Android，系统只允许一个 VPN |
+| `…/s/<secret>?ts=both` | 两个都注入，默认选 `TAILSCALE-DIRECT` | 需要手动切换的设备 |
 
-两者可以同时配置，此时策略组为 `[TAILSCALE-DIRECT, TAILSCALE, DIRECT]`，默认选中第一个。
-都不配置时组内只有 `DIRECT`。
+可调参数：
 
-路由规则固定为：
+- `iface=<名称>`：覆盖网卡名，默认取 Worker 绑定 `TS_INTERFACE`，再默认 `Tailscale`
+- `ts=tsnet` 需要 Worker 侧配置 `TS_AUTH_KEY` secret，否则返回 400 说明原因
+
+路由规则固定（走 `Tailscale` 组）：
 
 ```yaml
 - IP-CIDR,100.64.0.0/10,Tailscale,no-resolve
@@ -73,19 +77,26 @@ Amytelecom 就属于这种：链接约 10 分钟失效且绑定住宅 IP，GitHu
 - DOMAIN-SUFFIX,ts.net,Tailscale
 ```
 
-Tailscale 节点会从 `🚀 节点选择` / `♻️ 自动选择` / `🤖 国际 AI` 中排除（通过 `exclude-filter`），
-避免它被当作机场节点参与延迟测速。
+Tailscale 节点通过 `exclude-filter` 从 `🚀 节点选择` / `♻️ 自动选择` / `🤖 国际 AI`
+中排除，不会被当成机场节点参与延迟测速。
+
+Worker 源码在 [`worker/clash-profile.js`](../worker/clash-profile.js)，
+部署用 `node scripts/deploy-clash-worker.mjs`（需要 `Workers Scripts:Edit` 权限）。
+
+> 顺序要求：**先部署 Worker，再推送带占位符的 profile**。反过来会让客户端拿到字面量占位符。
+> 反向是安全的——新 Worker 对旧 profile（无占位符）只是原样返回。
 
 ## 相关 Secrets
 
 | Secret | 说明 |
 |---|---|
 | `SUBSCRIPTIONS_JSON` | 本文档的 JSON，唯一的订阅配置入口 |
-| `TAILSCALE_INTERFACE` | 可选，桌面端 Tailscale 网卡名（如 `Tailscale`） |
-| `TAILSCALE_AUTH_KEY` | 可选，Android 内嵌 tsnet 的 auth key |
 | `CF_API_TOKEN` | 只需 `Account → Workers KV Storage → Edit` |
 | `CF_ACCOUNT_ID` | Cloudflare 账号 ID |
 | `CF_KV_NAMESPACE_ID` | KV 命名空间 ID |
+
+Tailscale 相关配置不在 GitHub Secrets，而在 Worker 绑定里（`TS_INTERFACE` / `TS_AUTH_KEY`），
+见上一节。
 
 ## 流水线
 

@@ -36,8 +36,6 @@ const TEST_URL = "https://cp.cloudflare.com/generate_204";
 const AI_TEST_URL = "https://chatgpt.com/";
 
 const TAILSCALE_GROUP = "Tailscale";
-const TAILSCALE_NODE = "TAILSCALE";
-const TAILSCALE_DIRECT_NODE = "TAILSCALE-DIRECT";
 const MANUAL_GROUP = "🚀 节点选择";
 const FALLBACK_GROUP = "🐟 漏网之鱼";
 const AD_BLOCK_GROUP = "🛑 广告过滤";
@@ -63,34 +61,13 @@ const AI_EXCLUDED_ALT =
   "🇭🇰|🇲🇴|香港|澳门|澳門|hong\\s*kong|macao|macau|(?:^|[^a-z0-9])(?:hk|hkg|mo|mac)(?:$|[^a-z0-9])";
 const AI_EXCLUDE_PATTERN = `(?i)(?:${AI_EXCLUDED_ALT}|${NODE_EXCLUDE_ALT})`;
 
-/** Tailscale 可选配置：接口名直连（桌面端）或 tsnet 内嵌节点（Android）。 */
-const readTailscaleConfig = () => ({
-  interfaceName: (process.env.TAILSCALE_INTERFACE || "").trim(),
-  authKey: (process.env.TAILSCALE_AUTH_KEY || "").trim(),
-});
-
-const buildTailscaleProxies = ({ interfaceName, authKey }) => {
-  const lines = [];
-  if (interfaceName) {
-    lines.push(
-      `  - name: ${q(TAILSCALE_DIRECT_NODE)}`,
-      "    type: direct",
-      `    interface-name: ${q(interfaceName)}`
-    );
-  }
-  if (authKey) {
-    lines.push(
-      `  - name: ${q(TAILSCALE_NODE)}`,
-      "    type: tailscale",
-      `    auth-key: ${q(authKey)}`,
-      "    state-dir: ./tailscale",
-      "    udp: true",
-      "    accept-routes: true",
-      "    ip-version: ipv4-prefer"
-    );
-  }
-  return lines;
-};
+/**
+ * Tailscale 出口由 Cloudflare Worker 在请求时按查询参数注入（worker/clash-profile.js），
+ * 这里只留下占位符，保证同一份 KV 内容可以服务桌面端和 Android。
+ */
+const TAILSCALE_PROXIES_PLACEHOLDER = "  __TAILSCALE_PROXIES__";
+const TAILSCALE_GROUP_PLACEHOLDER = "[__TAILSCALE_GROUP__]";
+const TAILSCALE_DEFAULT_PLACEHOLDER = "__TAILSCALE_DEFAULT__";
 
 /** YAML 双引号标量；JSON 字符串转义是 YAML 双引号风格的安全子集。 */
 const q = (value) => JSON.stringify(String(value));
@@ -221,7 +198,7 @@ const buildRuleProviders = (sourceProviders, releaseBaseUrl) =>
     })
     .join("\n");
 
-const buildGroups = (proxyGroup, tailscale) => {
+const buildGroups = (proxyGroup) => {
   const businessGroups = [
     TAILSCALE_GROUP,
     AD_BLOCK_GROUP,
@@ -237,11 +214,7 @@ const buildGroups = (proxyGroup, tailscale) => {
   const excludedFromNodeGroups = new Set([TAILSCALE_GROUP, ...nodeGroups]);
   const orderedBusiness = businessGroups.filter((name) => !excludedFromNodeGroups.has(name));
 
-  const tailscaleProxies = [];
-  if (tailscale.interfaceName) tailscaleProxies.push(TAILSCALE_DIRECT_NODE);
-  if (tailscale.authKey) tailscaleProxies.push(TAILSCALE_NODE);
-  tailscaleProxies.push("DIRECT");
-  const tailscaleDefault = tailscaleProxies[0];
+  const tailscaleProxies = [TAILSCALE_GROUP_PLACEHOLDER];
 
   const lines = [];
   const push = (...items) => lines.push(...items);
@@ -260,8 +233,8 @@ const buildGroups = (proxyGroup, tailscale) => {
     exclude-filter: ${q(NODE_EXCLUDE_PATTERN)}`,
     `  - name: ${q(TAILSCALE_GROUP)}
     type: select
-    proxies: [${tailscaleProxies.join(", ")}]
-    default-selected: ${tailscaleDefault}`
+    proxies: ${tailscaleProxies.join(", ")}
+    default-selected: ${TAILSCALE_DEFAULT_PLACEHOLDER}`
   );
 
   for (const name of orderedBusiness) {
@@ -350,9 +323,8 @@ const main = async () => {
   const proxyGroup = source.proxy_group;
   if (!proxyGroup) throw new Error("sources.json is missing proxy_group");
 
-  const tailscale = readTailscaleConfig();
-  const tailscaleProxyLines = buildTailscaleProxies(tailscale);
-  const proxyLines = [...tailscaleProxyLines, ...staticProxyLines];
+  // Tailscale 占位符放在列表末尾，由 Worker 按 ?ts= 参数替换成真实节点或删除。
+  const proxyLines = [...staticProxyLines, TAILSCALE_PROXIES_PLACEHOLDER];
 
   const sections = [];
 
@@ -376,7 +348,7 @@ const main = async () => {
   }
 
   sections.push(`rule-providers:\n${buildRuleProviders(source.providers, source.release_base_url)}`);
-  sections.push(`proxy-groups:\n${buildGroups(proxyGroup, tailscale)}`);
+  sections.push(`proxy-groups:\n${buildGroups(proxyGroup)}`);
   sections.push(`rules:\n${buildRules(source.providers)}`);
   if (fakeIpFilter.length > 0) sections.push(`dns:\n${buildDns(fakeIpFilter)}`);
 
@@ -392,9 +364,7 @@ const main = async () => {
   if (output) {
     await fs.mkdir(path.dirname(output), { recursive: true });
     await fs.writeFile(output, profile, "utf8");
-    const tailscaleSummary =
-      [tailscale.interfaceName ? `interface=${tailscale.interfaceName}` : null,
-       tailscale.authKey ? "tsnet=on" : null].filter(Boolean).join(", ") || "none";
+    const tailscaleSummary = "injected by worker";
     process.stderr.write(
       `Wrote ${output} (${Buffer.byteLength(profile)} bytes, ${subscriptions.length} providers, ` +
         `${staticProxyLines.length} static nodes, tailscale: ${tailscaleSummary})\n`
