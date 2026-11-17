@@ -40,6 +40,23 @@ test("remote-only and static-only output remain valid", async () => {
   assert.equal((await parsedResponse("", template({ local: subscriptions.local }))).proxies.length, 1);
 });
 
+test("AI group filters Taiwan and Singapore nodes", async () => {
+  const config = await parsedResponse();
+  const group = config["proxy-groups"].find((g) => g.name === "🤖 国际 AI");
+  const region = new RegExp(group.filter.replace(/^\(\?i\)/, ""), "i");
+  const exclude = new RegExp(group["exclude-filter"].replace(/^\(\?i\)/, ""), "i");
+  const selected = (name) => region.test(name) && !exclude.test(name);
+  for (const name of [
+    "台湾 01", "台北 02", "TW-03", "TWN 04", "🇹🇼 05",
+    "新加坡 06", "狮城 07", "SG-08", "SGP 09", "Singapore 10", "🇸🇬 11",
+  ]) {
+    assert.ok(selected(name), `expected ${name} in AI group`);
+  }
+  for (const name of ["香港 01", "HK-02", "澳门 03", "日本 04", "美国 05", "剩余流量"]) {
+    assert.equal(selected(name), false, `expected ${name} not in AI group`);
+  }
+});
+
 test("auth key priority, alias, fallback, and errors", async () => {
   for (const [query, env, expected] of [
     [`?ts=tsnet&tskey=${fakeKey}&tailscale-secret=tskey-auth-ALIAS_FAKE`, { TS_AUTH_KEY: "tskey-auth-FALLBACK_FAKE" }, fakeKey],

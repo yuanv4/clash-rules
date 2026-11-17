@@ -54,9 +54,11 @@ const TAILSCALE_NODE_ALT = "^(?:TAILSCALE|TAILSCALE-DIRECT)$";
 const NODE_EXCLUDE_ALT = `${FAKE_NODE_ALT}|${TAILSCALE_NODE_ALT}`;
 const NODE_EXCLUDE_PATTERN = `(?:${NODE_EXCLUDE_ALT})`;
 
-// mihomo 的 filter 走 Go RE2，不支持环视断言，所以台湾/香港匹配改用边界分组。
+// mihomo 的 filter 走 Go RE2，不支持环视断言，所以地区名/地区代码改用边界分组。
+// AI 组可选节点：台湾、新加坡；港澳在 AI_EXCLUDE_PATTERN 里排除。
 const AI_REGION_PATTERN =
-  "(?i)(?:台灣|台湾|台北|taiwan|taipei|🇹🇼|(?:^|[^a-z0-9])(?:tw|twn)(?:$|[^a-z0-9]))";
+  "(?i)(?:台灣|台湾|台北|新加坡|狮城|taiwan|taipei|singapore|🇹🇼|🇸🇬|" +
+  "(?:^|[^a-z0-9])(?:tw|twn|sg|sgp)(?:$|[^a-z0-9]))";
 const AI_EXCLUDED_ALT =
   "🇭🇰|🇲🇴|香港|澳门|澳門|hong\\s*kong|macao|macau|(?:^|[^a-z0-9])(?:hk|hkg|mo|mac)(?:$|[^a-z0-9])";
 const AI_EXCLUDE_PATTERN = `(?i)(?:${AI_EXCLUDED_ALT}|${NODE_EXCLUDE_ALT})`;
