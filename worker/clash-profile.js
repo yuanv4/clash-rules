@@ -20,8 +20,8 @@
  */
 
 const PROXIES_PLACEHOLDER = "  __TAILSCALE_PROXIES__";
-const GROUP_PLACEHOLDER = "[__TAILSCALE_GROUP__]";
-const DEFAULT_PLACEHOLDER = "__TAILSCALE_DEFAULT__";
+const GROUP_PLACEHOLDER = "    proxies: [__TAILSCALE_GROUP__]";
+const DEFAULT_PLACEHOLDER = "    default-selected: __TAILSCALE_DEFAULT__";
 
 const yamlString = (value) => JSON.stringify(String(value));
 
@@ -82,14 +82,14 @@ const resolveAuthKey = (url, env) => {
   return { error: "ts=tsnet requires &tskey=tskey-auth-... in the URL (or the TS_AUTH_KEY secret)" };
 };
 
-const injectTailscale = (profile, url, env) => {
+export const injectTailscale = (profile, url, env) => {
   const mode = (url.searchParams.get("ts") || "off").trim().toLowerCase();
   if (!VALID_MODES.has(mode)) {
     return { error: `ts must be one of: ${[...VALID_MODES].join(", ")}` };
   }
 
   const interfaceName = (url.searchParams.get("iface") || env.TS_INTERFACE || "Tailscale").trim();
-  if (!/^[A-Za-z0-9 ._-]{1,64}$/.test(interfaceName)) {
+  if ((mode === "interface" || mode === "both") && !/^[A-Za-z0-9 ._-]{1,64}$/.test(interfaceName)) {
     return { error: "iface contains unsupported characters" };
   }
 
@@ -102,12 +102,28 @@ const injectTailscale = (profile, url, env) => {
 
   const block = buildTailscaleBlock(mode, interfaceName, authKey);
 
-  let body = profile;
-  body = body.replace(`${PROXIES_PLACEHOLDER}\n`, block.text);
-  // 没有静态节点且未注入 Tailscale 时，避免出现空的 `proxies:` 键。
-  body = body.replace(/^proxies:\n\n/gm, "proxies: []\n\n");
-  body = body.replace(GROUP_PLACEHOLDER, `[${block.group.join(", ")}]`);
-  body = body.replace(DEFAULT_PLACEHOLDER, block.defaultSelected);
+  const lines = profile.replace(/\r\n/g, "\n").split("\n");
+  const markers = [PROXIES_PLACEHOLDER, GROUP_PLACEHOLDER, DEFAULT_PLACEHOLDER];
+  const positions = markers.map((marker) => lines.flatMap((line, i) => line === marker ? [i] : []));
+  if (positions.some((matches) => matches.length !== 1)) {
+    return { templateError: true };
+  }
+  const [proxyIndex, groupIndex, defaultIndex] = positions.map(([i]) => i);
+  const sectionAt = (index) => lines.slice(0, index).findLast((line) => /^\S/.test(line) && !line.startsWith("#"));
+  if (sectionAt(proxyIndex) !== "proxies:" || sectionAt(groupIndex) !== "proxy-groups:" ||
+      lines[groupIndex - 2] !== '  - name: "Tailscale"' || lines[groupIndex - 1] !== "    type: select" ||
+      defaultIndex !== groupIndex + 1 || (lines[proxyIndex + 1] || "").trim() !== "") {
+    return { templateError: true };
+  }
+  // Replace only complete dedicated lines, once and in a single pass: data may
+  // contain marker strings, including strings inside the injected auth key.
+  const body = lines.flatMap((line, i) => {
+    if (i === proxyIndex) return block.text ? block.text.trimEnd().split("\n") : [];
+    if (i === groupIndex) return [`    proxies: [${block.group.join(", ")}]`];
+    if (i === defaultIndex) return [`    default-selected: ${block.defaultSelected}`];
+    if (line === "proxies:" && proxyIndex === i + 1 && !block.text) return ["proxies: []"];
+    return [line];
+  }).join("\n");
   return { body };
 };
 
@@ -126,6 +142,12 @@ export default {
 
     const result = injectTailscale(profile, url, env);
     if (result.error) return badRequest(result.error);
+    if (result.templateError) {
+      return new Response("Invalid profile template\n", {
+        status: 500,
+        headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+      });
+    }
 
     return new Response(result.body, {
       headers: {

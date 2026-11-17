@@ -25,6 +25,9 @@ GitHub Actions 用它生成 FlClash 自定义配置，并推送到 Cloudflare Wo
 
 键名（`mojie` / `youtu` / …）就是 provider 名，只能用字母、数字、`_`、`.`、`-`。
 
+渲染命令使用 Bun 1.3.14：`bun scripts/render-flclash-profile.mjs --output <私有模板路径>`。
+静态节点必须是单行 YAML、包含非空字符串 name/type，名称不得重复或与策略组、TAILSCALE、TAILSCALE-DIRECT 冲突。渲染器解析后重新序列化，并验证四种注入模式；不合法的输入不会写出新模板。
+
 ## 什么时候用数组
 
 机场订阅链接如果**有效期很短或绑定生成 IP**，自动更新必然失败，只能把节点快照内联。
@@ -37,16 +40,16 @@ Amytelecom 就属于这种：链接约 10 分钟失效且绑定住宅 IP，GitHu
 在 Secret 里加一行：
 
 ```json
-"新机场名": "https://它的订阅链接"
+"new_airport": "https://它的订阅链接"
 ```
 
-不需要改代码、不需要改 workflow。推送（或等每日定时任务）后各设备自动拿到新配置。
+不需要改代码、不需要改 workflow。修改 Secret 不触发 push；手动运行 Deploy FlClash Profile（或等每日定时任务），再让设备更新完整订阅。
 
 ## 更新静态节点（Amytelecom）
 
 1. 打开
    ```
-   https://sub-store.example.com:8443/<私有前缀>/download/Amytelecom?target=ClashMeta
+   https://sub-store.example.com/<私有前缀>/download/<订阅名称>?target=ClashMeta
    ```
    （私有前缀见 `SUB_STORE_PATH_PREFIX`）
 2. 去掉第一行 `proxies:`
@@ -90,19 +93,18 @@ Worker 源码在 [`worker/clash-profile.js`](../worker/clash-profile.js)，
 部署用 `node scripts/deploy-clash-worker.mjs`（需要 `Workers Scripts:Edit` 权限）。
 
 > 顺序要求：**先部署 Worker，再推送带占位符的 profile**。反过来会让客户端拿到字面量占位符。
-> 反向是安全的——新 Worker 对旧 profile（无占位符）只是原样返回。
+> 新 Worker 要求三个专用占位行各存在一次且位于预期位置；旧版无占位模板、缺失或重复占位行都会返回 500，而不是下发可疑配置。升级前确认现有 KV 是带占位符模板；若仍是更旧的完整 profile，请安排迁移窗口，部署后立即发布新模板。
 
 ## 相关 Secrets
 
 | Secret | 说明 |
 |---|---|
 | `SUBSCRIPTIONS_JSON` | 本文档的 JSON，唯一的订阅配置入口 |
-| `CF_API_TOKEN` | 只需 `Account → Workers KV Storage → Edit` |
+| `CF_API_TOKEN` | KV 发布需 `Account → Workers KV Storage → Edit`；部署 Worker 还需 `Workers Scripts → Edit` |
 | `CF_ACCOUNT_ID` | Cloudflare 账号 ID |
 | `CF_KV_NAMESPACE_ID` | KV 命名空间 ID |
 
-Tailscale 相关配置不在 GitHub Secrets，而在 Worker 绑定里（`TS_INTERFACE` / `TS_AUTH_KEY`），
-见上一节。
+部署 Workflow 从可选 GitHub Secrets `CF_TS_INTERFACE` / `CF_TS_AUTH_KEY` 设置 Worker 绑定 `TS_INTERFACE` / `TS_AUTH_KEY`。订阅路径由必填 Secret `CF_SECRET_PATH` 设置；优先使用 URL 中的设备专属 key。
 
 ## 流水线
 

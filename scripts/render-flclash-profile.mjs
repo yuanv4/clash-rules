@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 /**
  * 生成 FlClash 自定义配置（custom profile）。
  *
@@ -14,19 +14,17 @@
  *                    "- {name: 香港 02, ...}"]
  *   }
  *
- * Tailscale 出口（可选，两者可同时配置）：
- *   TAILSCALE_INTERFACE  桌面端：生成 TAILSCALE-DIRECT 节点，绑定系统 Tailscale 网卡
- *   TAILSCALE_AUTH_KEY   Android：生成 type: tailscale 的内嵌节点（FlClash 单 VPN 槽位时使用）
- *   都不配置时 Tailscale 组只含 DIRECT。
+ * Tailscale 出口由 Worker 按请求参数注入；本脚本只生成专用占位行。
  *
  * 输出：stdout 或 --output 指定文件。
  *
- * 只依赖 Node 内置能力，Bun / Node 均可运行。
+ * 需要 Bun 运行时（使用内置 Bun.YAML 校验静态节点，无外部 YAML 依赖）。
  */
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { injectTailscale } from "../worker/clash-profile.js";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(SCRIPT_DIR, "..");
@@ -74,7 +72,7 @@ const q = (value) => JSON.stringify(String(value));
 
 const usage = () => {
   process.stdout.write(
-    "Usage: node scripts/render-flclash-profile.mjs [--output FILE]\n\n" +
+    "Usage: bun scripts/render-flclash-profile.mjs [--output FILE]\n\n" +
       "环境变量:\n" +
       '  SUBSCRIPTIONS_JSON  必填，例如：\n' +
       '    {"mojie":"https://订阅链接","amytelecom":["- {name: 香港 01, ...}"]}\n' +
@@ -107,8 +105,14 @@ const parseArguments = (argv) => {
  *   字符串值 → 远程订阅 provider
  *   数组值   → 静态节点（每个元素是一条 YAML 节点行）
  */
-const parseSubscriptionConfig = () => {
-  const raw = process.env.SUBSCRIPTIONS_JSON;
+export const parseSubscriptionConfig = (raw, proxyGroup) => {
+  const reservedNames = new Set([
+    "DIRECT", "REJECT", "REJECT-DROP", "PASS", "COMPATIBLE", "GLOBAL",
+    "TAILSCALE", "TAILSCALE-DIRECT", TAILSCALE_GROUP, MANUAL_GROUP,
+    FALLBACK_GROUP, AD_BLOCK_GROUP, ADULT_GROUP, DOMESTIC_GROUP,
+    FOREIGN_GROUP, AI_GROUP, DEV_GROUP, STREAMING_GROUP, proxyGroup,
+  ]);
+  const names = new Set();
   if (!raw || !raw.trim()) {
     throw new Error(
       'SUBSCRIPTIONS_JSON is required, e.g. {"mojie":"https://订阅链接","amytelecom":["- {name: 香港 01, ...}"]}'
@@ -151,9 +155,35 @@ const parseSubscriptionConfig = () => {
         if (typeof line !== "string" || line.trim().length === 0) {
           throw new Error(`Static node ${index + 1} of "${name}" must be a non-empty YAML line`);
         }
-        const trimmed = line.trim().replace(/\r$/, "");
-        if (/^proxies:\s*$/.test(trimmed)) continue;
-        staticProxyLines.push(trimmed.startsWith("- ") ? `  ${trimmed}` : `  - ${trimmed}`);
+        if (/[\u0000-\u001F\u007F-\u009F\u2028\u2029]/u.test(line)) {
+          throw new Error(`Static node ${index + 1} of "${name}" must be a single YAML line without control characters`);
+        }
+        let node;
+        try {
+          const parsedNode = Bun.YAML.parse(line);
+          node = Array.isArray(parsedNode) && parsedNode.length === 1 ? parsedNode[0] : parsedNode;
+        } catch {
+          // Do not echo YAML parser diagnostics: they can contain credentials.
+          throw new Error(`Static node ${index + 1} of "${name}" is not valid YAML`);
+        }
+        if (!node || typeof node !== "object" || Array.isArray(node) ||
+            typeof node.name !== "string" || !node.name.trim() ||
+            typeof node.type !== "string" || !node.type.trim()) {
+          throw new Error(`Static node ${index + 1} of "${name}" must be one mapping with non-empty string name and type`);
+        }
+        if (reservedNames.has(node.name) || names.has(node.name)) {
+          throw new Error(`Static node ${index + 1} of "${name}" has a reserved or duplicate name`);
+        }
+        names.add(node.name);
+        // JSON flow mappings are YAML-safe, and keep all data on one physical line.
+        // Never splice untrusted YAML (including multiline scalars) into the template.
+        let serialized;
+        try {
+          serialized = JSON.stringify(node);
+        } catch {
+          throw new Error(`Static node ${index + 1} of "${name}" cannot be serialized`);
+        }
+        staticProxyLines.push(`  - ${serialized}`);
       }
       continue;
     }
@@ -170,7 +200,7 @@ const parseSubscriptionConfig = () => {
 const buildProxyProviders = (providers) =>
   providers
     .map(
-      (provider) => `  ${provider.name}:
+      (provider) => `  ${q(provider.name)}:
     type: http
     url: ${q(provider.url)}
     path: ./providers/${provider.name}.yaml
@@ -188,7 +218,7 @@ const buildRuleProviders = (sourceProviders, releaseBaseUrl) =>
       const behavior = provider.behavior ?? "classical";
       const extension = behavior === "domain" ? "txt" : "yaml";
       const format = behavior === "domain" ? "text" : "yaml";
-      return `  ${provider.name}:
+      return `  ${q(provider.name)}:
     type: http
     behavior: ${behavior}
     format: ${format}
@@ -309,19 +339,16 @@ const buildDns = (fakeIpFilter) =>
     ...fakeIpFilter.map((entry) => `    - ${q(entry)}`),
   ].join("\n");
 
-const main = async () => {
-  const { output } = parseArguments(process.argv.slice(2));
-
-  const source = JSON.parse(await fs.readFile(SOURCE_CONFIG_PATH, "utf8"));
+export const renderProfile = (source, subscriptionsJson) => {
   if (!source.release_base_url) throw new Error("sources.json is missing release_base_url");
   if (!Array.isArray(source.providers) || source.providers.length === 0) {
     throw new Error("sources.json is missing providers");
   }
 
-  const { providers: subscriptions, staticProxyLines } = parseSubscriptionConfig();
   const fakeIpFilter = Array.isArray(source.fake_ip_filter) ? source.fake_ip_filter : [];
   const proxyGroup = source.proxy_group;
-  if (!proxyGroup) throw new Error("sources.json is missing proxy_group");
+  if (typeof proxyGroup !== "string" || !proxyGroup.trim()) throw new Error("sources.json is missing proxy_group");
+  const { providers: subscriptions, staticProxyLines } = parseSubscriptionConfig(subscriptionsJson, proxyGroup);
 
   // Tailscale 占位符放在列表末尾，由 Worker 按 ?ts= 参数替换成真实节点或删除。
   const proxyLines = [...staticProxyLines, TAILSCALE_PROXIES_PLACEHOLDER];
@@ -361,20 +388,37 @@ const main = async () => {
   const ruleProviderCount = (profile.match(/^    type: http$/gm) || []).length;
   if (ruleProviderCount === 0) throw new Error("Generated profile has no http providers");
 
+  // Validate the actual template through the same four injection paths used by
+  // the Worker. This is entirely local and never uses a real Tailscale key.
+  for (const mode of ["off", "interface", "tsnet", "both"]) {
+    const result = injectTailscale(profile, new URL(`https://example.test/?ts=${mode}&tskey=tskey-auth-FAKE_VALIDATION_ONLY`), {});
+    if (!result.body) throw new Error(`Generated profile has invalid Tailscale template (${mode})`);
+    try {
+      const config = Bun.YAML.parse(result.body);
+      if (!config || !Array.isArray(config.proxies) || !Array.isArray(config["proxy-groups"]) || !Array.isArray(config.rules)) {
+        throw new Error("Invalid configuration shape");
+      }
+    } catch {
+      throw new Error(`Generated profile is not valid YAML (${mode})`);
+    }
+  }
+  return profile;
+};
+
+const main = async () => {
+  const { output } = parseArguments(process.argv.slice(2));
+  const source = JSON.parse(await fs.readFile(SOURCE_CONFIG_PATH, "utf8"));
+  const profile = renderProfile(source, process.env.SUBSCRIPTIONS_JSON);
   if (output) {
     await fs.mkdir(path.dirname(output), { recursive: true });
     await fs.writeFile(output, profile, "utf8");
-    const tailscaleSummary = "injected by worker";
-    process.stderr.write(
-      `Wrote ${output} (${Buffer.byteLength(profile)} bytes, ${subscriptions.length} providers, ` +
-        `${staticProxyLines.length} static nodes, tailscale: ${tailscaleSummary})\n`
-    );
+    process.stderr.write(`Wrote ${output} (${Buffer.byteLength(profile)} bytes, tailscale: injected by worker)\n`);
     return;
   }
   process.stdout.write(profile);
 };
 
-main().catch((error) => {
+if (import.meta.main) main().catch((error) => {
   process.stderr.write(`render-flclash-profile: ${error.message}\n`);
   process.exit(1);
 });

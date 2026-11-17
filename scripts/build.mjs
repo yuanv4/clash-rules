@@ -791,7 +791,49 @@ const pathExists = async (target) => {
   }
 };
 
-const replaceOutputDirectory = async (stagingDir, outputDir) => {
+const OUTPUT_MARKER = ".clash-rules-output";
+const OUTPUT_MARKER_CONTENT = "clash-rules generated output v1\n";
+
+// Resolve existing ancestors too: a symlinked parent must not bypass source protection.
+const canonicalPath = async (target) => {
+  try {
+    return await fs.realpath(target);
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+    return path.join(await canonicalPath(path.dirname(target)), path.basename(target));
+  }
+};
+const containsPath = (parent, child) => {
+  const relative = path.relative(parent, child);
+  return relative === "" || (!relative.startsWith(`..${path.sep}`) && relative !== ".." && !path.isAbsolute(relative));
+};
+
+export const assertSafeOutputDirectory = async (outputDir) => {
+  const resolved = await canonicalPath(path.resolve(outputDir));
+  const root = await fs.realpath(ROOT_DIR);
+  const protectedDirs = ["scripts", "worker", "docs", "custom", ".github", ".git"];
+  if (containsPath(resolved, root) || protectedDirs.some((name) => containsPath(path.join(root, name), resolved))) {
+    throw new Error(`Refusing protected output directory: ${outputDir}`);
+  }
+  if (!(await pathExists(outputDir))) return;
+  const stat = await fs.lstat(outputDir);
+  if (!stat.isDirectory() || stat.isSymbolicLink()) {
+    throw new Error(`Output path is not a normal directory: ${outputDir}`);
+  }
+  const entries = await fs.readdir(outputDir);
+  if (entries.length === 0) return;
+  const marker = path.join(outputDir, OUTPUT_MARKER);
+  if (!entries.includes(OUTPUT_MARKER) || (await fs.lstat(marker)).isSymbolicLink() ||
+      await fs.readFile(marker, "utf8") !== OUTPUT_MARKER_CONTENT) {
+    throw new Error(`Refusing non-empty unmarked output directory: ${outputDir}; use a new empty output directory`);
+  }
+  if (entries.some((name) => name !== OUTPUT_MARKER && name !== "rules")) {
+    throw new Error(`Unexpected files in output directory: ${outputDir}`);
+  }
+};
+
+export const replaceOutputDirectory = async (stagingDir, outputDir) => {
+  await assertSafeOutputDirectory(outputDir);
   const parentDir = path.dirname(outputDir);
   const outputExists = await pathExists(outputDir);
   let backupDir = null;
@@ -831,6 +873,7 @@ const replaceOutputDirectory = async (stagingDir, outputDir) => {
 };
 
 const build = async (outputDir) => {
+  await assertSafeOutputDirectory(outputDir);
   const { providers } = await loadConfiguration();
   await fs.mkdir(path.dirname(outputDir), { recursive: true });
   const stagingDir = await fs.mkdtemp(path.join(path.dirname(outputDir), `.${path.basename(outputDir)}-staging-`));
@@ -864,6 +907,7 @@ const build = async (outputDir) => {
       throw new Error("Staging directory does not contain exactly the configured publication artifacts");
     }
 
+    await fs.writeFile(path.join(stagingDir, OUTPUT_MARKER), OUTPUT_MARKER_CONTENT, "utf8");
     await replaceOutputDirectory(stagingDir, outputDir);
     outputCommitted = true;
     process.stdout.write(
