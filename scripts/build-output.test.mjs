@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { test } from "bun:test";
+import { test } from "node:test";
 import { assertSafeOutputDirectory, replaceOutputDirectory } from "./build.mjs";
 
-const root = path.resolve(import.meta.dir, "..");
+const root = path.resolve(import.meta.dirname, "..");
 const marker = ".clash-rules-output";
 const markerContent = "clash-rules generated output v1\n";
 

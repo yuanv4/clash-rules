@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * 生成 FlClash 自定义配置（custom profile）。
  *
@@ -18,8 +18,10 @@
  *
  * 输出：stdout 或 --output 指定文件。
  *
- * 需要 Bun 运行时（使用内置 Bun.YAML 校验静态节点，无外部 YAML 依赖）。
+ * 需要 Node.js 24 LTS 和 yaml 依赖（先运行 npm ci）。
  */
+
+import { parse as parseYaml } from "yaml";
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -72,7 +74,7 @@ const q = (value) => JSON.stringify(String(value));
 
 const usage = () => {
   process.stdout.write(
-    "Usage: bun scripts/render-flclash-profile.mjs [--output FILE]\n\n" +
+    "Usage: node scripts/render-flclash-profile.mjs [--output FILE]\n\n" +
       "环境变量:\n" +
       '  SUBSCRIPTIONS_JSON  必填，例如：\n' +
       '    {"mojie":"https://订阅链接","amytelecom":["- {name: 香港 01, ...}"]}\n' +
@@ -160,7 +162,7 @@ export const parseSubscriptionConfig = (raw, proxyGroup) => {
         }
         let node;
         try {
-          const parsedNode = Bun.YAML.parse(line);
+          const parsedNode = parseYaml(line);
           node = Array.isArray(parsedNode) && parsedNode.length === 1 ? parsedNode[0] : parsedNode;
         } catch {
           // Do not echo YAML parser diagnostics: they can contain credentials.
@@ -394,7 +396,7 @@ export const renderProfile = (source, subscriptionsJson) => {
     const result = injectTailscale(profile, new URL(`https://example.test/?ts=${mode}&tskey=tskey-auth-FAKE_VALIDATION_ONLY`), {});
     if (!result.body) throw new Error(`Generated profile has invalid Tailscale template (${mode})`);
     try {
-      const config = Bun.YAML.parse(result.body);
+      const config = parseYaml(result.body);
       if (!config || !Array.isArray(config.proxies) || !Array.isArray(config["proxy-groups"]) || !Array.isArray(config.rules)) {
         throw new Error("Invalid configuration shape");
       }

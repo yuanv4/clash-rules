@@ -1,4 +1,6 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
+
+import { parse as parseYaml } from "yaml";
 
 import { promises as fs } from "node:fs";
 import http from "node:http";
@@ -18,7 +20,7 @@ const MAX_PATH_DECODE_PASSES = 8;
 
 const usage = () => {
   process.stdout.write(
-    "Usage: bun scripts/build.mjs [--output-dir DIR]\n\n" +
+    "Usage: node scripts/build.mjs [--output-dir DIR]\n\n" +
       "Build the rule provider publication directory. DIR defaults to dist.\n"
   );
 };
@@ -665,13 +667,9 @@ const parseRawListRules = (text, url) => {
 };
 
 const parseClashYamlRules = (text, url) => {
-  if (typeof globalThis.Bun?.YAML?.parse !== "function") {
-    throw new Error(`Clash YAML input at ${url} requires Bun.YAML.parse; use Bun 1.3.14 or newer`);
-  }
-
   let document;
   try {
-    document = globalThis.Bun.YAML.parse(text);
+    document = parseYaml(text);
   } catch (error) {
     throw new Error(`Invalid Clash YAML at ${url}: ${error.message}`);
   }

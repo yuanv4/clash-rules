@@ -25,7 +25,7 @@ GitHub Actions 用它生成 FlClash 自定义配置，并推送到 Cloudflare Wo
 
 键名（`mojie` / `youtu` / …）就是 provider 名，只能用字母、数字、`_`、`.`、`-`。
 
-渲染命令使用 Bun 1.3.14：`bun scripts/render-flclash-profile.mjs --output <私有模板路径>`。
+使用 Node.js 24 LTS，先运行 `npm ci`，再渲染：`node scripts/render-flclash-profile.mjs --output <私有模板路径>`。
 静态节点必须是单行 YAML、包含非空字符串 name/type，名称不得重复或与策略组、TAILSCALE、TAILSCALE-DIRECT 冲突。渲染器解析后重新序列化，并验证四种注入模式；不合法的输入不会写出新模板。
 
 ## 什么时候用数组
@@ -111,7 +111,7 @@ Worker 源码在 [`worker/clash-profile.js`](../worker/clash-profile.js)，
 `.github/workflows/deploy-profile.yml`，与 `release.yml`（规则发布）相互独立：
 
 ```
-push（改动 sources.json / 渲染脚本 / workflow）
+push（改动 sources.json / 渲染或发布脚本 / 测试 / package.json / package-lock.json / workflow）
   └─ 或每日 02:17 UTC 定时
        ▼
 渲染 profile → 推送到 Cloudflare KV → Worker 对外提供

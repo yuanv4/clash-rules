@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { test } from "bun:test";
+import { test } from "node:test";
 import {
   loadSource,
   mergeRules,
@@ -145,7 +145,7 @@ test("rejects malformed, multi-document, and wrong Clash YAML payloads", () => {
   );
   assert.throws(
     () => parseRules("payload:\n  - DOMAIN,example.com\n---\npayload:\n  - DOMAIN,other.com\n", sourceUrl, "clash-yaml"),
-    /root must be a single mapping/
+    /Invalid Clash YAML.*multiple documents/
   );
 });
 
@@ -218,7 +218,7 @@ test("normalizes merge-ready provider views and preserves ordered provenance", (
 });
 
 test("sources.json removes domestic AI routing while preserving provider provenance", async () => {
-  const config = await Bun.file(new URL("../sources.json", import.meta.url)).json();
+  const config = JSON.parse(await readFile(new URL("../sources.json", import.meta.url), "utf8"));
   const normalized = normalizeConfiguration(config);
   const providerNames = normalized.providers.map((provider) => provider.name);
   assert.equal(providerNames[0], "direct");

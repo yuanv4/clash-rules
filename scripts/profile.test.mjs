@@ -1,6 +1,7 @@
+import { parse as parseYaml } from "yaml";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { test } from "bun:test";
+import { test } from "node:test";
 import { renderProfile } from "./render-flclash-profile.mjs";
 import worker from "../worker/clash-profile.js";
 
@@ -17,7 +18,7 @@ const parsedResponse = async (...args) => {
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("Cache-Control"), "no-store");
   assert.equal(response.headers.get("X-Content-Type-Options"), "nosniff");
-  return Bun.YAML.parse(await response.text());
+  return parseYaml(await response.text());
 };
 
 for (const [mode, names] of Object.entries({ off: [], interface: ["TAILSCALE-DIRECT"], tsnet: ["TAILSCALE"], both: ["TAILSCALE-DIRECT", "TAILSCALE"] })) {
