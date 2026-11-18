@@ -149,8 +149,9 @@ Worker 源码在 [`worker/clash-profile.js`](../worker/clash-profile.js)，
 | `CF_API_TOKEN` | KV 发布需 `Account → Workers KV Storage → Edit`；部署 Worker 还需 `Workers Scripts → Edit` |
 | `CF_ACCOUNT_ID` | Cloudflare 账号 ID |
 | `CF_KV_NAMESPACE_ID` | KV 命名空间 ID |
+| `CF_SECRET_PATH` | 订阅链接的路径：订阅地址 = `https://<Worker 域名>` + 本值，必须以 `/` 开头，例如 `/s/<随机串>`；Worker 按路径精确匹配 |
 
-订阅路径由必填 Secret `CF_SECRET_PATH` 设置；Tailscale key 只从订阅 URL 注入，每台设备使用各自的 key。
+Tailscale key 只从订阅 URL 注入，每台设备使用各自的 key。
 
 ## 流水线
 

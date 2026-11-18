@@ -34,7 +34,9 @@
 | `CF_API_TOKEN` | 需 Workers KV Storage:Edit 和 Workers Scripts:Edit 权限 |
 | `CF_ACCOUNT_ID` | Cloudflare 账号 ID |
 | `CF_KV_NAMESPACE_ID` | KV namespace ID |
-| `CF_SECRET_PATH` | 难以猜测的私有路径，例如 `/s/<随机秘密>` |
+| `CF_SECRET_PATH` | **订阅链接的路径**：订阅地址 = `https://<Worker 域名>` + 本值。必须以 `/` 开头、难以猜测，例如 `/s/<随机串>` |
+
+订阅地址示例：值设 `/s/abc123`，FlClash 里填 `https://clash-profile.<你的子域>.workers.dev/s/abc123`（可再按「使用」一节加 `?ts=` 等参数）。Worker 按路径**精确匹配**这个值，改它等于换订阅地址，所有设备都要跟着改。
 
 ### `SUBSCRIPTIONS_JSON` 格式
 
