@@ -30,20 +30,30 @@
 
 | Secret | 内容 |
 | --- | --- |
-| `SUBSCRIPTIONS_JSON` | 机场订阅或静态节点，格式见下方 |
+| `SUBSCRIPTIONS_JSON` | 机场订阅或静态节点，格式见下方小节 |
 | `CF_API_TOKEN` | 需 Workers KV Storage:Edit 和 Workers Scripts:Edit 权限 |
 | `CF_ACCOUNT_ID` | Cloudflare 账号 ID |
 | `CF_KV_NAMESPACE_ID` | KV namespace ID |
 | `CF_SECRET_PATH` | 难以猜测的私有路径，例如 `/s/<随机秘密>` |
 | `CF_TS_INTERFACE` / `CF_TS_AUTH_KEY` | 可选：默认网卡名 / 共享 Tailscale key |
 
-`SUBSCRIPTIONS_JSON` 最简示例（替换为自己的订阅）：
+### `SUBSCRIPTIONS_JSON` 格式
+
+JSON 对象：键是 provider 名（字母、数字、`_`、`.`、`-`），值是机场配置。
 
 ```json
-{"airport_a":"https://subscription.example.com/your-token"}
+{
+  "airport_a": "https://subscription.example.com/a",
+  "airport_b": { "url": "https://subscription.example.com/b", "interval": 0 },
+  "airport_c": { "url": "https://subscription.example.com/c", "enable": false }
+}
 ```
 
-静态节点格式及校验要求见 [订阅说明](<docs/flclash-subscriptions.md>)。需要关闭自动刷新或临时停用时改用对象形式：`{"url":"https://...","interval":0}`（改为手动刷新）、`{"url":"https://...","enable":false}`（发布时跳过该机场）。仅修改 Secret 不会自动触发部署。
+- 字符串：远程订阅，客户端每 3600 秒自动刷新。
+- 对象：`url` 或 `nodes` 二选一；`interval: 0` 关闭自动刷新改手动，`enable: false` 临时跳过。
+- 数组：静态节点，每条是单行 YAML（含非空 `name`/`type`），不依赖订阅链接。
+
+静态节点校验和短窗口订阅的手动刷新流程见 [订阅说明](<docs/flclash-subscriptions.md>)。Secret 保存后不可查看；改完需手动运行 **Deploy FlClash Profile**。
 
 按顺序操作，每一步成功后再继续：
 

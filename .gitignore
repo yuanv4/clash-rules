@@ -4,3 +4,4 @@ dist/
 .cf-build/
 .cf-token
 .cf-account
+.local/
