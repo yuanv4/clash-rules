@@ -10,8 +10,6 @@
  *   CF_ACCOUNT_ID         必填
  *   CF_KV_NAMESPACE_ID    必填，PROFILE_KV 绑定
  *   CF_SECRET_PATH        必填，订阅路径，如 /s/xxxx
- *   CF_TS_INTERFACE       可选，默认 Tailscale 网卡名
- *   CF_TS_AUTH_KEY        可选，设置 TS_AUTH_KEY secret（tsnet 模式需要）
  *
  * 用法：node scripts/deploy-clash-worker.mjs
  */
@@ -56,8 +54,6 @@ const main = async () => {
     { type: "kv_namespace", name: "PROFILE_KV", namespace_id: namespaceId },
     { type: "plain_text", name: "SECRET_PATH", text: secretPath },
   ];
-  const interfaceName = (process.env.CF_TS_INTERFACE || "").trim();
-  if (interfaceName) bindings.push({ type: "plain_text", name: "TS_INTERFACE", text: interfaceName });
 
   const metadata = {
     main_module: "index.js",
@@ -78,26 +74,9 @@ const main = async () => {
     throw new Error(`Worker upload failed (HTTP ${upload.status}): ${JSON.stringify(upload.body?.errors ?? {})}`);
   }
 
-  const authKey = (process.env.CF_TS_AUTH_KEY || "").trim();
-  if (authKey) {
-    const secret = await call(
-      `${API_BASE}/accounts/${accountId}/workers/scripts/${SCRIPT_NAME}/secrets`,
-      {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ name: "TS_AUTH_KEY", text: authKey, type: "secret_text" }),
-      }
-    );
-    if (!secret.body?.success) {
-      throw new Error(`Secret update failed (HTTP ${secret.status}): ${JSON.stringify(secret.body?.errors ?? {})}`);
-    }
-  }
-
   process.stdout.write(
     `Deployed ${SCRIPT_NAME} (${Buffer.byteLength(source)} bytes); bindings: ` +
-      `${bindings.map((binding) => binding.name).join(", ")}` +
-      (authKey ? " + TS_AUTH_KEY secret" : "") +
-      "\n"
+      `${bindings.map((binding) => binding.name).join(", ")}\n`
   );
 };
 

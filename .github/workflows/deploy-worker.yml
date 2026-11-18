@@ -58,6 +58,4 @@ jobs:
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CF_KV_NAMESPACE_ID: ${{ secrets.CF_KV_NAMESPACE_ID }}
           CF_SECRET_PATH: ${{ secrets.CF_SECRET_PATH }}
-          CF_TS_INTERFACE: ${{ secrets.CF_TS_INTERFACE }}
-          CF_TS_AUTH_KEY: ${{ secrets.CF_TS_AUTH_KEY }}
         run: node scripts/deploy-clash-worker.mjs

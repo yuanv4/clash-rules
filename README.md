@@ -35,7 +35,6 @@
 | `CF_ACCOUNT_ID` | Cloudflare 账号 ID |
 | `CF_KV_NAMESPACE_ID` | KV namespace ID |
 | `CF_SECRET_PATH` | 难以猜测的私有路径，例如 `/s/<随机秘密>` |
-| `CF_TS_INTERFACE` / `CF_TS_AUTH_KEY` | 可选：默认网卡名 / 共享 Tailscale key |
 
 ### `SUBSCRIPTIONS_JSON` 格式
 

@@ -100,20 +100,19 @@ test("AI group filters Taiwan and Singapore nodes", async () => {
   }
 });
 
-test("auth key priority, alias, fallback, and errors", async () => {
-  for (const [query, env, expected] of [
-    [`?ts=tsnet&tskey=${fakeKey}&tailscale-secret=tskey-auth-ALIAS_FAKE`, { TS_AUTH_KEY: "tskey-auth-FALLBACK_FAKE" }, fakeKey],
-    ["?ts=tsnet&tailscale-secret=tskey-auth-ALIAS_FAKE", {}, "tskey-auth-ALIAS_FAKE"],
-    ["?ts=tsnet", { TS_AUTH_KEY: fakeKey }, fakeKey],
+test("auth key comes from the subscription URL and errors otherwise", async () => {
+  for (const [query, expected] of [
+    [`?ts=tsnet&tskey=${fakeKey}&tailscale-secret=tskey-auth-ALIAS_FAKE`, fakeKey],
+    ["?ts=tsnet&tailscale-secret=tskey-auth-ALIAS_FAKE", "tskey-auth-ALIAS_FAKE"],
   ]) {
-    const config = await parsedResponse(query, template(), env);
+    const config = await parsedResponse(query, template());
     assert.equal(config.proxies.at(-1)["auth-key"], expected);
   }
   for (const query of ["?ts=tsnet", "?ts=both", "?ts=bad", "?ts=tsnet&tskey=invalid"]) assert.equal((await request(query)).status, 400);
 });
 
 test("iface validation is restricted to interface and both", async () => {
-  for (const mode of ["off", "tsnet"]) assert.equal((await request(`?ts=${mode}&iface=%E7%BD%91%E5%8D%A1&tskey=${fakeKey}`, template(), { TS_INTERFACE: "bad!" })).status, 200);
+  for (const mode of ["off", "tsnet"]) assert.equal((await request(`?ts=${mode}&iface=%E7%BD%91%E5%8D%A1&tskey=${fakeKey}`, template())).status, 200);
   for (const mode of ["interface", "both"]) assert.equal((await request(`?ts=${mode}&iface=bad!&tskey=${fakeKey}`)).status, 400);
 });
 
@@ -149,8 +148,8 @@ test("placeholder strings inside data survive without replacement", async () => 
   assert.equal(config.proxies[0].password, markerData);
   assert.equal(config.proxies[0].name, "__TAILSCALE_DEFAULT__");
   assert.equal(config["proxy-providers"].remote.url, input.remote);
-  const fallback = "tskey-auth-__TAILSCALE_DEFAULT__";
-  assert.equal((await parsedResponse("?ts=tsnet", template(), { TS_AUTH_KEY: fallback })).proxies.at(-1)["auth-key"], fallback);
+  const key = "tskey-auth-__TAILSCALE_DEFAULT__";
+  assert.equal((await parsedResponse(`?ts=tsnet&tskey=${key}`, template())).proxies.at(-1)["auth-key"], key);
 });
 
 test("reject literal multiline and control characters in static node input", () => {

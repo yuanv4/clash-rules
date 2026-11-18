@@ -10,13 +10,11 @@
  * tsnet 的 auth key 由链接注入（等价于旧 Sub-Store 的 tailscale-secret 参数）：
  *   ?ts=tsnet&tskey=tskey-auth-xxxxx
  *   ?ts=tsnet&tailscale-secret=tskey-auth-xxxxx   旧参数名，同样接受
- * 链接没带 key 时回退到 TS_AUTH_KEY secret（若已配置）。
+ * Worker 不保存共享 key；tsnet 请求没带 key 时直接拒绝。
  *
  * 绑定：
  *   PROFILE_KV   KV，key = profile.yaml，内容是带占位符的 profile
  *   SECRET_PATH  订阅路径（plain_text）
- *   TS_AUTH_KEY  可选 secret_text，链接未带 key 时的回退值
- *   TS_INTERFACE 可选 plain_text，默认为 Tailscale
  */
 
 const PROXIES_PLACEHOLDER = "  __TAILSCALE_PROXIES__";
@@ -64,38 +62,34 @@ const buildTailscaleBlock = (mode, interfaceName, authKey) => {
   };
 };
 
-const TS_AUTH_KEY_PATTERN = /^tskey-[A-Za-z0-9_-]{8,}$/;
+const AUTH_KEY_PATTERN = /^tskey-[A-Za-z0-9_-]{8,}$/;
 
-/** 链接注入优先；没有则回退到 Worker secret。 */
-const resolveAuthKey = (url, env) => {
+/** 只接受链接参数；Worker 不保存共享 key。 */
+const resolveAuthKey = (url) => {
   const fromUrl = (
     url.searchParams.get("tskey") ||
     url.searchParams.get("tailscale-secret") ||
     ""
   ).trim();
-  if (fromUrl) {
-    if (!TS_AUTH_KEY_PATTERN.test(fromUrl)) return { error: "tskey is not a valid Tailscale auth key" };
-    return { key: fromUrl };
-  }
-  const fallback = (env.TS_AUTH_KEY || "").trim();
-  if (fallback) return { key: fallback };
-  return { error: "ts=tsnet requires &tskey=tskey-auth-... in the URL (or the TS_AUTH_KEY secret)" };
+  if (!fromUrl) return { error: "ts=tsnet requires &tskey=tskey-auth-... in the URL" };
+  if (!AUTH_KEY_PATTERN.test(fromUrl)) return { error: "tskey is not a valid Tailscale auth key" };
+  return { key: fromUrl };
 };
 
-export const injectTailscale = (profile, url, env) => {
+export const injectTailscale = (profile, url) => {
   const mode = (url.searchParams.get("ts") || "off").trim().toLowerCase();
   if (!VALID_MODES.has(mode)) {
     return { error: `ts must be one of: ${[...VALID_MODES].join(", ")}` };
   }
 
-  const interfaceName = (url.searchParams.get("iface") || env.TS_INTERFACE || "Tailscale").trim();
+  const interfaceName = (url.searchParams.get("iface") || "Tailscale").trim();
   if ((mode === "interface" || mode === "both") && !/^[A-Za-z0-9 ._-]{1,64}$/.test(interfaceName)) {
     return { error: "iface contains unsupported characters" };
   }
 
   let authKey = "";
   if (mode === "tsnet" || mode === "both") {
-    const resolved = resolveAuthKey(url, env);
+    const resolved = resolveAuthKey(url);
     if (resolved.error) return { error: resolved.error };
     authKey = resolved.key;
   }
@@ -140,7 +134,7 @@ export default {
       return new Response("Not Found", { status: 404 });
     }
 
-    const result = injectTailscale(profile, url, env);
+    const result = injectTailscale(profile, url);
     if (result.error) return badRequest(result.error);
     if (result.templateError) {
       return new Response("Invalid profile template\n", {

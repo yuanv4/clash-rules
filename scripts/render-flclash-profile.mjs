@@ -462,7 +462,7 @@ export const renderProfile = (source, subscriptionsJson) => {
   // Validate the actual template through the same four injection paths used by
   // the Worker. This is entirely local and never uses a real Tailscale key.
   for (const mode of ["off", "interface", "tsnet", "both"]) {
-    const result = injectTailscale(profile, new URL(`https://example.test/?ts=${mode}&tskey=tskey-auth-FAKE_VALIDATION_ONLY`), {});
+    const result = injectTailscale(profile, new URL(`https://example.test/?ts=${mode}&tskey=tskey-auth-FAKE_VALIDATION_ONLY`));
     if (!result.body) throw new Error(`Generated profile has invalid Tailscale template (${mode})`);
     try {
       const config = parseYaml(result.body);

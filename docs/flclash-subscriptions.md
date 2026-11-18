@@ -116,13 +116,13 @@ profile 里只留占位符，Tailscale 节点由 **Worker 在请求时按查询�
 **tsnet 的 auth key 由链接注入**，和旧 Sub-Store 的 `tailscale-secret` 行为一致：
 
 - 参数名 `tskey`，也接受旧名 `tailscale-secret`
-- 链接里的 key 优先；没带时才回退到 Worker 的 `TS_AUTH_KEY` secret（可选，不推荐）
+- key 必须由链接携带，Worker 不保存共享 key
 - key 不会出现在 `ts=interface` / `off` 的响应里
 - 每台设备可以用各自的 key，不受一份共享密钥限制
 
 可调参数：
 
-- `iface=<名称>`：覆盖网卡名，默认取 Worker 绑定 `TS_INTERFACE`，再默认 `Tailscale`
+- `iface=<名称>`：覆盖网卡名，默认 `Tailscale`
 
 路由规则固定（走 `Tailscale` 组）：
 
@@ -150,7 +150,7 @@ Worker 源码在 [`worker/clash-profile.js`](../worker/clash-profile.js)，
 | `CF_ACCOUNT_ID` | Cloudflare 账号 ID |
 | `CF_KV_NAMESPACE_ID` | KV 命名空间 ID |
 
-部署 Workflow 从可选 GitHub Secrets `CF_TS_INTERFACE` / `CF_TS_AUTH_KEY` 设置 Worker 绑定 `TS_INTERFACE` / `TS_AUTH_KEY`。订阅路径由必填 Secret `CF_SECRET_PATH` 设置；优先使用 URL 中的设备专属 key。
+订阅路径由必填 Secret `CF_SECRET_PATH` 设置；Tailscale key 只从订阅 URL 注入，每台设备使用各自的 key。
 
 ## 流水线
 
