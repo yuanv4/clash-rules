@@ -8,10 +8,14 @@
  *
  * SUBSCRIPTIONS_JSON 形状（值类型决定用途）：
  *   {
- *     "mojie":      "https://机场订阅链接",          // 字符串 → 远程订阅 provider
- *     "youtu":      "https://机场订阅链接",
- *     "amytelecom": ["- {name: 香港 01, ...}",        // 数组   → 静态节点（链接会过期时用）
- *                    "- {name: 香港 02, ...}"]
+ *     "mojie":      "https://机场订阅链接",          // 字符串 → 远程订阅 provider，默认 interval 3600
+ *     "amytelecom": {                                // 对象   → 完整形式
+ *       "url": "https://机场订阅链接",                //          url 或 nodes 二选一
+ *       "interval": 0                                //          0 = 关闭自动刷新，改手动
+ *     },
+ *     "snapshot":   ["- {name: 香港 01, ...}",        // 数组   → 静态节点（链接无法自动更新时用）
+ *                    "- {name: 香港 02, ...}"],
+ *     "youtu":      { "url": "...", "enable": false } // enable:false 临时关闭该机场
  *   }
  *
  * Tailscale 出口由 Worker 按请求参数注入；本脚本只生成专用占位行。
@@ -34,6 +38,9 @@ const SOURCE_CONFIG_PATH = path.join(ROOT_DIR, "sources.json");
 
 const TEST_URL = "https://cp.cloudflare.com/generate_204";
 const AI_TEST_URL = "https://chatgpt.com/";
+
+/** 远程订阅 provider 的默认自动刷新间隔（秒）；0 = 关闭自动刷新，由客户端手动触发。 */
+const DEFAULT_PROVIDER_INTERVAL = 3600;
 
 const TAILSCALE_GROUP = "Tailscale";
 const FALLBACK_GROUP = "🐟 漏网之鱼";
@@ -78,8 +85,8 @@ const usage = () => {
     "Usage: node scripts/render-flclash-profile.mjs [--output FILE]\n\n" +
       "环境变量:\n" +
       '  SUBSCRIPTIONS_JSON  必填，例如：\n' +
-      '    {"mojie":"https://订阅链接","amytelecom":["- {name: 香港 01, ...}"]}\n' +
-      "    字符串值 = 远程订阅；数组值 = 静态节点 YAML 行\n"
+      '    {"mojie":"https://订阅链接","amytelecom":{"url":"https://订阅链接","interval":0}}\n' +
+      '    字符串/对象 url = 远程订阅；数组/对象 nodes = 静态节点；enable:false 临时关闭\n'
   );
 };
 
@@ -104,9 +111,73 @@ const parseArguments = (argv) => {
 };
 
 /**
+ * 把 SUBSCRIPTIONS_JSON 的单个条目归一化为内部形式：
+ *   { kind: "remote", url, interval, enabled }
+ *   { kind: "nodes", nodes, enabled }
+ *
+ * 这里只校验结构（字段名、url/nodes 二选一、类型、interval、enable）。
+ * 链接协议、节点 YAML、重名等内容校验留给调用方，因此 enable: false
+ * 的条目可以被临时关闭，而不必维护内容。
+ */
+const normalizeSubscriptionEntry = (name, value) => {
+  if (typeof value === "string") {
+    return { kind: "remote", url: value, interval: DEFAULT_PROVIDER_INTERVAL, enabled: true };
+  }
+  if (Array.isArray(value)) {
+    return { kind: "nodes", nodes: value, enabled: true };
+  }
+  if (!value || typeof value !== "object") {
+    throw new Error(
+      `Subscription "${name}" must be a URL string, an array of static YAML lines, ` +
+        `or an object with "url" or "nodes"`
+    );
+  }
+
+  for (const key of Object.keys(value)) {
+    if (!["url", "nodes", "interval", "enable"].includes(key)) {
+      throw new Error(`Subscription "${name}" has unknown field "${key}"`);
+    }
+  }
+
+  const hasUrl = Object.hasOwn(value, "url");
+  const hasNodes = Object.hasOwn(value, "nodes");
+  if (hasUrl === hasNodes) {
+    throw new Error(`Subscription "${name}" must set exactly one of "url" or "nodes"`);
+  }
+
+  const enabled = value.enable === undefined ? true : value.enable;
+  if (typeof enabled !== "boolean") {
+    throw new Error(`Subscription "${name}" has non-boolean "enable"`);
+  }
+
+  if (hasNodes) {
+    if (!Array.isArray(value.nodes)) {
+      throw new Error(`Subscription "${name}" field "nodes" must be an array`);
+    }
+    if (value.interval !== undefined) {
+      throw new Error(`Subscription "${name}" cannot set "interval" for static nodes`);
+    }
+    return { kind: "nodes", nodes: value.nodes, enabled };
+  }
+
+  if (typeof value.url !== "string") {
+    throw new Error(`Subscription "${name}" field "url" must be a string`);
+  }
+  const interval = value.interval === undefined ? DEFAULT_PROVIDER_INTERVAL : value.interval;
+  if (!Number.isSafeInteger(interval) || interval < 0) {
+    throw new Error(
+      `Subscription "${name}" field "interval" must be a non-negative integer (0 disables auto-update)`
+    );
+  }
+  return { kind: "remote", url: value.url, interval, enabled };
+};
+
+/**
  * 解析 SUBSCRIPTIONS_JSON：
- *   字符串值 → 远程订阅 provider
+ *   字符串值 → 远程订阅 provider（interval 3600）
+ *   对象值   → { url, interval?, enable? } 或 { nodes, enable? }
  *   数组值   → 静态节点（每个元素是一条 YAML 节点行）
+ * enable: false 的条目跳过，不生成 provider、不内联节点。
  */
 export const parseSubscriptionConfig = (raw, proxyGroup) => {
   const reservedNames = new Set([
@@ -118,7 +189,7 @@ export const parseSubscriptionConfig = (raw, proxyGroup) => {
   const names = new Set();
   if (!raw || !raw.trim()) {
     throw new Error(
-      'SUBSCRIPTIONS_JSON is required, e.g. {"mojie":"https://订阅链接","amytelecom":["- {name: 香港 01, ...}"]}'
+      'SUBSCRIPTIONS_JSON is required, e.g. {"mojie":"https://订阅链接","amytelecom":{"url":"https://订阅链接","interval":0}}'
     );
   }
   let parsed;
@@ -139,63 +210,65 @@ export const parseSubscriptionConfig = (raw, proxyGroup) => {
       throw new Error(`Invalid subscription name "${name}" (allowed: A-Z a-z 0-9 _ . -)`);
     }
 
-    if (typeof value === "string") {
-      const url = value.trim();
+    const entry = normalizeSubscriptionEntry(name, value);
+    // 临时关闭：不生成 provider、不内联节点，也不参与命名冲突检查。
+    if (!entry.enabled) continue;
+
+    if (entry.kind === "remote") {
+      const url = entry.url.trim();
       if (!/^https?:\/\//.test(url)) {
         throw new Error(
-          `Subscription "${name}" must be an http(s) URL; use an array for static nodes`
+          `Subscription "${name}" must be an http(s) URL; use an array (or "nodes") for static nodes`
         );
       }
-      providers.push({ name, url });
+      providers.push({ name, url, interval: entry.interval });
       continue;
     }
 
-    if (Array.isArray(value)) {
-      if (value.length === 0) {
-        throw new Error(`Static nodes for "${name}" must not be an empty array`);
-      }
-      for (const [index, line] of value.entries()) {
-        if (typeof line !== "string" || line.trim().length === 0) {
-          throw new Error(`Static node ${index + 1} of "${name}" must be a non-empty YAML line`);
-        }
-        if (/[\u0000-\u001F\u007F-\u009F\u2028\u2029]/u.test(line)) {
-          throw new Error(`Static node ${index + 1} of "${name}" must be a single YAML line without control characters`);
-        }
-        let node;
-        try {
-          const parsedNode = parseYaml(line);
-          node = Array.isArray(parsedNode) && parsedNode.length === 1 ? parsedNode[0] : parsedNode;
-        } catch {
-          // Do not echo YAML parser diagnostics: they can contain credentials.
-          throw new Error(`Static node ${index + 1} of "${name}" is not valid YAML`);
-        }
-        if (!node || typeof node !== "object" || Array.isArray(node) ||
-            typeof node.name !== "string" || !node.name.trim() ||
-            typeof node.type !== "string" || !node.type.trim()) {
-          throw new Error(`Static node ${index + 1} of "${name}" must be one mapping with non-empty string name and type`);
-        }
-        if (reservedNames.has(node.name) || names.has(node.name)) {
-          throw new Error(`Static node ${index + 1} of "${name}" has a reserved or duplicate name`);
-        }
-        names.add(node.name);
-        // JSON flow mappings are YAML-safe, and keep all data on one physical line.
-        // Never splice untrusted YAML (including multiline scalars) into the template.
-        let serialized;
-        try {
-          serialized = JSON.stringify(node);
-        } catch {
-          throw new Error(`Static node ${index + 1} of "${name}" cannot be serialized`);
-        }
-        staticProxyLines.push(`  - ${serialized}`);
-      }
-      continue;
+    const nodes = entry.nodes;
+    if (nodes.length === 0) {
+      throw new Error(`Static nodes for "${name}" must not be an empty array`);
     }
-
-    throw new Error(`Subscription "${name}" must be a URL string or an array of static YAML lines`);
+    for (const [index, line] of nodes.entries()) {
+      if (typeof line !== "string" || line.trim().length === 0) {
+        throw new Error(`Static node ${index + 1} of "${name}" must be a non-empty YAML line`);
+      }
+      if (/[\u0000-\u001F\u007F-\u009F\u2028\u2029]/u.test(line)) {
+        throw new Error(`Static node ${index + 1} of "${name}" must be a single YAML line without control characters`);
+      }
+      let node;
+      try {
+        const parsedNode = parseYaml(line);
+        node = Array.isArray(parsedNode) && parsedNode.length === 1 ? parsedNode[0] : parsedNode;
+      } catch {
+        // Do not echo YAML parser diagnostics: they can contain credentials.
+        throw new Error(`Static node ${index + 1} of "${name}" is not valid YAML`);
+      }
+      if (!node || typeof node !== "object" || Array.isArray(node) ||
+          typeof node.name !== "string" || !node.name.trim() ||
+          typeof node.type !== "string" || !node.type.trim()) {
+        throw new Error(`Static node ${index + 1} of "${name}" must be one mapping with non-empty string name and type`);
+      }
+      if (reservedNames.has(node.name) || names.has(node.name)) {
+        throw new Error(`Static node ${index + 1} of "${name}" has a reserved or duplicate name`);
+      }
+      names.add(node.name);
+      // JSON flow mappings are YAML-safe, and keep all data on one physical line.
+      // Never splice untrusted YAML (including multiline scalars) into the template.
+      let serialized;
+      try {
+        serialized = JSON.stringify(node);
+      } catch {
+        throw new Error(`Static node ${index + 1} of "${name}" cannot be serialized`);
+      }
+      staticProxyLines.push(`  - ${serialized}`);
+    }
   }
 
   if (providers.length === 0 && staticProxyLines.length === 0) {
-    throw new Error("SUBSCRIPTIONS_JSON contains no providers and no static nodes");
+    throw new Error(
+      'SUBSCRIPTIONS_JSON contains no enabled providers and no enabled static nodes (entries with "enable": false are skipped)'
+    );
   }
   return { providers, staticProxyLines };
 };
@@ -207,7 +280,7 @@ const buildProxyProviders = (providers) =>
     type: http
     url: ${q(provider.url)}
     path: ./providers/${provider.name}.yaml
-    interval: 3600
+    interval: ${provider.interval}
     health-check:
       enable: true
       url: ${q(TEST_URL)}

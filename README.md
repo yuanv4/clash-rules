@@ -43,7 +43,7 @@
 {"airport_a":"https://subscription.example.com/your-token"}
 ```
 
-静态节点格式及校验要求见 [订阅说明](<docs/flclash-subscriptions.md>)。仅修改 Secret 不会自动触发部署。
+静态节点格式及校验要求见 [订阅说明](<docs/flclash-subscriptions.md>)。需要关闭自动刷新或临时停用时改用对象形式：`{"url":"https://...","interval":0}`（改为手动刷新）、`{"url":"https://...","enable":false}`（发布时跳过该机场）。仅修改 Secret 不会自动触发部署。
 
 按顺序操作，每一步成功后再继续：
 
@@ -62,7 +62,7 @@
 | --- | --- | --- |
 | 自定义国外域名 | [custom/foreign.txt](<custom/foreign.txt>) | 推送，等待规则发布 |
 | 上游、规则集合、DNS 排除项 | [sources.json](<sources.json>) | 按需发布规则和模板 |
-| 机场 / 静态节点 | Secret `SUBSCRIPTIONS_JSON` | 手动运行 Deploy FlClash Profile |
+| 机场 / 静态节点 / 刷新间隔 / 临时停用 | Secret `SUBSCRIPTIONS_JSON` | 手动运行 Deploy FlClash Profile |
 | 策略组 / AI 筛选 | [模板渲染器](<scripts/render-flclash-profile.mjs>) | 验证后发布模板 |
 | Tailscale 注入 / 私有路径 | [Worker](<worker/clash-profile.js>) / Secrets | 手动运行 Deploy Clash Profile Worker |
 

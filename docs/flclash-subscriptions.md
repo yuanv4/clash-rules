@@ -8,8 +8,9 @@ GitHub Actions 用它生成 FlClash 自定义配置，并推送到 Cloudflare Wo
 ```json
 {
   "mojie": "https://机场订阅链接",
-  "youtu": "https://机场订阅链接",
-  "amytelecom": [
+  "amytelecom": { "url": "https://机场订阅链接", "interval": 0 },
+  "youtu": { "url": "https://机场订阅链接", "enable": false },
+  "backup": [
     "- {name: 香港 01, type: anytls, server: ..., port: 20300, password: ...}",
     "- {name: 香港 02, type: anytls, server: ..., port: 20305, password: ...}"
   ]
@@ -20,20 +21,65 @@ GitHub Actions 用它生成 FlClash 自定义配置，并推送到 Cloudflare Wo
 
 | 值的类型 | 含义 |
 |---|---|
-| 字符串 | 远程订阅。生成的配置里是一个 `proxy-providers` 条目，客户端按 `interval: 3600` 自动更新 |
-| 数组 | 静态节点。每个元素是一条 YAML 节点行，直接内联进 `proxies:` |
+| 字符串 | 远程订阅简写。生成的配置里是一个 `proxy-providers` 条目，`interval: 3600` 自动更新 |
+| 数组 | 静态节点简写。每个元素是一条 YAML 节点行，直接内联进 `proxies:` |
+| 对象 | 完整形式，`url` 或 `nodes` 二选一，可带 `interval` / `enable` |
+
+**对象字段：**
+
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `url` | 字符串 | — | 远程订阅链接（与 `nodes` 二选一） |
+| `nodes` | 数组 | — | 静态节点 YAML 行（与 `url` 二选一） |
+| `interval` | 整数 | `3600` | provider 自动刷新间隔（秒），仅 `url` 可用。`0` 关闭自动刷新，改由客户端手动触发 |
+| `enable` | 布尔 | `true` | `false` 临时关闭该机场：不生成 provider、不内联节点 |
 
 键名（`mojie` / `youtu` / …）就是 provider 名，只能用字母、数字、`_`、`.`、`-`。
 
 使用 Node.js 24 LTS，先运行 `npm ci`，再渲染：`node scripts/render-flclash-profile.mjs --output <私有模板路径>`。
 静态节点必须是单行 YAML、包含非空字符串 name/type，名称不得重复或与策略组、TAILSCALE、TAILSCALE-DIRECT 冲突。渲染器解析后重新序列化，并验证四种注入模式；不合法的输入不会写出新模板。
 
-## 什么时候用数组
+## amytelecom（10 分钟访问窗口）
 
-机场订阅链接如果**有效期很短或绑定生成 IP**，自动更新必然失败，只能把节点快照内联。
-Amytelecom 就属于这种：链接约 10 分钟失效且绑定住宅 IP，GitHub Runner 是机房 IP，拉不到。
+Amytelecom 的订阅链接 **URL 固定**，但机场只允许在后台「打开订阅访问」后的约 10 分钟内访问，且绑定打开时的住宅 IP。自动刷新在窗口外必然失败，所以把它配成手动档：
 
-其余机场一律用字符串，让客户端自己更新，节点变化不用管。
+```json
+"amytelecom": { "url": "固定订阅链接", "interval": 0 }
+```
+
+更新节点时：
+
+1. 登录机场后台，打开「订阅访问」（10 分钟窗口）
+2. 在与该住宅出口 IP 相同的设备上刷新 amytelecom 的 **提供商（proxy-providers）**，不是刷新「订阅」——后者只会重新拉 Worker 下发的 profile
+   - FlClash：在提供商（proxy-providers）页面点 amytelecom 的刷新
+   - mihomo API：`PUT /providers/proxies/amytelecom`
+3. 确认节点列表已更新
+
+注意：
+
+- 手机蜂窝网络、公司网络等出口 IP 不同的设备无法刷新，需要换到同一网络。
+- 窗口外不要清空客户端缓存或重装：没有本地 provider 缓存时，拉取失败会导致该机场节点为空。
+- `interval` 不要设成非零值：窗口外每一轮自动刷新都会失败，只产生错误日志。
+
+## 什么时候用静态数组
+
+机场**不提供可用链接**（链接一次性、或不想每次手动开窗刷新）时，把节点快照内联：
+
+```json
+"backup": [
+  "- {name: 香港 01, type: anytls, server: ..., port: 20300, password: ...}"
+]
+```
+
+静态节点一旦发布，所有设备在任何网络都能用，不依赖窗口和 IP；机场换节点时需要重新导出并更新 Secret。
+
+## 临时关闭一个机场
+
+```json
+"youtu": { "url": "https://...", "enable": false }
+```
+
+保留配置但不再生成 provider，适合机场临时故障或暂时不用时。恢复时把 `enable` 改回 `true`（或删掉该字段），重新发布 profile 即可。被关闭条目的内容（链接协议、节点 YAML、名称冲突）不做校验；但不能把所有条目都关掉，至少保留一个启用的机场或静态节点。
 
 ## 加一个机场
 
@@ -43,9 +89,9 @@ Amytelecom 就属于这种：链接约 10 分钟失效且绑定住宅 IP，GitHu
 "new_airport": "https://它的订阅链接"
 ```
 
-不需要改代码、不需要改 workflow。修改 Secret 不触发 push；手动运行 Deploy FlClash Profile（或等每日定时任务），再让设备更新完整订阅。
+需要手动刷新或暂时停用时改用对象形式。不需要改代码、不需要改 workflow。修改 Secret 不触发 push；手动运行 Deploy FlClash Profile（或等每日定时任务），再让设备更新完整订阅。
 
-## 更新静态节点（Amytelecom）
+## 更新静态节点
 
 1. 打开
    ```
@@ -53,7 +99,7 @@ Amytelecom 就属于这种：链接约 10 分钟失效且绑定住宅 IP，GitHu
    ```
    （私有前缀见 `SUB_STORE_PATH_PREFIX`）
 2. 去掉第一行 `proxies:`
-3. 剩下的每一行（形如 `- {...}`）作为数组的一个元素，替换掉 `amytelecom` 数组
+3. 剩下的每一行（形如 `- {...}`）作为数组的一个元素，替换掉对应数组
 
 ## Tailscale 出口
 

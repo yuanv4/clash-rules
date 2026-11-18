@@ -40,6 +40,43 @@ test("remote-only and static-only output remain valid", async () => {
   assert.equal((await parsedResponse("", template({ local: subscriptions.local }))).proxies.length, 1);
 });
 
+test("object entries: custom interval, nodes alias, and disabled airports", async () => {
+  const manualUrl = "https://example.test/manual?token=FAKE";
+  const config = await parsedResponse("", template({
+    manual: { url: manualUrl, interval: 0 },
+    snapshot: { nodes: subscriptions.local },
+    disabled: { url: "https://example.test/disabled?token=FAKE", enable: false },
+    "disabled-nodes": { nodes: ["not a node"], enable: false },
+  }));
+  assert.deepEqual(Object.keys(config["proxy-providers"]), ["manual"]);
+  assert.equal(config["proxy-providers"].manual.url, manualUrl);
+  assert.equal(config["proxy-providers"].manual.interval, 0);
+  assert.deepEqual(config.proxies.map((p) => p.name), ["Test node"]);
+});
+
+test("object entries reject structural and content errors", () => {
+  const validUrl = "https://example.test/sub?token=FAKE";
+  for (const [input, pattern] of [
+    [{ bad: { url: validUrl, nodes: subscriptions.local } }, /exactly one of/],
+    [{ bad: {} }, /exactly one of/],
+    [{ bad: { url: 1 } }, /field "url" must be a string/],
+    [{ bad: { nodes: "x" } }, /field "nodes" must be an array/],
+    [{ bad: { url: "ftp://example.test" } }, /http\(s\) URL/],
+    [{ bad: { url: validUrl, interval: -1 } }, /non-negative integer/],
+    [{ bad: { url: validUrl, interval: 1.5 } }, /non-negative integer/],
+    [{ bad: { nodes: subscriptions.local, interval: 60 } }, /cannot set "interval"/],
+    [{ bad: { url: validUrl, enable: "no" } }, /non-boolean "enable"/],
+    [{ bad: { url: validUrl, typo: 1 } }, /unknown field "typo"/],
+    [{ bad: { nodes: [] } }, /empty array/],
+  ]) {
+    assert.throws(() => template(input), pattern);
+  }
+  assert.throws(
+    () => template({ off: { url: validUrl, enable: false } }),
+    /no enabled providers/
+  );
+});
+
 test("manual node selection group is absent and no group references it", async () => {
   const groups = (await parsedResponse())["proxy-groups"];
   assert.ok(!groups.some((group) => group.name === "🚀 节点选择"));
