@@ -14,7 +14,7 @@
  *
  * 绑定：
  *   PROFILE_KV   KV，key = profile.yaml，内容是带占位符的 profile
- *   SECRET_PATH  订阅路径（plain_text）
+ *   SECRET_PATH  订阅路径（secret_text，部署时由 GitHub Secret CF_SECRET_PATH 写入）
  */
 
 const PROXIES_PLACEHOLDER = "  __TAILSCALE_PROXIES__";

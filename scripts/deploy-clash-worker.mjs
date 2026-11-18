@@ -52,7 +52,7 @@ const main = async () => {
 
   const bindings = [
     { type: "kv_namespace", name: "PROFILE_KV", namespace_id: namespaceId },
-    { type: "plain_text", name: "SECRET_PATH", text: secretPath },
+    { type: "secret_text", name: "SECRET_PATH", text: secretPath },
   ];
 
   const metadata = {
