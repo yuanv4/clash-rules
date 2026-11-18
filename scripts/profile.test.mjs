@@ -40,6 +40,12 @@ test("remote-only and static-only output remain valid", async () => {
   assert.equal((await parsedResponse("", template({ local: subscriptions.local }))).proxies.length, 1);
 });
 
+test("manual node selection group is absent and no group references it", async () => {
+  const groups = (await parsedResponse())["proxy-groups"];
+  assert.ok(!groups.some((group) => group.name === "🚀 节点选择"));
+  for (const group of groups) assert.ok(!group.proxies?.includes("🚀 节点选择"));
+});
+
 test("AI group filters Taiwan and Singapore nodes", async () => {
   const config = await parsedResponse();
   const group = config["proxy-groups"].find((g) => g.name === "🤖 国际 AI");

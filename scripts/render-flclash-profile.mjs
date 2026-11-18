@@ -36,7 +36,6 @@ const TEST_URL = "https://cp.cloudflare.com/generate_204";
 const AI_TEST_URL = "https://chatgpt.com/";
 
 const TAILSCALE_GROUP = "Tailscale";
-const MANUAL_GROUP = "🚀 节点选择";
 const FALLBACK_GROUP = "🐟 漏网之鱼";
 const AD_BLOCK_GROUP = "🛑 广告过滤";
 const ADULT_GROUP = "🔞 成人内容";
@@ -112,7 +111,7 @@ const parseArguments = (argv) => {
 export const parseSubscriptionConfig = (raw, proxyGroup) => {
   const reservedNames = new Set([
     "DIRECT", "REJECT", "REJECT-DROP", "PASS", "COMPATIBLE", "GLOBAL",
-    "TAILSCALE", "TAILSCALE-DIRECT", TAILSCALE_GROUP, MANUAL_GROUP,
+    "TAILSCALE", "TAILSCALE-DIRECT", TAILSCALE_GROUP,
     FALLBACK_GROUP, AD_BLOCK_GROUP, ADULT_GROUP, DOMESTIC_GROUP,
     FOREIGN_GROUP, AI_GROUP, DEV_GROUP, STREAMING_GROUP, proxyGroup,
   ]);
@@ -244,8 +243,7 @@ const buildGroups = (proxyGroup) => {
     STREAMING_GROUP,
     FALLBACK_GROUP,
   ];
-  const nodeGroups = [MANUAL_GROUP, proxyGroup];
-  const excludedFromNodeGroups = new Set([TAILSCALE_GROUP, ...nodeGroups]);
+  const excludedFromNodeGroups = new Set([TAILSCALE_GROUP, proxyGroup]);
   const orderedBusiness = businessGroups.filter((name) => !excludedFromNodeGroups.has(name));
 
   const tailscaleProxies = [TAILSCALE_GROUP_PLACEHOLDER];
@@ -254,10 +252,6 @@ const buildGroups = (proxyGroup) => {
   const push = (...items) => lines.push(...items);
 
   push(
-    `  - name: ${q(MANUAL_GROUP)}
-    type: select
-    include-all: true
-    exclude-filter: ${q(NODE_EXCLUDE_PATTERN)}`,
     `  - name: ${q(proxyGroup)}
     type: url-test
     url: ${q(TEST_URL)}
@@ -283,7 +277,7 @@ const buildGroups = (proxyGroup) => {
     if (name === FALLBACK_GROUP) {
       push(`  - name: ${q(name)}
     type: select
-    proxies: [DIRECT, ${q(proxyGroup)}, ${q(MANUAL_GROUP)}]
+    proxies: [DIRECT, ${q(proxyGroup)}]
     default-selected: DIRECT`);
       continue;
     }
@@ -304,13 +298,13 @@ const buildGroups = (proxyGroup) => {
     if (name === DOMESTIC_GROUP) {
       push(`  - name: ${q(name)}
     type: select
-    proxies: [DIRECT, ${q(proxyGroup)}, ${q(MANUAL_GROUP)}]
+    proxies: [DIRECT, ${q(proxyGroup)}]
     default-selected: DIRECT`);
       continue;
     }
     push(`  - name: ${q(name)}
     type: select
-    proxies: [DIRECT, ${q(proxyGroup)}, ${q(MANUAL_GROUP)}]
+    proxies: [DIRECT, ${q(proxyGroup)}]
     default-selected: ${q(proxyGroup)}`);
   }
 

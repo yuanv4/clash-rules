@@ -86,7 +86,7 @@ profile 里只留占位符，Tailscale 节点由 **Worker 在请求时按查询�
 - DOMAIN-SUFFIX,ts.net,Tailscale
 ```
 
-Tailscale 节点通过 `exclude-filter` 从 `🚀 节点选择` / `♻️ 自动选择` / `🤖 国际 AI`
+Tailscale 节点通过 `exclude-filter` 从 `♻️ 自动选择` / `🤖 国际 AI`
 中排除，不会被当成机场节点参与延迟测速。
 
 Worker 源码在 [`worker/clash-profile.js`](../worker/clash-profile.js)，
