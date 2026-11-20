@@ -7,7 +7,9 @@
     "+.githubassets.com",
     "+.github.io",
     "+.msftncsi.com",
-    "+.msftconnecttest.com"
+    "+.msftconnecttest.com",
+    "stun.parsec.app",
+    "stun6.parsec.app"
   ],
   "inputs": [
     {

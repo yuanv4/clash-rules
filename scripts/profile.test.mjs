@@ -129,6 +129,33 @@ test("provider keys preserve YAML null and Null spellings and rule references", 
   assert.ok(config.rules.includes("RULE-SET,Null,DIRECT"));
 });
 
+test("subscription excludes Parsec STUN from fake IP and prioritizes tailnet over Parsec UDP direct", async () => {
+  const config = await parsedResponse("?ts=interface");
+  assert.equal(config.dns["enhanced-mode"], "fake-ip");
+  for (const domain of ["stun.parsec.app", "stun6.parsec.app"]) {
+    assert.ok(config.dns["fake-ip-filter"].includes(domain), `${domain} must receive a real DNS answer`);
+  }
+
+  const rules = config.rules;
+  const parsecRules = [
+    "AND,((PROCESS-NAME,parsecd.exe),(NETWORK,UDP)),DIRECT",
+    "AND,((PROCESS-NAME,pservice.exe),(NETWORK,UDP)),DIRECT",
+  ];
+  assert.deepEqual(rules.filter((rule) => /PROCESS-NAME,(parsecd|pservice)\.exe[),]/.test(rule)), parsecRules);
+
+  const firstParsec = rules.indexOf(parsecRules[0]);
+  for (const rule of [
+    "IP-CIDR,100.64.0.0/10,Tailscale,no-resolve",
+    "IP-CIDR,100.100.100.100/32,Tailscale,no-resolve",
+    "IP-CIDR6,fd7a:115c:a1e0::/48,Tailscale,no-resolve",
+    "DOMAIN-SUFFIX,ts.net,Tailscale",
+  ]) {
+    const index = rules.indexOf(rule);
+    assert.ok(index >= 0 && index < firstParsec, `${rule} must exist before the Parsec UDP exceptions`);
+  }
+  assert.ok(rules.indexOf(parsecRules[1]) < rules.findIndex((rule) => rule.startsWith("RULE-SET,")));
+});
+
 for (const node of ["proxies:", "null", "Null", "[]", "- {name: one, type: ss}\n- {name: two, type: ss}", "{name: x}", "{name: 1, type: ss}", "{name: x, type: null}", "{name: '', type: ss}", "{name: x, type: ''}", "{name: x, type: ss", "- {name: x, type: ss}\nrules: [injected]"]) {
   test(`reject invalid node ${JSON.stringify(node)}`, () => assert.throws(() => template({ local: [node] }), /Static node/));
 }
