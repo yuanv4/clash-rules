@@ -388,10 +388,7 @@ const buildRules = (sourceProviders) => {
   const lines = [
     "  - IP-CIDR,100.64.0.0/10,Tailscale,no-resolve",
     "  - IP-CIDR,100.100.100.100/32,Tailscale,no-resolve",
-    "  - IP-CIDR6,fd7a:115c:a1e0::/48,Tailscale,no-resolve",
     "  - DOMAIN-SUFFIX,ts.net,Tailscale",
-    "  - AND,((PROCESS-NAME,parsecd.exe),(NETWORK,UDP)),DIRECT",
-    "  - AND,((PROCESS-NAME,pservice.exe),(NETWORK,UDP)),DIRECT",
   ];
   for (const provider of sourceProviders) {
     const suffix = provider.no_resolve ? ",no-resolve" : "";

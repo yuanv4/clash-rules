@@ -124,24 +124,13 @@ profile 里只留占位符，Tailscale 节点由 **Worker 在请求时按查询�
 
 - `iface=<名称>`：覆盖网卡名，默认 `Tailscale`
 
-Tailscale 规则先匹配，Parsec 的 UDP 直连例外排在后面：
+路由规则固定（走 `Tailscale` 组）：
 
 ```yaml
 - IP-CIDR,100.64.0.0/10,Tailscale,no-resolve
 - IP-CIDR,100.100.100.100/32,Tailscale,no-resolve
-- IP-CIDR6,fd7a:115c:a1e0::/48,Tailscale,no-resolve
 - DOMAIN-SUFFIX,ts.net,Tailscale
-- AND,((PROCESS-NAME,parsecd.exe),(NETWORK,UDP)),DIRECT
-- AND,((PROCESS-NAME,pservice.exe),(NETWORK,UDP)),DIRECT
 ```
-
-如果 Parsec 选择对端的 Tailscale IP，流量先命中 `Tailscale` 组。该组需要选中可用的 Tailscale 出站，
-例如 Windows 上 `ts=interface` 提供的 `TAILSCALE-DIRECT`。如果 Parsec 选择公网候选地址，
-该 UDP 例外使用 `DIRECT`，实际出口由本机路由决定。两台机器都装了 Tailscale，并不会让 Parsec 自动选择 tailnet 地址。
-TCP 登录和信令不受这两条 UDP 例外影响。进程规则要求客户端能识别这两个 Windows 进程，且 `find-process-mode` 不为 `off`。
-
-`stun.parsec.app` 和 `stun6.parsec.app` 单独加入 `fake-ip-filter`，让 Mihomo DNS 不为它们返回 fake IP。
-`DIRECT` 只指定出站，不绕过 TUN，也不保证打洞成功。
 
 Tailscale 节点通过 `exclude-filter` 从 `♻️ 自动选择` / `🤖 国际 AI`
 中排除，不会被当成机场节点参与延迟测速。
