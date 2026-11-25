@@ -106,15 +106,6 @@
       ]
     },
     {
-      "name": "openai",
-      "target": "OpenAI",
-      "no_resolve": true,
-      "inputs": [
-        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/openai.yaml"},
-        {"input": "VPSDance/ai-proxy-rules", "path": "rules/clash/openai.yaml", "include_rule_types": ["PROCESS-NAME", "IP-CIDR", "IP-CIDR6", "IP-ASN"]}
-      ]
-    },
-    {
       "name": "anthropic",
       "target": "Anthropic",
       "no_resolve": true,
@@ -125,9 +116,11 @@
     },
     {
       "name": "ai",
-      "target": "🤖 国际 AI",
+      "target": "🤖 通用 AI",
       "no_resolve": true,
       "inputs": [
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/openai.yaml"},
+        {"input": "VPSDance/ai-proxy-rules", "path": "rules/clash/openai.yaml", "include_rule_types": ["PROCESS-NAME", "IP-CIDR", "IP-CIDR6", "IP-ASN"]},
         {"input": "VPSDance/ai-proxy-rules", "path": "rules/clash/global.yaml"},
         {"input": "SukkaLab/ruleset.skk.moe", "path": "Clash/non_ip/apple_intelligence.txt"},
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/category-ai-!cn.yaml"}

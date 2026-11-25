@@ -46,7 +46,7 @@ for (const names of [["US01", "JP01", "SG01", "HK01-US", "MO01-SG01", "TW01"], [
       }
       assert.ok(proxies, "Mihomo controller did not start");
       const expected = names.includes("US01") ? ["JP01", "SG01", "US01"] : ["REJECT"];
-      for (const group of ["🤖 国际 AI", "OpenAI", "Anthropic", "✨ Gemini"]) {
+      for (const group of ["🤖 通用 AI", "Anthropic", "✨ Gemini"]) {
         assert.deepEqual([...proxies[group].all].sort(), expected, group);
       }
       child.kill();

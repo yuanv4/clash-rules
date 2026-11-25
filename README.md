@@ -22,7 +22,7 @@
 
 用 `iface=名称` 覆盖网卡名，默认 Tailscale。携带 key 的 URL 是敏感信息，推荐每台设备使用单独的 key。详见 [订阅与 Tailscale 配置](<docs/flclash-subscriptions.md>)。
 
-默认广告和成人内容拦截，国内服务直连，国外服务走代理，未匹配流量默认直连。`🤖 国际 AI`、`OpenAI`、`Anthropic` 和 `✨ Gemini` 共用美国、日本、新加坡三个候选地区。国际 AI 与 OpenAI 自动选择节点，Anthropic 与 Gemini 手动固定节点。
+默认广告和成人内容拦截，国内服务直连，国外服务走代理，未匹配流量默认直连。`🤖 通用 AI`、`Anthropic` 和 `✨ Gemini` 共用美国、日本、新加坡三个候选地区。通用 AI 自动选择节点，Anthropic 与 Gemini 手动固定节点。
 
 Gemini 规则合并 [MetaCubeX google-gemini](https://github.com/MetaCubeX/meta-rules-dat/blob/meta/geo/geosite/google-gemini.yaml) 和 [VPSDance google-ai](https://github.com/VPSDance/ai-proxy-rules/blob/main/rules/clash/google-ai.yaml) 上游，优先于通用 AI 和 Google 规则。VPSDance 的集合还包含其他 Google AI 服务及 Antigravity 进程规则，这些流量也进入 Gemini 组。Gemini 不使用本地自定义规则。
 
@@ -30,7 +30,7 @@ Gemini 规则合并 [MetaCubeX google-gemini](https://github.com/MetaCubeX/meta-
 
 开发服务规则已并入 `🌐 国外服务`，统一使用国外服务组选择的出口。AI、流媒体和国内服务的前置规则仍优先匹配。
 
-OpenAI 与 Anthropic 的域名规则使用 MetaCubeX 专属上游，进程及 IP 规则从 VPSDance 专属上游筛选，优先于国际 AI。剩余服务、上游范围和复核命令见 [AI 分流说明](<docs/ai-routing.md>)。
+OpenAI 已并入 `🤖 通用 AI`，其域名、进程和 IP 规则完整保留。Gemini 与 Anthropic 优先于通用 AI 匹配。剩余服务、上游范围和复核命令见 [AI 分流说明](<docs/ai-routing.md>)。
 
 ## 首次部署
 
@@ -83,7 +83,7 @@ JSON 对象：键是 provider 名（字母、数字、`_`、`.`、`-`），值�
 | 策略组 / AI 筛选 | [模板渲染器](<scripts/render-flclash-profile.mjs>) | 验证后发布模板 |
 | Tailscale 注入 / 私有路径 | [Worker](<worker/clash-profile.js>) / Secrets | 手动运行 Deploy Clash Profile Worker |
 
-规则每日北京时间 **06:30** 更新，成功后自动更新模板；模板另在 **10:17** 定时更新。Worker 只手动部署。发布后按需刷新客户端规则或完整订阅。旧版订阅使用的开发服务规则文件会在 release 分支保留，新模板只使用国外服务组。
+规则每日北京时间 **06:30** 更新，成功后自动更新模板；模板另在 **10:17** 定时更新。Worker 只手动部署。发布后按需刷新客户端规则或完整订阅。旧版订阅使用的开发服务与 OpenAI 规则文件会在 release 分支保留，新模板只使用国外服务组。
 
 更多说明：[自定义规则](<docs/custom-rules.md>) · [DNS fake-ip 排除](<docs/fake-ip-filter.md>)。自定义国外规则不能覆盖前面已命中的拦截或国内规则。
 

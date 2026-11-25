@@ -43,7 +43,7 @@ test("proxy groups follow rule priority and merge repeated targets", async () =>
   const config = await parsedResponse();
   assert.deepEqual(config["proxy-groups"].map(({ name }) => name), [
     source.proxy_group, "Tailscale", "🛑 广告过滤", "🔞 成人内容", "✨ Gemini",
-    "OpenAI", "Anthropic", "🤖 国际 AI", "🎬 流媒体服务", "🇨🇳 国内服务", "🌐 国外服务", "🐟 漏网之鱼",
+    "Anthropic", "🤖 通用 AI", "🎬 流媒体服务", "🇨🇳 国内服务", "🌐 国外服务", "🐟 漏网之鱼",
   ]);
   const reorderedSource = {
     ...source,
@@ -55,7 +55,7 @@ test("proxy groups follow rule priority and merge repeated targets", async () =>
   const reordered = await parsedResponse("", template(subscriptions, reorderedSource));
   assert.deepEqual(reordered["proxy-groups"].map(({ name }) => name), [
     source.proxy_group, "Tailscale", "🌐 国外服务", "🛑 广告过滤", "🔞 成人内容", "✨ Gemini",
-    "OpenAI", "Anthropic", "🤖 国际 AI", "🎬 流媒体服务", "🇨🇳 国内服务", "🐟 漏网之鱼",
+    "Anthropic", "🤖 通用 AI", "🎬 流媒体服务", "🇨🇳 国内服务", "🐟 漏网之鱼",
   ]);
 });
 
@@ -109,8 +109,8 @@ test("manual node selection group is absent and no group references it", async (
 
 test("all AI groups share United States, Japan, and Singapore candidates", async () => {
   const config = await parsedResponse();
-  const group = config["proxy-groups"].find((g) => g.name === "🤖 国际 AI");
-  for (const name of ["✨ Gemini", "OpenAI", "Anthropic"]) {
+  const group = config["proxy-groups"].find((g) => g.name === "🤖 通用 AI");
+  for (const name of ["✨ Gemini", "Anthropic"]) {
     const dedicated = config["proxy-groups"].find((g) => g.name === name);
     assert.equal(group.filter, dedicated.filter);
     assert.equal(group["exclude-filter"], dedicated["exclude-filter"]);
@@ -141,15 +141,22 @@ test("Gemini uses upstream rules before general AI and pins a regional node", as
   assert.equal(group.url, "https://gemini.google.com/app");
   const rule = "RULE-SET,gemini,✨ Gemini,no-resolve";
   assert.ok(config.rules.includes(rule));
-  assert.ok(config.rules.indexOf(rule) < config.rules.indexOf("RULE-SET,ai,🤖 国际 AI,no-resolve"));
+  assert.ok(config.rules.indexOf(rule) < config.rules.indexOf("RULE-SET,ai,🤖 通用 AI,no-resolve"));
   assert.ok(config.rules.indexOf(rule) < config.rules.indexOf("RULE-SET,foreign_services,🌐 国外服务,no-resolve"));
   assert.equal(config["rule-providers"].gemini.url, `${source.release_base_url}/rules/gemini.yaml`);
 });
 
-test("OpenAI selects automatically and Anthropic pins a node before general AI routing", async () => {
+test("OpenAI merges into automatic general AI after dedicated Anthropic routing", async () => {
   const config = await parsedResponse();
+  assert.ok(!config["proxy-groups"].some(({ name }) => ["OpenAI", "🤖 国际 AI"].includes(name)));
+  assert.ok(!Object.hasOwn(config["rule-providers"], "openai"));
+  assert.ok(!config.rules.some((rule) => rule.startsWith("RULE-SET,openai,")));
+  const general = config["proxy-groups"].find(({ name }) => name === "🤖 通用 AI");
+  assert.equal(general.type, "url-test");
+  assert.equal(general.url, "https://chatgpt.com/");
+  assert.equal(general["empty-fallback"], "REJECT");
+  assert.ok(config.rules.includes("RULE-SET,ai,🤖 通用 AI,no-resolve"));
   for (const [name, provider, type, url] of [
-    ["OpenAI", "openai", "url-test", "https://chatgpt.com/"],
     ["Anthropic", "anthropic", "select", "https://claude.ai/"],
   ]) {
     const group = config["proxy-groups"].find((group) => group.name === name);
@@ -159,7 +166,7 @@ test("OpenAI selects automatically and Anthropic pins a node before general AI r
     if (type === "select") assert.equal(group["empty-fallback"], "REJECT");
     const ruleIndex = config.rules.indexOf(`RULE-SET,${provider},${name},no-resolve`);
     assert.ok(ruleIndex >= 0);
-    assert.ok(ruleIndex < config.rules.indexOf("RULE-SET,ai,🤖 国际 AI,no-resolve"));
+    assert.ok(ruleIndex < config.rules.indexOf("RULE-SET,ai,🤖 通用 AI,no-resolve"));
     assert.ok(ruleIndex < config.rules.indexOf("RULE-SET,foreign_services,🌐 国外服务,no-resolve"));
     assert.equal(config["rule-providers"][provider].url, `${source.release_base_url}/rules/${provider}.yaml`);
   }

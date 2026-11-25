@@ -26,8 +26,8 @@ const run = (command, args, cwd, env = process.env) => {
   return result.stdout.trim();
 };
 
-for (const legacy of [true, false]) {
-  test(`release sync publishes new rules and handles legacy developer file: ${legacy}`, async () => {
+for (const legacyProviders of [[], ["dev_services"], ["openai"], ["dev_services", "openai"]]) {
+  test(`release sync preserves legacy providers: ${legacyProviders.join(", ") || "none"}`, async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "clash-release-test-"));
     try {
       const origin = path.join(root, "origin.git");
@@ -44,7 +44,7 @@ for (const legacy of [true, false]) {
       await mkdir(path.join(checkout, "custom"));
       await writeFile(path.join(checkout, "rules", "old.yaml"), "payload: [DOMAIN,old.test]\n");
       const legacyText = "payload:\n  - DOMAIN-SUFFIX,developer.test\n";
-      if (legacy) await writeFile(path.join(checkout, "rules", "dev_services.yaml"), legacyText);
+      for (const provider of legacyProviders) await writeFile(path.join(checkout, "rules", `${provider}.yaml`), legacyText);
       await writeFile(path.join(checkout, "custom", "foreign.txt"), "DOMAIN-SUFFIX,custom.test\n");
       run("git", ["add", "."], checkout);
       run("git", ["commit", "-m", "Seed publication"], checkout);
@@ -57,8 +57,10 @@ for (const legacy of [true, false]) {
       const published = run("git", ["--git-dir", origin, "show", "release:rules/foreign_services.yaml"], root);
       assert.equal(published, publishedText.trim());
       const files = run("git", ["--git-dir", origin, "ls-tree", "-r", "--name-only", "release"], root).split("\n");
-      assert.deepEqual(files.sort(), ["custom/foreign.txt", ...(legacy ? ["rules/dev_services.yaml"] : []), "rules/foreign_services.yaml"].sort());
-      if (legacy) assert.equal(run("git", ["--git-dir", origin, "show", "release:rules/dev_services.yaml"], root), legacyText.trim());
+      assert.deepEqual(files.sort(), ["custom/foreign.txt", ...legacyProviders.map((provider) => `rules/${provider}.yaml`), "rules/foreign_services.yaml"].sort());
+      for (const provider of legacyProviders) {
+        assert.equal(run("git", ["--git-dir", origin, "show", `release:rules/${provider}.yaml`], root), legacyText.trim());
+      }
     } finally {
       await rm(root, { recursive: true, force: true });
     }

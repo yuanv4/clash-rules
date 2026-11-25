@@ -25,7 +25,7 @@ test("published provider check accepts ready artifacts of both formats", async (
 
 test("published provider check blocks a profile when a new provider is missing", async () => {
   const files = artifacts();
-  files.delete(urlFor("openai"));
+  files.delete(urlFor("anthropic"));
   await assert.rejects(verifyPublishedRules(source, reader(files)), /404/);
 });
 
@@ -41,8 +41,8 @@ test("published provider check blocks stale foreign rules before developer merge
 
 test("published provider check rejects a stale filtered artifact after removing its filter", async () => {
   const unfilteredSource = structuredClone(source);
-  delete unfilteredSource.providers.find(({ name }) => name === "openai").inputs[1].include_rule_types;
-  await assert.rejects(verifyPublishedRules(unfilteredSource, reader(artifacts())), /openai.*configured sources/);
+  delete unfilteredSource.providers.find(({ name }) => name === "ai").inputs[1].include_rule_types;
+  await assert.rejects(verifyPublishedRules(unfilteredSource, reader(artifacts())), /provider ai .*configured sources/);
 });
 
 test("published provider check rejects stale type filters and empty payloads", async () => {

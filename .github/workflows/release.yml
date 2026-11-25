@@ -78,10 +78,13 @@ jobs:
           cp -- "${custom_files[@]}" "$release_worktree/custom/"
 
           legacy_count=0
-          if [[ ! -f "$release_worktree/rules/dev_services.yaml" ]] && git -C "$release_worktree" cat-file -e HEAD:rules/dev_services.yaml 2>/dev/null; then
-            git -C "$release_worktree" restore --source=HEAD --worktree -- rules/dev_services.yaml
-            legacy_count=1
-          fi
+          for legacy_provider in dev_services openai; do
+            legacy_file="rules/${legacy_provider}.yaml"
+            if [[ ! -f "$release_worktree/$legacy_file" ]] && git -C "$release_worktree" cat-file -e "HEAD:$legacy_file" 2>/dev/null; then
+              git -C "$release_worktree" restore --source=HEAD --worktree -- "$legacy_file"
+              legacy_count=$((legacy_count + 1))
+            fi
+          done
 
           git -C "$release_worktree" add -A
           mapfile -d '' -t tracked_files < <(git -C "$release_worktree" ls-files --cached -z)

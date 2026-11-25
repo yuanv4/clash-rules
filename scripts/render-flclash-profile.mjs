@@ -49,9 +49,8 @@ const AD_BLOCK_GROUP = "🛑 广告过滤";
 const ADULT_GROUP = "🔞 成人内容";
 const DOMESTIC_GROUP = "🇨🇳 国内服务";
 const FOREIGN_GROUP = "🌐 国外服务";
-const AI_GROUP = "🤖 国际 AI";
+const AI_GROUP = "🤖 通用 AI";
 const GEMINI_GROUP = "✨ Gemini";
-const OPENAI_GROUP = "OpenAI";
 const ANTHROPIC_GROUP = "Anthropic";
 const STREAMING_GROUP = "🎬 流媒体服务";
 
@@ -190,7 +189,7 @@ export const parseSubscriptionConfig = (raw, proxyGroup) => {
     "DIRECT", "REJECT", "REJECT-DROP", "PASS", "COMPATIBLE", "GLOBAL",
     "TAILSCALE", "TAILSCALE-DIRECT", TAILSCALE_GROUP,
     FALLBACK_GROUP, AD_BLOCK_GROUP, ADULT_GROUP, DOMESTIC_GROUP,
-    FOREIGN_GROUP, AI_GROUP, GEMINI_GROUP, OPENAI_GROUP, ANTHROPIC_GROUP, STREAMING_GROUP, proxyGroup,
+    FOREIGN_GROUP, AI_GROUP, GEMINI_GROUP, ANTHROPIC_GROUP, STREAMING_GROUP, proxyGroup,
   ]);
   const names = new Set();
   if (!raw || !raw.trim()) {
@@ -364,7 +363,7 @@ const buildGroups = (proxyGroup, sourceProviders) => {
     empty-fallback: REJECT`);
       continue;
     }
-    if (name === AI_GROUP || name === OPENAI_GROUP) {
+    if (name === AI_GROUP) {
       push(`  - name: ${q(name)}
     type: url-test
     url: ${q(AI_TEST_URL)}
