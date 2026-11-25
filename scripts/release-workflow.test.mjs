@@ -7,6 +7,17 @@ import { test } from "node:test";
 import { parse } from "yaml";
 
 const workflow = parse(await readFile(new URL("../.github/workflows/release.yml", import.meta.url), "utf8"));
+const profileWorkflow = parse(await readFile(new URL("../.github/workflows/deploy-profile.yml", import.meta.url), "utf8"));
+
+test("profile source changes publish rules before triggering the profile", () => {
+  assert.equal(profileWorkflow.on.push, undefined);
+  assert.ok(profileWorkflow.on.workflow_run.workflows.includes(workflow.name));
+  assert.ok(profileWorkflow.jobs.deploy.if.includes("conclusion == 'success'"));
+  for (const input of [".github/workflows/deploy-profile.yml", "scripts/publish-flclash-profile.mjs", "scripts/verify-published-rules.mjs", "sources.json"]) {
+    assert.ok(workflow.on.push.paths.includes(input), input);
+  }
+});
+
 const syncStep = workflow.jobs.publish.steps.find(({ name }) => name === "Sync release branch");
 const bash = process.platform === "win32" ? path.join(process.env.ProgramFiles, "Git", "bin", "bash.exe") : "bash";
 const run = (command, args, cwd, env = process.env) => {

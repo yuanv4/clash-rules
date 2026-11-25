@@ -159,7 +159,7 @@ Tailscale key 只从订阅 URL 注入，每台设备使用各自的 key。
 
 ## 流水线
 
-[模板发布流程](<../.github/workflows/deploy-profile.yml>) 在 [规则发布流程](<../.github/workflows/release.yml>) 成功后自动运行，也支持手动运行和每日 02:17 UTC 定时运行。只修改模板发布流程、发布脚本或公开规则检查脚本时，也会直接触发。
+[模板发布流程](<../.github/workflows/deploy-profile.yml>) 在 [规则发布流程](<../.github/workflows/release.yml>) 成功后自动运行，也支持手动运行和每日 02:17 UTC 定时运行。修改模板发布流程、发布脚本或公开规则检查脚本时，也先运行规则发布，再触发模板发布。
 
 ```text
 规则发布成功、手动运行或定时触发

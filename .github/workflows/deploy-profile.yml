@@ -9,14 +9,6 @@ on:
     workflows: ["Build And Publish Rule Providers"]
     types: [completed]
     branches: [main, master]
-  push:
-    branches:
-      - main
-      - master
-    paths:
-      - ".github/workflows/deploy-profile.yml"
-      - "scripts/publish-flclash-profile.mjs"
-      - "scripts/verify-published-rules.mjs"
   schedule:
     # 每天 02:17 UTC（北京时间 10:17）
     - cron: "17 2 * * *"
