@@ -12,7 +12,7 @@ export const verifyPublishedRules = async (source, readPublished = (url) => load
     const metadata = expected.split("\n").filter((line) => metadataPattern.test(line));
     const publishedMetadata = new Set(published.split(/\r?\n/u).filter((line) => metadataPattern.test(line)));
     if (metadata.length !== publishedMetadata.size || !metadata.every((line) => publishedMetadata.has(line))) {
-      throw new Error(`Published provider ${provider.name} does not match the configured sources; publish rules before the profile`);
+      throw new Error(`Published provider ${provider.name} does not match the configured sources; publish the current rule artifacts before using the extension`);
     }
     parseRules(published, url, domain ? "domain-text" : "clash-yaml");
   }
@@ -22,7 +22,7 @@ if (import.meta.main) {
   try {
     const source = JSON.parse(await readFile(new URL("../sources.json", import.meta.url), "utf8"));
     await verifyPublishedRules(source);
-    console.log("Published rule providers are ready for this profile");
+    console.log("Published rule providers are ready for the extension scripts");
   } catch (error) {
     console.error(`verify-published-rules: ${error.message}`);
     process.exitCode = 1;

@@ -8,12 +8,7 @@ on:
       - master
     paths:
       - ".github/workflows/release.yml"
-      - ".github/workflows/deploy-profile.yml"
-      - "scripts/build.mjs"
-      - "scripts/publish-flclash-profile.mjs"
-      - "scripts/verify-published-rules.mjs"
-      - "scripts/*.test.mjs"
-      - "scripts/render-*.mjs"
+      - "scripts/**"
       - "sources.json"
       - "package.json"
       - "package-lock.json"
@@ -49,8 +44,8 @@ jobs:
       - name: Test rule pipeline
         run: npm test
 
-      - name: Build rule providers
-        run: node scripts/build.mjs
+      - name: Build rule providers and scripts
+        run: npm run build
 
       - name: Sync release branch
         shell: bash
@@ -62,7 +57,7 @@ jobs:
           trap 'git worktree remove --force "$release_worktree"' EXIT
 
           git -C "$release_worktree" rm -r -- .
-          mkdir -p "$release_worktree/rules" "$release_worktree/custom"
+          mkdir -p "$release_worktree/rules" "$release_worktree/custom" "$release_worktree/scripts"
           shopt -s nullglob
           provider_files=(dist/rules/*.yaml dist/rules/*.txt)
           if [[ "${#provider_files[@]}" -eq 0 ]]; then
@@ -74,6 +69,9 @@ jobs:
             echo "No custom source files found." >&2
             exit 1
           fi
+          script_files=(dist/scripts/flclash.js dist/scripts/flclash-desktop.js dist/scripts/flclash-android.js dist/scripts/flclash-both.js)
+          for script_file in "${script_files[@]}"; do test -f "$script_file"; done
+          cp -- "${script_files[@]}" "$release_worktree/scripts/"
           cp -- "${provider_files[@]}" "$release_worktree/rules/"
           cp -- "${custom_files[@]}" "$release_worktree/custom/"
 
@@ -90,7 +88,7 @@ jobs:
           mapfile -d '' -t tracked_files < <(git -C "$release_worktree" ls-files --cached -z)
           provider_count=${#provider_files[@]}
           custom_count=${#custom_files[@]}
-          expected_count=$((provider_count + custom_count + legacy_count))
+          expected_count=$((provider_count + custom_count + legacy_count + ${#script_files[@]}))
           if [[ "${#tracked_files[@]}" -ne $expected_count ]]; then
             echo "Expected exactly ${expected_count} tracked publication artifacts, found ${#tracked_files[@]}." >&2
             exit 1
@@ -99,6 +97,7 @@ jobs:
             case "$tracked_file" in
               rules/*.yaml|rules/*.txt) ;;
               custom/*.txt) ;;
+              scripts/flclash.js|scripts/flclash-desktop.js|scripts/flclash-android.js|scripts/flclash-both.js) ;;
               *)
                 echo "Unexpected tracked release artifact: $tracked_file" >&2
                 exit 1

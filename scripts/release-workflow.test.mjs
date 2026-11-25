@@ -4,18 +4,16 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
 
 const workflow = parse(await readFile(new URL("../.github/workflows/release.yml", import.meta.url), "utf8"));
-const profileWorkflow = parse(await readFile(new URL("../.github/workflows/deploy-profile.yml", import.meta.url), "utf8"));
+const scriptNames = ["flclash.js", "flclash-desktop.js", "flclash-android.js", "flclash-both.js"];
 
-test("profile source changes publish rules before triggering the profile", () => {
-  assert.equal(profileWorkflow.on.push, undefined);
-  assert.ok(profileWorkflow.on.workflow_run.workflows.includes(workflow.name));
-  assert.ok(profileWorkflow.jobs.deploy.if.includes("conclusion == 'success'"));
-  for (const input of [".github/workflows/deploy-profile.yml", "scripts/publish-flclash-profile.mjs", "scripts/verify-published-rules.mjs", "sources.json"]) {
-    assert.ok(workflow.on.push.paths.includes(input), input);
-  }
+test("release builds both artifacts and watches their sources", () => {
+  assert.ok(workflow.on.push.paths.includes("scripts/**"));
+  assert.ok(workflow.on.push.paths.includes("sources.json"));
+  assert.ok(workflow.jobs.publish.steps.some((step) => step.run === "npm run build"));
 });
 
 const syncStep = workflow.jobs.publish.steps.find(({ name }) => name === "Sync release branch");
@@ -55,12 +53,16 @@ for (const legacyProviders of [[], ["dev_services"], ["openai"], ["dev_services"
       await mkdir(path.join(checkout, "dist", "rules"), { recursive: true });
       const publishedText = "payload:\n  - DOMAIN-SUFFIX,new.test\n";
       await writeFile(path.join(checkout, "dist", "rules", "foreign_services.yaml"), publishedText);
+      const scriptDir = path.join(checkout, "dist", "scripts");
+      run(process.execPath, [fileURLToPath(new URL("./render-flclash-script.mjs", import.meta.url)), "--output-dir", scriptDir], checkout);
+      const generatedScripts = Object.fromEntries(await Promise.all(scriptNames.map(async (name) => [name, (await readFile(path.join(scriptDir, name), "utf8")).trim()])));
       const script = syncStep.run.replaceAll("${{ github.run_number }}", "1");
       run(bash, ["-euo", "pipefail", "-c", script], checkout, { ...process.env, RUNNER_TEMP: runner });
       const published = run("git", ["--git-dir", origin, "show", "release:rules/foreign_services.yaml"], root);
       assert.equal(published, publishedText.trim());
       const files = run("git", ["--git-dir", origin, "ls-tree", "-r", "--name-only", "release"], root).split("\n");
-      assert.deepEqual(files.sort(), ["custom/foreign.txt", ...legacyProviders.map((provider) => `rules/${provider}.yaml`), "rules/foreign_services.yaml"].sort());
+      assert.deepEqual(files.sort(), ["custom/foreign.txt", ...legacyProviders.map((provider) => `rules/${provider}.yaml`), "rules/foreign_services.yaml", ...scriptNames.map((name) => `scripts/${name}`)].sort());
+      for (const name of scriptNames) assert.equal(run("git", ["--git-dir", origin, "show", `release:scripts/${name}`], root), generatedScripts[name]);
       for (const provider of legacyProviders) {
         assert.equal(run("git", ["--git-dir", origin, "show", `release:rules/${provider}.yaml`], root), legacyTexts[provider].trim());
       }

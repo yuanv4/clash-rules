@@ -780,8 +780,8 @@ const pathExists = async (target) => {
   }
 };
 
-const OUTPUT_MARKER = ".clash-rules-output";
-const OUTPUT_MARKER_CONTENT = "clash-rules generated output v1\n";
+export const OUTPUT_MARKER = ".clash-rules-output";
+export const OUTPUT_MARKER_CONTENT = "clash-rules generated output v1\n";
 
 // Resolve existing ancestors too: a symlinked parent must not bypass source protection.
 const canonicalPath = async (target) => {
@@ -816,7 +816,7 @@ export const assertSafeOutputDirectory = async (outputDir) => {
       await fs.readFile(marker, "utf8") !== OUTPUT_MARKER_CONTENT) {
     throw new Error(`Refusing non-empty unmarked output directory: ${outputDir}; use a new empty output directory`);
   }
-  if (entries.some((name) => name !== OUTPUT_MARKER && name !== "rules")) {
+  if (entries.some((name) => name !== OUTPUT_MARKER && name !== "rules" && name !== "scripts")) {
     throw new Error(`Unexpected files in output directory: ${outputDir}`);
   }
 };

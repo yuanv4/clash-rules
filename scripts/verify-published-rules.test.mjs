@@ -23,7 +23,7 @@ test("published provider check accepts ready artifacts of both formats", async (
   await verifyPublishedRules(source, reader(artifacts()));
 });
 
-test("published provider check blocks a profile when a new provider is missing", async () => {
+test("published provider check rejects a missing rule artifact", async () => {
   const files = artifacts();
   files.delete(urlFor("anthropic"));
   await assert.rejects(verifyPublishedRules(source, reader(files)), /404/);

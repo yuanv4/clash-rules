@@ -7,18 +7,20 @@ import os from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { test } from "node:test";
-import { parse, stringify } from "yaml";
-import { renderProfile } from "./render-flclash-profile.mjs";
-import { injectTailscale } from "../worker/clash-profile.js";
+import { stringify } from "yaml";
+import vm from "node:vm";
+import { renderFlClashScript } from "./render-flclash-script.mjs";
 
 const source = JSON.parse(await readFile(new URL("../sources.json", import.meta.url), "utf8"));
-const aiGroups = ["🤖 通用 AI", "Anthropic", "✨ Gemini"];
+const prefix = "[clash-rules] ";
+const generated = vm.runInNewContext(`${renderFlClashScript({ source })}; main`);
+const aiGroups = ["🤖 通用 AI", "Anthropic", "✨ Gemini"].map((name) => prefix + name);
 const cases = [
   { names: ["US01", "JP01", "SG01", "HK01-US", "MO01-SG01", "TW01"], groups: aiGroups, expected: ["JP01", "SG01", "US01"] },
   { names: ["DE01", "HK01-US"], groups: aiGroups, expected: ["REJECT"] },
-  { names: ["HK01", "MO01", "香港中转-美国01", "HK01-SG01"], provider: ["TW01", "JP01", "US01-HK01", "新加坡-日本01", "HK01-UK01"], groups: [source.proxy_group], expected: ["HK01", "JP01", "MO01", "TW01"] },
-  { names: ["US01-HK01"], provider: ["HK01-SG01"], groups: [source.proxy_group], expected: ["REJECT"] },
-  { names: ["US01"], provider: ["SG01"], groups: [source.proxy_group], expected: ["REJECT"] },
+  { names: ["HK01", "MO01", "香港中转-美国01", "HK01-SG01"], provider: ["TW01", "JP01", "US01-HK01", "新加坡-日本01", "HK01-UK01"], groups: [prefix + source.proxy_group], expected: ["HK01", "JP01", "MO01", "TW01"] },
+  { names: ["US01-HK01"], provider: ["HK01-SG01"], groups: [prefix + source.proxy_group], expected: ["REJECT"] },
+  { names: ["US01"], provider: ["SG01"], groups: [prefix + source.proxy_group], expected: ["REJECT"] },
 ];
 for (const { names, provider = [], groups, expected } of cases) {
   test(`Mihomo enforces ${groups.join(", ")} membership: ${[...names, ...provider].join(", ")}`, { skip: !process.env.MIHOMO_PATH }, async () => {
@@ -30,9 +32,7 @@ for (const { names, provider = [], groups, expected } of cases) {
       await once(listener, "listening");
       const port = listener.address().port;
       await new Promise((resolve) => listener.close(resolve));
-      const local = names.map((name) => `- {name: ${JSON.stringify(name)}, type: socks5, server: 127.0.0.1, port: 9}`);
-      const template = renderProfile(source, JSON.stringify({ local }));
-      const config = parse(injectTailscale(template, new URL("https://example.test/?ts=off")).body);
+      const config = generated({ proxies: names.map((name) => ({ name, type: "socks5", server: "127.0.0.1", port: 9 })) });
       delete config["rule-providers"];
       config.rules = ["MATCH,REJECT"];
       if (provider.length) {

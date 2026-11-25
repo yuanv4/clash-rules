@@ -36,10 +36,10 @@ test("audit CLI reports merged AI routes and rejects missing OpenAI process rule
   const report = JSON.parse(result.stdout);
   assert.deepEqual(report.providerOrder, ["gemini", "anthropic", "ai"]);
   for (const [service, target] of [["OpenAI", "🤖 通用 AI"], ["Codex", "🤖 通用 AI"], ["Perplexity", "🤖 通用 AI"], ["Claude", "Anthropic"], ["Gemini", "✨ Gemini"]]) {
-    assert.equal(report.domainChecks.find((check) => check.service === service).target, target, service);
+    assert.equal(report.domainChecks.find((check) => check.service === service).target, `[clash-rules] ${target}`, service);
   }
-  assert.equal(report.processChecks.find(({ process }) => process === "Codex").target, "🤖 通用 AI");
-  assert.equal(report.processChecks.find(({ process }) => process === "Claude").target, "Anthropic");
+  assert.equal(report.processChecks.find(({ process }) => process === "Codex").target, "[clash-rules] 🤖 通用 AI");
+  assert.equal(report.processChecks.find(({ process }) => process === "Claude").target, "[clash-rules] Anthropic");
   assert.ok(report.generalAiRules.some((rule) => rule.type === "PROCESS-NAME" && rule.value === "Codex"));
   assert.ok(!Object.hasOwn(report, "internationalAiRules"));
   assert.ok(!report.unshadowedNonDomainRules.some((rule) => rule.type === "PROCESS-NAME" && rule.value === "Claude"));

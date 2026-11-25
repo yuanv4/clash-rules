@@ -1,120 +1,95 @@
 # clash-rules
 
-为 FlClash / mihomo 生成公开分流规则，并通过 Cloudflare Worker 提供私有订阅配置。需要自备机场订阅或节点。
+为 FlClash / Mihomo 发布公开规则集和客户端扩展脚本。机场完整订阅由客户端直接导入，仓库不读取机场链接、不生成完整订阅，也不需要 Cloudflare 或机场凭据。
 
 ```text
-公开规则 → Node.js 构建 → GitHub release 分支 → 客户端
-机场订阅 → Node.js 渲染 → Cloudflare KV → Worker → 客户端
+公开规则源 → GitHub Actions → release 分支的规则集和扩展脚本
+机场完整订阅 → FlClash → 扩展脚本叠加项目分流 → Mihomo
 ```
-
-> 完整配置和私有订阅地址可能包含凭据，请勿提交或公开分享。渲染模板需经过 Worker，不能直接导入客户端。
 
 ## 使用
 
-在 FlClash 中添加自己的 Worker 私有订阅地址，更新配置后使用规则模式。
+1. 在 FlClash 中导入机场提供的完整配置订阅，并选中该配置。
+2. 从下表选择一个脚本，通过 URL 导入 FlClash 的脚本列表。
+3. 在这份官方订阅的扩展设置中绑定脚本，并使用规则模式。
+4. 查看最终配置，确认官方 DNS、hosts 和节点仍在，分流规则已换成项目规则，并出现带 `[clash-rules] ` 前缀的项目分组。
 
-| URL 参数 | 用途 |
-| --- | --- |
-| 无参数 / `ts=off` | 不启用 Tailscale 节点 |
-| `ts=interface` | 使用系统 Tailscale 网卡；需已安装并登录 |
-| `ts=tsnet&tskey=<设备专属key>` | 使用内嵌 Tailscale；需客户端内核支持 |
-| `ts=both&tskey=<设备专属key>` | 同时提供两种方式 |
+以下链接在新的发布流程成功后可用。脚本是扩展文件，不能作为机场订阅导入。
 
-用 `iface=名称` 覆盖网卡名，默认 Tailscale。携带 key 的 URL 是敏感信息，推荐每台设备使用单独的 key。详见 [订阅与 Tailscale 配置](<docs/flclash-subscriptions.md>)。
-
-默认广告和成人内容拦截，国内服务直连，国外服务走代理，未匹配流量默认直连。`🤖 通用 AI`、`Anthropic` 和 `✨ Gemini` 共用美国、日本、新加坡三个候选地区。通用 AI 自动选择节点，Anthropic 与 Gemini 手动固定节点。
-
-Gemini 规则合并 [MetaCubeX google-gemini](https://github.com/MetaCubeX/meta-rules-dat/blob/meta/geo/geosite/google-gemini.yaml) 和 [VPSDance google-ai](https://github.com/VPSDance/ai-proxy-rules/blob/main/rules/clash/google-ai.yaml) 上游，优先于通用 AI 和 Google 规则。VPSDance 的集合还包含其他 Google AI 服务及 Antigravity 进程规则，这些流量也进入 Gemini 组。Gemini 不使用本地自定义规则。
-
-代理组按规则首次匹配的优先级显示，同一目标组只显示一次。`♻️ 自动选择` 作为共用工具组置顶，随后是 Tailscale 和各规则集的目标组，`🐟 漏网之鱼` 置底。自动选择按已知名称标签保守筛选东亚，包括中国大陆、香港、澳门、台湾、日本、韩国、蒙古和朝鲜。名称同时包含已知非东亚标签时会被排除，不验证真实出口，也不保证识别所有地名。无匹配节点时使用 REJECT。
-
-开发服务规则已并入 `🌐 国外服务`，统一使用国外服务组选择的出口。AI、流媒体和国内服务的前置规则仍优先匹配。
-
-OpenAI 已并入 `🤖 通用 AI`，其域名、进程和 IP 规则完整保留。Gemini 与 Anthropic 优先于通用 AI 匹配。剩余服务、上游范围和复核命令见 [AI 分流说明](<docs/ai-routing.md>)。
-
-## 首次部署
-
-准备 Cloudflare KV namespace、Worker 域名，以及 GitHub Actions Secrets：
-
-| Secret | 内容 |
-| --- | --- |
-| `SUBSCRIPTIONS_JSON` | 机场订阅或静态节点，格式见下方小节 |
-| `CF_API_TOKEN` | 需 Workers KV Storage:Edit 和 Workers Scripts:Edit 权限 |
-| `CF_ACCOUNT_ID` | Cloudflare 账号 ID |
-| `CF_KV_NAMESPACE_ID` | KV namespace ID |
-| `CF_SECRET_PATH` | 订阅地址的路径：订阅地址 = `https://<Worker 域名>` + 本值，须以 `/` 开头，如 `/s/<随机串>` |
-
-### `SUBSCRIPTIONS_JSON` 格式
-
-JSON 对象：键是 provider 名（字母、数字、`_`、`.`、`-`），值是机场配置。
-
-```json
-{
-  "airport_a": "https://subscription.example.com/a",
-  "airport_b": { "url": "https://subscription.example.com/b", "interval": 0 },
-  "airport_c": { "url": "https://subscription.example.com/c", "enable": false }
-}
-```
-
-- 字符串：远程订阅，客户端每 3600 秒自动刷新。
-- 对象：`url` 或 `nodes` 二选一；`interval: 0` 关闭自动刷新改手动，`enable: false` 临时跳过。
-- 数组：静态节点，每条是单行 YAML（含非空 `name`/`type`），不依赖订阅链接。
-
-静态节点校验和短窗口订阅的手动刷新流程见 [订阅说明](<docs/flclash-subscriptions.md>)。Secret 保存后不可查看；改完需手动运行 **Deploy FlClash Profile**。
-
-按顺序操作，每一步成功后再继续：
-
-1. 确认 [sources.json](<sources.json>) 的 `release_base_url`，预先创建 `release` 分支并允许 Actions 写入。该分支的受跟踪内容会被发布产物替换。
-2. 运行 **Build And Publish Rule Providers**，发布规则。
-3. 运行 **Deploy Clash Profile Worker**，确认 KV 绑定和域名可访问。
-4. 运行 **Deploy FlClash Profile**，再到一台测试设备更新订阅。
-
-规则发布成功后自动触发模板发布。模板发布前检查公开规则是否齐全，来源和筛选类型是否匹配；检查失败时不写入 KV。变更模板占位符时先发布兼容 Worker。脚本不会创建 KV 或域名，Worker 名固定为 `clash-profile`，注意避免覆盖同名服务。
-
-**Fork 注意：** [构建脚本](<scripts/build.mjs>) 对本地自定义源的识别包含原仓库名与 URL，迁移时需同步调整，不能只替换发布地址。
-
-## 日常维护
-
-| 想修改什么 | 修改位置 | 后续操作 |
+| 脚本 | 用途 | URL |
 | --- | --- | --- |
-| 自定义国外域名 | [custom/foreign.txt](<custom/foreign.txt>) | 推送，等待规则发布 |
-| 上游、规则集合 | [sources.json](<sources.json>) | 按需发布规则和模板 |
-| 机场 / 静态节点 / 刷新间隔 / 临时停用 | Secret `SUBSCRIPTIONS_JSON` | 手动运行 Deploy FlClash Profile |
-| 策略组 / AI 筛选 | [模板渲染器](<scripts/render-flclash-profile.mjs>) | 验证后发布模板 |
-| Tailscale 注入 / 私有路径 | [Worker](<worker/clash-profile.js>) / Secrets | 手动运行 Deploy Clash Profile Worker |
+| `flclash.js` | 分流，不添加 Tailscale | [导入脚本](https://raw.githubusercontent.com/yuanv4/clash-rules/release/scripts/flclash.js) |
+| `flclash-desktop.js` | 分流及系统 Tailscale 网卡出口 | [导入脚本](https://raw.githubusercontent.com/yuanv4/clash-rules/release/scripts/flclash-desktop.js) |
+| `flclash-android.js` | 分流及内嵌 Tailscale，首次使用时登录 | [导入脚本](https://raw.githubusercontent.com/yuanv4/clash-rules/release/scripts/flclash-android.js) |
+| `flclash-both.js` | 同时提供系统网卡和内嵌 Tailscale 出口 | [导入脚本](https://raw.githubusercontent.com/yuanv4/clash-rules/release/scripts/flclash-both.js) |
 
-规则每日北京时间 **06:30** 更新，成功后自动更新模板；模板另在 **10:17** 定时更新。Worker 只手动部署。发布后按需刷新客户端规则或完整订阅。旧版订阅使用的开发服务与 OpenAI 规则文件会在 release 分支保留；新模板将开发服务交给国外服务组，将 OpenAI 交给通用 AI 组。
+详细操作、Tailscale 登录与迁移步骤见 [FlClash 扩展脚本](docs/flclash-extension.md)。
 
-生成的订阅不包含 DNS 配置，由客户端默认设置或本地 DNS 设置决定解析行为。FlClash 用户可关闭 DNS 覆写，并检查客户端实际使用的 DNS。订阅仍会生成本项目的规则和策略组，并非机场的完整官方配置。
+## 修改范围
 
-更多说明：[自定义规则](<docs/custom-rules.md>)。自定义国外规则不能覆盖前面已命中的拦截或国内规则。
+脚本只处理以下内容：
 
-## 本地检查
+- 完整替换 `rule-providers` 和 `proxy-groups`，使用项目规则集和代理组。
+- 用项目完整规则替换 `rules`，不执行机场原分流规则。
+- 在启用 Tailscale 的版本中添加项目节点和路由，保留机场原节点。
 
-构建、测试、渲染及部署统一使用 **Node.js 24 LTS**。
+官方 DNS、hosts、TUN、IPv6、嗅探、端口、节点提供商和其他配置均保留。项目规则末尾的 `MATCH` 指向项目漏网组，默认选择 `DIRECT`；机场原规则及其兜底策略被替换。客户端自身的设置仍可能影响最终配置。
+
+项目生成的组、节点和规则集键使用保留命名空间 `[clash-rules] `。每次应用都会完整替换规则、代理组和规则集；在保留的节点列表中，只清理这个命名空间内的旧节点，再添加所选版本的 Tailscale 节点。不要给自己的节点使用这个前缀。
+
+## 分流行为
+
+项目规则默认拦截广告和成人内容，国内服务组默认直连，国外服务组默认使用自动选择。`🤖 通用 AI`、`Anthropic` 和 `✨ Gemini` 共用美国、日本、新加坡候选地区。通用 AI 自动测速，Anthropic 与 Gemini 手动选择节点；没有候选节点时使用 `REJECT`。
+
+项目代理组按规则首次匹配顺序排列，自动选择组置前，漏网组置后，Tailscale 组仅在相应版本中出现。自动选择按节点名称保守筛选东亚；同时带已知非东亚标签的节点会被排除。名称标签不能证明真实出口位置。项目 Tailscale 节点不会进入业务节点组。
+
+Gemini 合并 MetaCubeX `google-gemini` 与 VPSDance `google-ai`，优先于通用 AI 和国外服务。开发服务并入国外服务，OpenAI 并入通用 AI，保留对应域名、进程和网络规则。详见 [AI 分流范围](docs/ai-routing.md) 和 [自定义规则](docs/custom-rules.md)。
+
+## 构建与发布
+
+使用 Node.js 24 LTS：
 
 ```powershell
 npm ci
 npm test
-node scripts/build.mjs
-
-# 假订阅，仅检查模板，不部署
-$env:SUBSCRIPTIONS_JSON = '{"demo":"https://subscription.example.com/demo"}'
-node scripts/render-flclash-profile.mjs --output .cf-build/profile-demo.yaml
+npm run build
 ```
 
-可设置 `MIHOMO_PATH` 为 mihomo 可执行文件路径，再运行 `npm test`，执行真实内核的节点筛选与空组回退检查；未设置时跳过这些检查。
+只生成扩展脚本，不拉取上游规则：
 
-构建会联网，成功后整体替换输出目录。只使用专用产物目录，不要存放手工资料；旧版无构建标记的非空目录会被拒绝覆盖，请先备份或换新目录。
+```powershell
+npm run build:scripts
+```
 
-三条发布流程都会先跑离线测试，但不代替真实客户端验证。
+完整构建先生成 `dist/rules`，再生成 `dist/scripts`。规则构建会联网，并整体替换专用输出目录；不要在产物目录保存手工资料。
 
-## 常见问题
+[发布工作流](.github/workflows/release.yml) 在受监控源码变更、手动运行和每日北京时间 06:30 触发。测试和构建通过后，同一提交将规则、四个脚本及本地自定义源发布到 `release` 分支。首次使用或 Fork 时，确认 [sources.json](sources.json) 的 `release_base_url`，准备 `release` 分支，并允许 Actions 写入仓库。该分支的受跟踪内容由发布产物管理。
 
-- **404**：检查私有路径、KV 绑定及是否已发布模板。
-- **400**：检查 `ts`、网卡名和 Tailscale key。
-- **500 Invalid profile template**：重新发布当前渲染器生成的模板；旧版无占位模板不受支持。
-- **更新后仍是旧配置**：先确认 Actions 成功，再手动更新客户端，留意缓存。
-- **凭据泄露**：轮换私有路径及相关 key；删除文件或改写 Git 历史不能撤销凭据。
+流程只使用 GitHub 的仓库写权限，不需要机场订阅或 Cloudflare Secrets。本地自定义源还包含原仓库的名称和 URL，Fork 时需同步调整。
 
-上游来源和许可证见 [sources.json](<sources.json>)；重新分发前请核实各来源的许可要求。
+发布后可核对脚本依赖的公开规则链接、来源和载荷：
+
+```powershell
+node scripts/verify-published-rules.mjs
+```
+
+## 更新
+
+| 内容 | 修改位置或来源 | 客户端更新方式 |
+| --- | --- | --- |
+| 规则集内容 | 上游及 [custom/foreign.txt](custom/foreign.txt) | 内核按规则提供商的 `interval` 刷新 |
+| 规则来源和业务映射 | [sources.json](sources.json) | 发布后同步扩展脚本，并按需刷新规则提供商 |
+| 分组、节点筛选、Tailscale 定义 | [脚本生成器](scripts/render-flclash-script.mjs) | 发布后同步扩展脚本 |
+| 机场节点、DNS、hosts、其他基础配置 | 机场官方完整订阅 | 更新该官方订阅；脚本会重新覆盖分流规则 |
+
+FlClash 应用配置时会执行已保存的脚本。远程脚本内容更新是独立操作，可手动同步；v0.9.4 的自动更新还受 `geoAutoUpdate` 和 `geoUpdateInterval` 控制。
+
+可设置 `MIHOMO_PATH` 后运行测试，检查真实内核行为；没有配置时，相应检查会跳过。本地测试不能代替 Android、系统网卡和 Tailnet 的实机验证。
+
+## 从旧 Worker 订阅迁移
+
+仓库不再部署 Worker、写入 KV 或处理机场 DNS 快照。旧的 Worker 配置链接不能代替官方主订阅。
+
+先在客户端导入官方完整订阅并绑定新的脚本，确认可用后，再单独停用旧 Worker、KV 和相关凭据。移除仓库代码不会自动删除线上资源。本次迁移也不删除本地私有文件。
+
+上游来源和许可证见 [sources.json](sources.json)。

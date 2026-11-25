@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { normalizeConfiguration, parseRules } from "./build.mjs";
+import { parseRules } from "./build.mjs";
+import vm from "node:vm";
+import { renderFlClashScript } from "./render-flclash-script.mjs";
 
 export const matchesDomain = (rule, domain) => {
   switch (rule.type) {
@@ -22,8 +24,13 @@ const main = async () => {
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
   const rulesDir = process.argv[2];
   if (!rulesDir) throw new Error("Usage: node scripts/audit-ai-rules.mjs <built-rules-directory> [--list]");
-  const config = normalizeConfiguration(JSON.parse(await readFile(path.join(root, "sources.json"), "utf8")));
-  const providers = config.providers.filter(({ name }) => ["gemini", "anthropic", "ai"].includes(name));
+  const source = JSON.parse(await readFile(path.join(root, "sources.json"), "utf8"));
+  const main = vm.runInNewContext(`${renderFlClashScript({ source })}; main`);
+  const generated = main({});
+  const prefix = "[clash-rules] ";
+  const providers = generated.rules.map((rule) => rule.split(","))
+    .filter(([type, key]) => type === "RULE-SET" && ["gemini", "anthropic", "ai"].includes(key.slice(prefix.length)))
+    .map(([, key, target]) => ({ name: key.slice(prefix.length), target }));
   const rules = await Promise.all(providers.map(async (provider) => ({
     ...provider,
     rules: parseRules(await readFile(path.join(rulesDir, `${provider.name}.yaml`), "utf8"), provider.name, "clash-yaml"),
@@ -72,10 +79,10 @@ const main = async () => {
     target: rules.find((provider) => provider.rules.some((rule) => rule.type === "PROCESS-NAME" && rule.value === process))?.target ?? null,
   }));
   for (const check of domainChecks.filter(({ service }) => ["OpenAI", "OpenAI API", "Codex", "Sora", "Claude", "Anthropic API"].includes(service))) {
-    assert.equal(check.target, ["Claude", "Anthropic API"].includes(check.service) ? "Anthropic" : "🤖 通用 AI", check.service);
+    assert.equal(check.target, ["Claude", "Anthropic API"].includes(check.service) ? `${prefix}Anthropic` : `${prefix}🤖 通用 AI`, check.service);
   }
   for (const check of processChecks) {
-    assert.equal(check.target, /claude|cowork/i.test(check.process) ? "Anthropic" : "🤖 通用 AI", check.process);
+    assert.equal(check.target, /claude|cowork/i.test(check.process) ? `${prefix}Anthropic` : `${prefix}🤖 通用 AI`, check.process);
   }
   const networkChecks = [
     ["IP-CIDR", "199.47.142.0/23", "🤖 通用 AI"],
@@ -88,7 +95,7 @@ const main = async () => {
     ["IP-ASN", "399358", "Anthropic"],
   ].map(([type, value, expected]) => {
     const target = rules.find((provider) => provider.rules.some((rule) => rule.type === type && rule.value === value))?.target ?? null;
-    assert.equal(target, expected, `${type},${value}`);
+    assert.equal(target, prefix + expected, `${type},${value}`);
     return { type, value, target };
   });
   const dedicatedRules = new Set(rules.filter(({ name }) => name !== "ai").flatMap(({ rules }) => rules.map((rule) => JSON.stringify(rule))));
