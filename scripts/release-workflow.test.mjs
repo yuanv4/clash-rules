@@ -43,8 +43,11 @@ for (const legacyProviders of [[], ["dev_services"], ["openai"], ["dev_services"
       await mkdir(path.join(checkout, "rules"));
       await mkdir(path.join(checkout, "custom"));
       await writeFile(path.join(checkout, "rules", "old.yaml"), "payload: [DOMAIN,old.test]\n");
-      const legacyText = "payload:\n  - DOMAIN-SUFFIX,developer.test\n";
-      for (const provider of legacyProviders) await writeFile(path.join(checkout, "rules", `${provider}.yaml`), legacyText);
+      const legacyTexts = {
+        dev_services: "payload:\n  - DOMAIN-SUFFIX,developer.test\n",
+        openai: "payload:\n  - DOMAIN-SUFFIX,openai.test\n",
+      };
+      for (const provider of legacyProviders) await writeFile(path.join(checkout, "rules", `${provider}.yaml`), legacyTexts[provider]);
       await writeFile(path.join(checkout, "custom", "foreign.txt"), "DOMAIN-SUFFIX,custom.test\n");
       run("git", ["add", "."], checkout);
       run("git", ["commit", "-m", "Seed publication"], checkout);
@@ -59,7 +62,7 @@ for (const legacyProviders of [[], ["dev_services"], ["openai"], ["dev_services"
       const files = run("git", ["--git-dir", origin, "ls-tree", "-r", "--name-only", "release"], root).split("\n");
       assert.deepEqual(files.sort(), ["custom/foreign.txt", ...legacyProviders.map((provider) => `rules/${provider}.yaml`), "rules/foreign_services.yaml"].sort());
       for (const provider of legacyProviders) {
-        assert.equal(run("git", ["--git-dir", origin, "show", `release:rules/${provider}.yaml`], root), legacyText.trim());
+        assert.equal(run("git", ["--git-dir", origin, "show", `release:rules/${provider}.yaml`], root), legacyTexts[provider].trim());
       }
     } finally {
       await rm(root, { recursive: true, force: true });

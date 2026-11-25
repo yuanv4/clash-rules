@@ -312,21 +312,17 @@ test("sources.json removes domestic AI routing while preserving provider provena
   assert.deepEqual(geminiProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "clash-yaml"]);
   assert.deepEqual(geminiProvider.inputs.map((input) => input.license.id), ["GPL-3.0", "MIT"]);
 
-  for (const [name, target, upstream] of [
-    ["anthropic", "Anthropic", "anthropic"],
-  ]) {
-    const provider = normalized.providers.find((provider) => provider.name === name);
-    assert.equal(provider.target, target);
-    assert.equal(provider.noResolve, true);
-    assert.deepEqual(provider.inputs.map((input) => input.sourceUrl), [
-      `https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/${upstream}.yaml`,
-      `https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/${upstream}.yaml`,
-    ]);
-    assert.deepEqual(provider.inputs.map((input) => input.inputFormat), ["clash-yaml", "clash-yaml"]);
-    assert.deepEqual(provider.inputs[1].includeRuleTypes, ["PROCESS-NAME", "IP-CIDR", "IP-CIDR6", "IP-ASN"]);
-    assert.equal(provider.inputs[0].license.id, "GPL-3.0");
-    assert.equal(provider.inputs[1].license.id, "MIT");
-  }
+  const anthropicProvider = normalized.providers.find(({ name }) => name === "anthropic");
+  assert.equal(anthropicProvider.target, "Anthropic");
+  assert.equal(anthropicProvider.noResolve, true);
+  assert.deepEqual(anthropicProvider.inputs.map((input) => input.sourceUrl), [
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/anthropic.yaml",
+    "https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/anthropic.yaml",
+  ]);
+  assert.deepEqual(anthropicProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "clash-yaml"]);
+  assert.deepEqual(anthropicProvider.inputs[1].includeRuleTypes, ["PROCESS-NAME", "IP-CIDR", "IP-CIDR6", "IP-ASN"]);
+  assert.equal(anthropicProvider.inputs[0].license.id, "GPL-3.0");
+  assert.equal(anthropicProvider.inputs[1].license.id, "MIT");
 
   const aiProvider = normalized.providers.find(({ name }) => name === "ai");
   assert.equal(aiProvider.target, "🤖 通用 AI");

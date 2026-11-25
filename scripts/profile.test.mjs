@@ -156,20 +156,16 @@ test("OpenAI merges into automatic general AI after dedicated Anthropic routing"
   assert.equal(general.url, "https://chatgpt.com/");
   assert.equal(general["empty-fallback"], "REJECT");
   assert.ok(config.rules.includes("RULE-SET,ai,🤖 通用 AI,no-resolve"));
-  for (const [name, provider, type, url] of [
-    ["Anthropic", "anthropic", "select", "https://claude.ai/"],
-  ]) {
-    const group = config["proxy-groups"].find((group) => group.name === name);
-    assert.equal(group.type, type);
-    assert.equal(group.url, url);
-    assert.equal(group["include-all"], true);
-    if (type === "select") assert.equal(group["empty-fallback"], "REJECT");
-    const ruleIndex = config.rules.indexOf(`RULE-SET,${provider},${name},no-resolve`);
-    assert.ok(ruleIndex >= 0);
-    assert.ok(ruleIndex < config.rules.indexOf("RULE-SET,ai,🤖 通用 AI,no-resolve"));
-    assert.ok(ruleIndex < config.rules.indexOf("RULE-SET,foreign_services,🌐 国外服务,no-resolve"));
-    assert.equal(config["rule-providers"][provider].url, `${source.release_base_url}/rules/${provider}.yaml`);
-  }
+  const anthropic = config["proxy-groups"].find(({ name }) => name === "Anthropic");
+  assert.equal(anthropic.type, "select");
+  assert.equal(anthropic.url, "https://claude.ai/");
+  assert.equal(anthropic["include-all"], true);
+  assert.equal(anthropic["empty-fallback"], "REJECT");
+  const ruleIndex = config.rules.indexOf("RULE-SET,anthropic,Anthropic,no-resolve");
+  assert.ok(ruleIndex >= 0);
+  assert.ok(ruleIndex < config.rules.indexOf("RULE-SET,ai,🤖 通用 AI,no-resolve"));
+  assert.ok(ruleIndex < config.rules.indexOf("RULE-SET,foreign_services,🌐 国外服务,no-resolve"));
+  assert.equal(config["rule-providers"].anthropic.url, `${source.release_base_url}/rules/anthropic.yaml`);
 });
 
 test("auth key comes from the subscription URL and errors otherwise", async () => {

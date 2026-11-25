@@ -12,6 +12,7 @@ import { renderProfile } from "./render-flclash-profile.mjs";
 import { injectTailscale } from "../worker/clash-profile.js";
 
 const source = JSON.parse(await readFile(new URL("../sources.json", import.meta.url), "utf8"));
+const aiGroups = ["🤖 通用 AI", "Anthropic", "✨ Gemini"];
 for (const names of [["US01", "JP01", "SG01", "HK01-US", "MO01-SG01", "TW01"], ["DE01", "HK01-US"]]) {
   test(`Mihomo enforces AI candidate membership: ${names.join(", ")}`, { skip: !process.env.MIHOMO_PATH }, async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "clash-core-test-"));
@@ -39,14 +40,17 @@ for (const names of [["US01", "JP01", "SG01", "HK01-US", "MO01-SG01", "TW01"], [
       for (let attempt = 0; attempt < 100; attempt++) {
         try {
           const response = await fetch(`http://127.0.0.1:${port}/proxies`, { signal: AbortSignal.timeout(300) });
-          if (response.ok) { proxies = (await response.json()).proxies; break; }
+          if (response.ok) {
+            const candidate = (await response.json()).proxies;
+            if (aiGroups.every((group) => candidate?.[group])) { proxies = candidate; break; }
+          }
         } catch {}
         if (child.exitCode !== null) break;
         await delay(50);
       }
-      assert.ok(proxies, "Mihomo controller did not start");
+      assert.ok(proxies, "Mihomo did not initialize the AI groups");
       const expected = names.includes("US01") ? ["JP01", "SG01", "US01"] : ["REJECT"];
-      for (const group of ["🤖 通用 AI", "Anthropic", "✨ Gemini"]) {
+      for (const group of aiGroups) {
         assert.deepEqual([...proxies[group].all].sort(), expected, group);
       }
       child.kill();

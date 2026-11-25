@@ -1,7 +1,53 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { parseRules } from "./build.mjs";
+import { spawnSync } from "node:child_process";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { normalizeConfiguration, parseRules, renderYaml } from "./build.mjs";
 import { matchesDomain } from "./audit-ai-rules.mjs";
+
+test("audit CLI reports merged AI routes and rejects missing OpenAI process rules", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "clash-audit-test-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const source = JSON.parse(await readFile(new URL("../sources.json", import.meta.url), "utf8"));
+  const providers = normalizeConfiguration(source).providers;
+  const fixtures = {
+    gemini: ["DOMAIN-SUFFIX,google.com"],
+    anthropic: [
+      "DOMAIN-SUFFIX,claude.ai", "DOMAIN-SUFFIX,anthropic.com",
+      ...["Claude", "Claude.exe", "claude", "claude.exe", "cowork-svc.exe"].map((name) => `PROCESS-NAME,${name}`),
+      "IP-CIDR,160.79.104.0/21", "IP-CIDR6,2607:6bc0::/32", "IP-ASN,399358",
+    ],
+    ai: [
+      "DOMAIN-SUFFIX,chatgpt.com", "DOMAIN-SUFFIX,openai.com", "DOMAIN-SUFFIX,sora.com", "DOMAIN-SUFFIX,perplexity.ai",
+      "DOMAIN-SUFFIX,google.com", "DOMAIN-SUFFIX,claude.ai", "DOMAIN-SUFFIX,anthropic.com",
+      ...["ChatGPT", "ChatGPT.exe", "Codex", "Codex.exe", "chatgpt", "codex", "Claude"].map((name) => `PROCESS-NAME,${name}`),
+      "IP-CIDR,199.47.142.0/23", "IP-CIDR,24.199.123.28/32", "IP-CIDR,64.23.132.171/32", "IP-CIDR6,2604:f20::/32", "IP-ASN,401518",
+    ],
+  };
+  for (const [name, lines] of Object.entries(fixtures)) {
+    await writeFile(path.join(root, `${name}.yaml`), renderYaml(providers.find((provider) => provider.name === name), parseRules(lines.join("\n"), "fixture")));
+  }
+  const runAudit = (...args) => spawnSync(process.execPath, [fileURLToPath(new URL("./audit-ai-rules.mjs", import.meta.url)), root, ...args], { encoding: "utf8", timeout: 20_000 });
+  const result = runAudit("--list");
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.deepEqual(report.providerOrder, ["gemini", "anthropic", "ai"]);
+  for (const [service, target] of [["OpenAI", "🤖 通用 AI"], ["Codex", "🤖 通用 AI"], ["Perplexity", "🤖 通用 AI"], ["Claude", "Anthropic"], ["Gemini", "✨ Gemini"]]) {
+    assert.equal(report.domainChecks.find((check) => check.service === service).target, target, service);
+  }
+  assert.equal(report.processChecks.find(({ process }) => process === "Codex").target, "🤖 通用 AI");
+  assert.equal(report.processChecks.find(({ process }) => process === "Claude").target, "Anthropic");
+  assert.ok(report.generalAiRules.some((rule) => rule.type === "PROCESS-NAME" && rule.value === "Codex"));
+  assert.ok(!Object.hasOwn(report, "internationalAiRules"));
+  assert.ok(!report.unshadowedNonDomainRules.some((rule) => rule.type === "PROCESS-NAME" && rule.value === "Claude"));
+  await writeFile(path.join(root, "ai.yaml"), renderYaml(providers.find(({ name }) => name === "ai"), parseRules(fixtures.ai.filter((line) => line !== "PROCESS-NAME,Codex").join("\n"), "fixture")));
+  const missingProcess = runAudit();
+  assert.equal(missingProcess.status, 1);
+  assert.match(missingProcess.stderr, /Codex/);
+});
 
 for (const [line, matches, misses] of [
   ["DOMAIN,example.com", ["example.com"], ["sub.example.com", "notexample.com"]],

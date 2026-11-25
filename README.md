@@ -83,7 +83,7 @@ JSON 对象：键是 provider 名（字母、数字、`_`、`.`、`-`），值�
 | 策略组 / AI 筛选 | [模板渲染器](<scripts/render-flclash-profile.mjs>) | 验证后发布模板 |
 | Tailscale 注入 / 私有路径 | [Worker](<worker/clash-profile.js>) / Secrets | 手动运行 Deploy Clash Profile Worker |
 
-规则每日北京时间 **06:30** 更新，成功后自动更新模板；模板另在 **10:17** 定时更新。Worker 只手动部署。发布后按需刷新客户端规则或完整订阅。旧版订阅使用的开发服务与 OpenAI 规则文件会在 release 分支保留，新模板只使用国外服务组。
+规则每日北京时间 **06:30** 更新，成功后自动更新模板；模板另在 **10:17** 定时更新。Worker 只手动部署。发布后按需刷新客户端规则或完整订阅。旧版订阅使用的开发服务与 OpenAI 规则文件会在 release 分支保留；新模板将开发服务交给国外服务组，将 OpenAI 交给通用 AI 组。
 
 更多说明：[自定义规则](<docs/custom-rules.md>) · [DNS fake-ip 排除](<docs/fake-ip-filter.md>)。自定义国外规则不能覆盖前面已命中的拦截或国内规则。
 
