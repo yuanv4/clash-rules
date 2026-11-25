@@ -62,6 +62,20 @@ const TAILSCALE_NODE_ALT = "^(?:TAILSCALE|TAILSCALE-DIRECT)$";
 const NODE_EXCLUDE_ALT = `${FAKE_NODE_ALT}|${TAILSCALE_NODE_ALT}`;
 const NODE_EXCLUDE_PATTERN = `(?:${NODE_EXCLUDE_ALT})`;
 
+// 自动选择组按节点名称识别东亚地区。
+const EAST_ASIA_REGION_PATTERN =
+  "(?i)(?:香港|澳门|澳門|台湾|台灣|台北|日本|东京|東京|大阪|韩国|韓國|首尔|首爾|中國|中国|大陆|大陸|蒙古|朝鲜|朝鮮|" +
+  "🇭🇰|🇲🇴|🇹🇼|🇯🇵|🇰🇷|🇨🇳|🇲🇳|🇰🇵|" +
+  "(?:^|[^a-z])(?:hong\\s*kong|macao|macau|taiwan|taipei|japan|tokyo|osaka|south\\s*korea|north\\s*korea|korea|seoul|china|mongolia|" +
+  "hk|hkg|mo|mac|tw|twn|jp|jpn|kr|kor|cn|chn|mn|mng|kp|prk)(?:$|[^a-z]))";
+
+// 自动选择排除带已知非东亚地区标签的节点，不判断线路方向。
+const NON_EAST_ASIA_ALT =
+  "美国|美國|洛杉矶|洛杉磯|圣何塞|聖何塞|西雅图|西雅圖|硅谷|纽约|紐約|新加坡|狮城|獅城|英国|英國|伦敦|倫敦|澳大利亚|澳大利亞|澳洲|悉尼|墨尔本|墨爾本|加拿大|多伦多|多倫多|温哥华|溫哥華|德国|德國|法兰克福|法蘭克福|法国|法國|巴黎|俄罗斯|俄羅斯|莫斯科|印度|孟买|孟買|越南|胡志明|泰国|泰國|曼谷|马来西亚|馬來西亞|吉隆坡|印尼|印度尼西亚|印度尼西亞|雅加达|雅加達|菲律宾|菲律賓|马尼拉|馬尼拉|荷兰|荷蘭|阿姆斯特丹|土耳其|伊斯坦布尔|伊斯坦堡|" +
+  "🇺🇸|🇸🇬|🇬🇧|🇦🇺|🇨🇦|🇩🇪|🇫🇷|🇷🇺|🇮🇳|🇻🇳|🇹🇭|🇲🇾|🇮🇩|🇵🇭|🇳🇱|🇹🇷|" +
+  "(?:^|[^a-z])(?:united\\s*states|america|los\\s*angeles|san\\s*jose|seattle|silicon\\s*valley|new\\s*york|singapore|united\\s*kingdom|britain|london|australia|sydney|melbourne|canada|toronto|vancouver|germany|frankfurt|france|paris|russia|moscow|india|mumbai|vietnam|ho\\s*chi\\s*minh|thailand|bangkok|malaysia|kuala\\s*lumpur|indonesia|jakarta|philippines|manila|netherlands|amsterdam|turkey|turkiye|istanbul|us|usa|sg|sgp|uk|gbr|gb|au|aus|ca|can|de|deu|fr|fra|ru|rus|in|ind|vn|vnm|th|tha|my|mys|id|idn|ph|phl|nl|nld|tr|tur)(?:$|[^a-z])";
+const EAST_ASIA_EXCLUDE_PATTERN = `(?i)(?:${NON_EAST_ASIA_ALT}|${NODE_EXCLUDE_PATTERN})`;
+
 // 所有 AI 组共用美国、日本、新加坡候选标签。
 const AI_REGION_PATTERN =
   "(?i)(?:日本|东京|東京|大阪|japan|tokyo|osaka|🇯🇵|" +
@@ -331,7 +345,9 @@ const buildGroups = (proxyGroup, sourceProviders) => {
     interval: 300
     tolerance: 50
     include-all: true
-    exclude-filter: ${q(NODE_EXCLUDE_PATTERN)}`,
+    filter: ${q(EAST_ASIA_REGION_PATTERN)}
+    exclude-filter: ${q(EAST_ASIA_EXCLUDE_PATTERN)}
+    empty-fallback: REJECT`,
     `  - name: ${q(TAILSCALE_GROUP)}
     type: select
     proxies: ${tailscaleProxies.join(", ")}

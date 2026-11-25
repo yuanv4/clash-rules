@@ -13,8 +13,15 @@ import { injectTailscale } from "../worker/clash-profile.js";
 
 const source = JSON.parse(await readFile(new URL("../sources.json", import.meta.url), "utf8"));
 const aiGroups = ["🤖 通用 AI", "Anthropic", "✨ Gemini"];
-for (const names of [["US01", "JP01", "SG01", "HK01-US", "MO01-SG01", "TW01"], ["DE01", "HK01-US"]]) {
-  test(`Mihomo enforces AI candidate membership: ${names.join(", ")}`, { skip: !process.env.MIHOMO_PATH }, async () => {
+const cases = [
+  { names: ["US01", "JP01", "SG01", "HK01-US", "MO01-SG01", "TW01"], groups: aiGroups, expected: ["JP01", "SG01", "US01"] },
+  { names: ["DE01", "HK01-US"], groups: aiGroups, expected: ["REJECT"] },
+  { names: ["HK01", "MO01", "香港中转-美国01", "HK01-SG01"], provider: ["TW01", "JP01", "US01-HK01", "新加坡-日本01", "HK01-UK01"], groups: [source.proxy_group], expected: ["HK01", "JP01", "MO01", "TW01"] },
+  { names: ["US01-HK01"], provider: ["HK01-SG01"], groups: [source.proxy_group], expected: ["REJECT"] },
+  { names: ["US01"], provider: ["SG01"], groups: [source.proxy_group], expected: ["REJECT"] },
+];
+for (const { names, provider = [], groups, expected } of cases) {
+  test(`Mihomo enforces ${groups.join(", ")} membership: ${[...names, ...provider].join(", ")}`, { skip: !process.env.MIHOMO_PATH }, async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "clash-core-test-"));
     let child;
     try {
@@ -29,6 +36,11 @@ for (const names of [["US01", "JP01", "SG01", "HK01-US", "MO01-SG01", "TW01"], [
       delete config["rule-providers"];
       delete config.dns;
       config.rules = ["MATCH,REJECT"];
+      if (provider.length) {
+        const providerFile = path.join(root, "provider.yaml");
+        await writeFile(providerFile, stringify({ proxies: provider.map((name) => ({ name, type: "socks5", server: "127.0.0.1", port: 9 })) }));
+        config["proxy-providers"] = { fixture: { type: "file", path: providerFile } };
+      }
       config["mixed-port"] = 0;
       config["external-controller"] = `127.0.0.1:${port}`;
       const file = path.join(root, "config.yaml");
@@ -42,15 +54,14 @@ for (const names of [["US01", "JP01", "SG01", "HK01-US", "MO01-SG01", "TW01"], [
           const response = await fetch(`http://127.0.0.1:${port}/proxies`, { signal: AbortSignal.timeout(300) });
           if (response.ok) {
             const candidate = (await response.json()).proxies;
-            if (aiGroups.every((group) => candidate?.[group])) { proxies = candidate; break; }
+            if (groups.every((group) => candidate?.[group])) { proxies = candidate; break; }
           }
         } catch {}
         if (child.exitCode !== null) break;
         await delay(50);
       }
-      assert.ok(proxies, "Mihomo did not initialize the AI groups");
-      const expected = names.includes("US01") ? ["JP01", "SG01", "US01"] : ["REJECT"];
-      for (const group of aiGroups) {
+      assert.ok(proxies, "Mihomo did not initialize the requested groups");
+      for (const group of groups) {
         assert.deepEqual([...proxies[group].all].sort(), expected, group);
       }
       child.kill();

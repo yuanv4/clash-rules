@@ -107,6 +107,33 @@ test("manual node selection group is absent and no group references it", async (
   for (const group of groups) assert.ok(!group.proxies?.includes("🚀 节点选择"));
 });
 
+test("automatic selection keeps East Asian nodes and excludes fake nodes", async () => {
+  const config = await parsedResponse();
+  const group = config["proxy-groups"].find((g) => g.name === source.proxy_group);
+  assert.equal(group.type, "url-test");
+  assert.equal(group.url, "https://cp.cloudflare.com/generate_204");
+  assert.equal(group.interval, 300);
+  assert.equal(group.tolerance, 50);
+  assert.equal(group["include-all"], true);
+  assert.equal(group["empty-fallback"], "REJECT");
+  const region = new RegExp(group.filter.replace(/^\(\?i\)/, ""), "i");
+  const exclude = new RegExp(group["exclude-filter"].replace(/^\(\?i\)/, ""), "i");
+  const selected = (name) => region.test(name) && !exclude.test(name);
+  for (const name of [
+    "香港 01", "Hong Kong 02", "HK03", "🇭🇰 04", "澳门 01", "澳門 02", "Macau 03", "MO04", "🇲🇴 05",
+    "台湾 01", "台灣 02", "Taiwan 03", "TW04", "🇹🇼 05", "日本 01", "東京 02", "Japan 03", "JP04", "🇯🇵 05",
+    "韩国 01", "韓國 02", "Korea 03", "KR04", "🇰🇷 05", "中国 01", "中國 02", "China 03", "CN04", "🇨🇳 05",
+    "蒙古 01", "Mongolia 02", "MN03", "🇲🇳 04", "朝鲜 01", "朝鮮 02", "North Korea 03", "KP04", "🇰🇵 05",
+    "HK trusted", "JP design", "HK August",
+  ]) assert.ok(selected(name), `expected ${name} in automatic selection`);
+  for (const tag of ["USA", "Singapore", "英国", "AUS", "🇨🇦", "Frankfurt", "法国", "RU", "Mumbai", "越南", "Bangkok", "MY", "Jakarta", "菲律宾", "Amsterdam", "土耳其"]) {
+    assert.equal(selected(`HK01-${tag}01`), false, `expected HK01-${tag}01 excluded`);
+  }
+  for (const name of ["香港中转-美国01", "US01-HK01", "HK01-SG01", "新加坡-日本01", "HK01-UK01", "新加坡 01", "Singapore 02", "SG03", "🇸🇬", "美国 01", "US02", "🇺🇸", "Chinatown", "syncnode", "香港 剩余流量", "JP 到期时间", "TAILSCALE", "TAILSCALE-DIRECT"]) {
+    assert.equal(selected(name), false, `expected ${name} excluded from automatic selection`);
+  }
+});
+
 test("all AI groups share United States, Japan, and Singapore candidates", async () => {
   const config = await parsedResponse();
   const group = config["proxy-groups"].find((g) => g.name === "🤖 通用 AI");

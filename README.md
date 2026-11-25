@@ -26,7 +26,7 @@
 
 Gemini 规则合并 [MetaCubeX google-gemini](https://github.com/MetaCubeX/meta-rules-dat/blob/meta/geo/geosite/google-gemini.yaml) 和 [VPSDance google-ai](https://github.com/VPSDance/ai-proxy-rules/blob/main/rules/clash/google-ai.yaml) 上游，优先于通用 AI 和 Google 规则。VPSDance 的集合还包含其他 Google AI 服务及 Antigravity 进程规则，这些流量也进入 Gemini 组。Gemini 不使用本地自定义规则。
 
-代理组按规则首次匹配的优先级显示，同一目标组只显示一次。`♻️ 自动选择` 作为共用工具组置顶，随后是 Tailscale 和各规则集的目标组，`🐟 漏网之鱼` 置底。
+代理组按规则首次匹配的优先级显示，同一目标组只显示一次。`♻️ 自动选择` 作为共用工具组置顶，随后是 Tailscale 和各规则集的目标组，`🐟 漏网之鱼` 置底。自动选择按已知名称标签保守筛选东亚，包括中国大陆、香港、澳门、台湾、日本、韩国、蒙古和朝鲜。名称同时包含已知非东亚标签时会被排除，不验证真实出口，也不保证识别所有地名。无匹配节点时使用 REJECT。
 
 开发服务规则已并入 `🌐 国外服务`，统一使用国外服务组选择的出口。AI、流媒体和国内服务的前置规则仍优先匹配。
 
@@ -101,7 +101,7 @@ $env:SUBSCRIPTIONS_JSON = '{"demo":"https://subscription.example.com/demo"}'
 node scripts/render-flclash-profile.mjs --output .cf-build/profile-demo.yaml
 ```
 
-可设置 `MIHOMO_PATH` 为 mihomo 可执行文件路径，再运行 `npm test`，执行真实内核的节点筛选与空组回退检查；未设置时跳过这两项检查。
+可设置 `MIHOMO_PATH` 为 mihomo 可执行文件路径，再运行 `npm test`，执行真实内核的节点筛选与空组回退检查；未设置时跳过这些检查。
 
 构建会联网，成功后整体替换输出目录。只使用专用产物目录，不要存放手工资料；旧版无构建标记的非空目录会被拒绝覆盖，请先备份或换新目录。
 
