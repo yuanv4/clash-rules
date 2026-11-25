@@ -97,6 +97,33 @@
       ]
     },
     {
+      "name": "gemini",
+      "target": "✨ Gemini",
+      "no_resolve": true,
+      "inputs": [
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/google-gemini.yaml"},
+        {"input": "VPSDance/ai-proxy-rules", "path": "rules/clash/google-ai.yaml"}
+      ]
+    },
+    {
+      "name": "openai",
+      "target": "OpenAI",
+      "no_resolve": true,
+      "inputs": [
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/openai.yaml"},
+        {"input": "VPSDance/ai-proxy-rules", "path": "rules/clash/openai.yaml", "include_rule_types": ["PROCESS-NAME", "IP-CIDR", "IP-CIDR6", "IP-ASN"]}
+      ]
+    },
+    {
+      "name": "anthropic",
+      "target": "Anthropic",
+      "no_resolve": true,
+      "inputs": [
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/anthropic.yaml"},
+        {"input": "VPSDance/ai-proxy-rules", "path": "rules/clash/anthropic.yaml", "include_rule_types": ["PROCESS-NAME", "IP-CIDR", "IP-CIDR6", "IP-ASN"]}
+      ]
+    },
+    {
       "name": "ai",
       "target": "🤖 国际 AI",
       "no_resolve": true,
@@ -104,14 +131,6 @@
         {"input": "VPSDance/ai-proxy-rules", "path": "rules/clash/global.yaml"},
         {"input": "SukkaLab/ruleset.skk.moe", "path": "Clash/non_ip/apple_intelligence.txt"},
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/category-ai-!cn.yaml"}
-      ]
-    },
-    {
-      "name": "dev_services",
-      "target": "🧑‍💻 开发服务",
-      "no_resolve": true,
-      "inputs": [
-        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/category-dev.yaml"}
       ]
     },
     {
@@ -149,6 +168,7 @@
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/microsoft.yaml"},
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/apple.yaml"},
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/geolocation-!cn.yaml"},
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/category-dev.yaml"},
         {"input": "yuanv4/clash-rules", "path": "custom/foreign.txt"}
       ]
     }

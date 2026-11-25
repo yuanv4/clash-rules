@@ -6,6 +6,7 @@ import {
   mergeRules,
   normalizeConfiguration,
   parseRules,
+  parseInputRules,
   renderDomainText,
   renderYaml,
   resolveInputFormat,
@@ -187,6 +188,26 @@ const makeConfig = () => ({
   ],
 });
 
+test("filtered upstream inputs retain process and IP rules without shared domains", () => {
+  const config = makeConfig();
+  config.providers[0].inputs[0].include_rule_types = ["PROCESS-NAME", "IP-CIDR", "IP-CIDR6", "IP-ASN"];
+  const input = normalizeConfiguration(config).providers[0].inputs[0];
+  const text = "DOMAIN-SUFFIX,sentry.io\nDOMAIN-SUFFIX,auth0.com\nPROCESS-NAME,Claude\nIP-CIDR,160.79.104.0/21,no-resolve\nIP-CIDR6,2607:6bc0::/32,no-resolve\nIP-ASN,399358,no-resolve\n";
+  assert.deepEqual(parseInputRules(text, input).map(serializeRule), [
+    "PROCESS-NAME,Claude", "IP-CIDR,160.79.104.0/21,no-resolve",
+    "IP-CIDR6,2607:6bc0::/32,no-resolve", "IP-ASN,399358,no-resolve",
+  ]);
+  const unfiltered = normalizeConfiguration(makeConfig()).providers[0].inputs[0];
+  assert.equal(parseInputRules(text, unfiltered).length, 6);
+  for (const invalid of [[], "PROCESS-NAME", ["UNKNOWN"], ["PROCESS-NAME", "PROCESS-NAME"], [null]]) {
+    config.providers[0].inputs[0].include_rule_types = invalid;
+    assert.throws(() => normalizeConfiguration(config), /include_rule_types/);
+  }
+  config.providers[0].inputs[0].include_rule_types = ["DOMAIN"];
+  config.providers[0].inputs[0].input_format = "domain-text";
+  assert.throws(() => normalizeConfiguration(config), /include_rule_types/);
+});
+
 test("normalizes merge-ready provider views and preserves ordered provenance", () => {
   const config = normalizeConfiguration(makeConfig());
   const provider = config.providers[0];
@@ -228,8 +249,10 @@ test("sources.json removes domestic AI routing while preserving provider provena
     "reject_domainset",
     "reject",
     "adult_content",
+    "gemini",
+    "openai",
+    "anthropic",
     "ai",
-    "dev_services",
     "streaming_services",
     "cn_services",
     "foreign_services",
@@ -238,7 +261,7 @@ test("sources.json removes domestic AI routing while preserving provider provena
     assert.equal(providerNames.includes(name), false);
   }
 
-  const directProvider = normalized.providers[0];
+  const directProvider = normalized.providers.find(({ name }) => name === "direct");
   assert.equal(directProvider.name, "direct");
   assert.equal(directProvider.target, "DIRECT");
   assert.equal(directProvider.behavior, "classical");
@@ -252,8 +275,8 @@ test("sources.json removes domestic AI routing while preserving provider provena
     assert.equal(providerNames.includes(name), false);
   }
 
-  const rejectDomainProvider = normalized.providers[1];
-  const rejectProvider = normalized.providers[2];
+  const rejectDomainProvider = normalized.providers.find(({ name }) => name === "reject_domainset");
+  const rejectProvider = normalized.providers.find(({ name }) => name === "reject");
   assert.equal(rejectDomainProvider.target, "🛑 广告过滤");
   assert.equal(rejectDomainProvider.behavior, "domain");
   assert.deepEqual(rejectDomainProvider.inputs.map((input) => input.inputFormat), ["domain-text"]);
@@ -271,7 +294,7 @@ test("sources.json removes domestic AI routing while preserving provider provena
   assert.equal(providerNames.includes("reject_non_ip"), false);
   assert.equal(providerNames.includes("reject_ip"), false);
 
-  const adultContentProvider = normalized.providers[3];
+  const adultContentProvider = normalized.providers.find(({ name }) => name === "adult_content");
   assert.equal(adultContentProvider.target, "🔞 成人内容");
   assert.equal(adultContentProvider.behavior, "classical");
   assert.equal(adultContentProvider.noResolve, true);
@@ -280,7 +303,34 @@ test("sources.json removes domestic AI routing while preserving provider provena
   ]);
   assert.deepEqual(adultContentProvider.inputs.map((input) => input.inputFormat), ["clash-yaml"]);
 
-  const aiProvider = normalized.providers[4];
+  const geminiProvider = normalized.providers.find(({ name }) => name === "gemini");
+  assert.equal(geminiProvider.target, "✨ Gemini");
+  assert.equal(geminiProvider.noResolve, true);
+  assert.deepEqual(geminiProvider.inputs.map((input) => input.sourceUrl), [
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google-gemini.yaml",
+    "https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/google-ai.yaml",
+  ]);
+  assert.deepEqual(geminiProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "clash-yaml"]);
+  assert.deepEqual(geminiProvider.inputs.map((input) => input.license.id), ["GPL-3.0", "MIT"]);
+
+  for (const [name, target, upstream] of [
+    ["openai", "OpenAI", "openai"],
+    ["anthropic", "Anthropic", "anthropic"],
+  ]) {
+    const provider = normalized.providers.find((provider) => provider.name === name);
+    assert.equal(provider.target, target);
+    assert.equal(provider.noResolve, true);
+    assert.deepEqual(provider.inputs.map((input) => input.sourceUrl), [
+      `https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/${upstream}.yaml`,
+      `https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/${upstream}.yaml`,
+    ]);
+    assert.deepEqual(provider.inputs.map((input) => input.inputFormat), ["clash-yaml", "clash-yaml"]);
+    assert.deepEqual(provider.inputs[1].includeRuleTypes, ["PROCESS-NAME", "IP-CIDR", "IP-CIDR6", "IP-ASN"]);
+    assert.equal(provider.inputs[0].license.id, "GPL-3.0");
+    assert.equal(provider.inputs[1].license.id, "MIT");
+  }
+
+  const aiProvider = normalized.providers.find(({ name }) => name === "ai");
   assert.equal(aiProvider.target, "🤖 国际 AI");
   assert.deepEqual(aiProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/global.yaml",
@@ -289,7 +339,7 @@ test("sources.json removes domestic AI routing while preserving provider provena
   ]);
   assert.deepEqual(aiProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "raw-list", "clash-yaml"]);
 
-  const domesticProvider = normalized.providers[7];
+  const domesticProvider = normalized.providers.find(({ name }) => name === "cn_services");
   assert.equal(domesticProvider.name, "cn_services");
   assert.equal(domesticProvider.target, "🇨🇳 国内服务");
   assert.equal(domesticProvider.noResolve, true);
@@ -301,16 +351,9 @@ test("sources.json removes domestic AI routing while preserving provider provena
   ]);
   assert.deepEqual(domesticProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml"]);
 
-  const developerProvider = normalized.providers[5];
-  assert.equal(developerProvider.name, "dev_services");
-  assert.equal(developerProvider.target, "🧑‍💻 开发服务");
-  assert.equal(developerProvider.noResolve, true);
-  assert.deepEqual(developerProvider.inputs.map((input) => input.sourceUrl), [
-    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-dev.yaml",
-  ]);
-  assert.deepEqual(developerProvider.inputs.map((input) => input.inputFormat), ["clash-yaml"]);
+  assert.equal(providerNames.includes("dev_services"), false);
 
-  const streamingProvider = normalized.providers[6];
+  const streamingProvider = normalized.providers.find(({ name }) => name === "streaming_services");
   assert.equal(streamingProvider.name, "streaming_services");
   assert.equal(streamingProvider.target, "🎬 流媒体服务");
   assert.equal(streamingProvider.noResolve, true);
@@ -327,7 +370,7 @@ test("sources.json removes domestic AI routing while preserving provider provena
     assert.equal(providerNames.includes(name), false);
   }
 
-  const foreignServicesProvider = normalized.providers[8];
+  const foreignServicesProvider = normalized.providers.find(({ name }) => name === "foreign_services");
   assert.equal(foreignServicesProvider.name, "foreign_services");
   assert.equal(foreignServicesProvider.target, "🌐 国外服务");
   assert.equal(foreignServicesProvider.noResolve, true);
@@ -341,14 +384,15 @@ test("sources.json removes domestic AI routing while preserving provider provena
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/microsoft.yaml",
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/apple.yaml",
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/geolocation-!cn.yaml",
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-dev.yaml",
     "https://raw.githubusercontent.com/yuanv4/clash-rules/release/custom/foreign.txt",
   ]);
   assert.deepEqual(foreignServicesProvider.inputs.map((input) => input.inputFormat), [
-    "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "raw-list",
+    "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "raw-list",
   ]);
-  assert.equal(foreignServicesProvider.inputs[8].sourceRepository, "https://github.com/yuanv4/clash-rules");
-  assert.equal(foreignServicesProvider.inputs[8].license.id, "MIT");
-  assert.equal(foreignServicesProvider.inputs[8].license.url, "https://spdx.org/licenses/MIT.html");
+  assert.equal(foreignServicesProvider.inputs.at(-1).sourceRepository, "https://github.com/yuanv4/clash-rules");
+  assert.equal(foreignServicesProvider.inputs.at(-1).license.id, "MIT");
+  assert.equal(foreignServicesProvider.inputs.at(-1).license.url, "https://spdx.org/licenses/MIT.html");
 
   assert.equal(config.inputs.some((input) => input.name === "Loyalsoldier/clash-rules"), false);
 
@@ -373,8 +417,8 @@ test("sources.json removes domestic AI routing while preserving provider provena
   assert.ok(foreignServicesRendered.includes("# Source 1 [MetaCubeX/meta-rules-dat]:"));
   assert.ok(foreignServicesRendered.includes("# Source 8 [MetaCubeX/meta-rules-dat]:"));
   assert.ok(foreignServicesRendered.includes("geo/geosite/geolocation-!cn.yaml"));
-  assert.ok(foreignServicesRendered.includes("# Source 9 [yuanv4/clash-rules]: https://github.com/yuanv4/clash-rules (https://raw.githubusercontent.com/yuanv4/clash-rules/release/custom/foreign.txt)"));
-  assert.ok(foreignServicesRendered.includes("# License 9 [yuanv4/clash-rules]: MIT (https://spdx.org/licenses/MIT.html)"));
+  assert.ok(foreignServicesRendered.includes("# Source 10 [yuanv4/clash-rules]: https://github.com/yuanv4/clash-rules (https://raw.githubusercontent.com/yuanv4/clash-rules/release/custom/foreign.txt)"));
+  assert.ok(foreignServicesRendered.includes("# License 10 [yuanv4/clash-rules]: MIT (https://spdx.org/licenses/MIT.html)"));
 });
 
 test("merges inputs with first-occurrence canonical deduplication", () => {

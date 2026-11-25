@@ -31,6 +31,10 @@ for (const [mode, names] of Object.entries({ off: [], interface: ["TAILSCALE-DIR
     if (names.includes("TAILSCALE")) assert.equal(config.proxies.find((p) => p.name === "TAILSCALE")["auth-key"], fakeKey);
     if (names.includes("TAILSCALE-DIRECT")) assert.equal(config.proxies.find((p) => p.name === "TAILSCALE-DIRECT")["interface-name"], "Fake0");
     assert.equal(config["proxy-providers"].remote.url, subscriptions.remote);
+    assert.ok(!config["proxy-groups"].some((group) => group.name === "🧑‍💻 开发服务"));
+    assert.ok(!Object.hasOwn(config["rule-providers"], "dev_services"));
+    assert.ok(!config.rules.some((rule) => rule.includes("dev_services") || rule.includes("🧑‍💻 开发服务")));
+    assert.ok(config.rules.includes("RULE-SET,foreign_services,🌐 国外服务,no-resolve"));
     for (const rule of config.rules.filter((r) => r.startsWith("RULE-SET,"))) assert.ok(Object.hasOwn(config["rule-providers"], rule.split(",")[1]));
   });
 }
@@ -83,20 +87,61 @@ test("manual node selection group is absent and no group references it", async (
   for (const group of groups) assert.ok(!group.proxies?.includes("🚀 节点选择"));
 });
 
-test("AI group filters Taiwan and Singapore nodes", async () => {
+test("all AI groups share United States, Japan, and Singapore candidates", async () => {
   const config = await parsedResponse();
   const group = config["proxy-groups"].find((g) => g.name === "🤖 国际 AI");
+  for (const name of ["✨ Gemini", "OpenAI", "Anthropic"]) {
+    const dedicated = config["proxy-groups"].find((g) => g.name === name);
+    assert.equal(group.filter, dedicated.filter);
+    assert.equal(group["exclude-filter"], dedicated["exclude-filter"]);
+    assert.equal(dedicated["empty-fallback"], "REJECT");
+  }
+  assert.equal(group.type, "url-test");
+  assert.equal(group["empty-fallback"], "REJECT");
   const region = new RegExp(group.filter.replace(/^\(\?i\)/, ""), "i");
   const exclude = new RegExp(group["exclude-filter"].replace(/^\(\?i\)/, ""), "i");
   const selected = (name) => region.test(name) && !exclude.test(name);
   for (const name of [
-    "台湾 01", "台北 02", "TW-03", "TWN 04", "🇹🇼 05",
+    "美国 01", "US01", "USA-02", "🇺🇸 03", "日本 04", "JP05", "🇯🇵 06",
     "新加坡 06", "狮城 07", "SG-08", "SGP 09", "Singapore 10", "🇸🇬 11",
   ]) {
     assert.ok(selected(name), `expected ${name} in AI group`);
   }
-  for (const name of ["香港 01", "HK-02", "澳门 03", "日本 04", "美国 05", "剩余流量"]) {
+  for (const name of ["香港 01", "HK-02", "澳门 03", "US01-HK01", "SG01-MO02", "HK01-US", "MO01-US", "HKG01-JP01", "MAC01 JP01", "日本 HK01", "台湾 01", "台灣 02", "台北 03", "TW-04", "TWN05", "Taiwan 06", "🇹🇼 07", "剩余流量", "Trusted", "AUS01", "US 剩余流量", "TAILSCALE", "TAILSCALE-DIRECT"]) {
     assert.equal(selected(name), false, `expected ${name} not in AI group`);
+  }
+});
+
+test("Gemini uses upstream rules before general AI and pins a regional node", async () => {
+  const config = await parsedResponse();
+  const group = config["proxy-groups"].find((g) => g.name === "✨ Gemini");
+  assert.equal(group.type, "select");
+  assert.equal(group["include-all"], true);
+  assert.equal(group["empty-fallback"], "REJECT");
+  assert.equal(group.url, "https://gemini.google.com/app");
+  const rule = "RULE-SET,gemini,✨ Gemini,no-resolve";
+  assert.ok(config.rules.includes(rule));
+  assert.ok(config.rules.indexOf(rule) < config.rules.indexOf("RULE-SET,ai,🤖 国际 AI,no-resolve"));
+  assert.ok(config.rules.indexOf(rule) < config.rules.indexOf("RULE-SET,foreign_services,🌐 国外服务,no-resolve"));
+  assert.equal(config["rule-providers"].gemini.url, `${source.release_base_url}/rules/gemini.yaml`);
+});
+
+test("OpenAI selects automatically and Anthropic pins a node before general AI routing", async () => {
+  const config = await parsedResponse();
+  for (const [name, provider, type, url] of [
+    ["OpenAI", "openai", "url-test", "https://chatgpt.com/"],
+    ["Anthropic", "anthropic", "select", "https://claude.ai/"],
+  ]) {
+    const group = config["proxy-groups"].find((group) => group.name === name);
+    assert.equal(group.type, type);
+    assert.equal(group.url, url);
+    assert.equal(group["include-all"], true);
+    if (type === "select") assert.equal(group["empty-fallback"], "REJECT");
+    const ruleIndex = config.rules.indexOf(`RULE-SET,${provider},${name},no-resolve`);
+    assert.ok(ruleIndex >= 0);
+    assert.ok(ruleIndex < config.rules.indexOf("RULE-SET,ai,🤖 国际 AI,no-resolve"));
+    assert.ok(ruleIndex < config.rules.indexOf("RULE-SET,foreign_services,🌐 国外服务,no-resolve"));
+    assert.equal(config["rule-providers"][provider].url, `${source.release_base_url}/rules/${provider}.yaml`);
   }
 });
 

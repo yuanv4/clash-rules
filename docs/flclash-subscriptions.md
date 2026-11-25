@@ -132,8 +132,12 @@ profile 里只留占位符，Tailscale 节点由 **Worker 在请求时按查询�
 - DOMAIN-SUFFIX,ts.net,Tailscale
 ```
 
-Tailscale 节点通过 `exclude-filter` 从 `♻️ 自动选择` / `🤖 国际 AI`
-中排除，不会被当成机场节点参与延迟测速。
+Tailscale 节点通过 `exclude-filter` 从 `♻️ 自动选择`、`🤖 国际 AI`、`OpenAI`、`Anthropic` 和 `✨ Gemini`
+中排除，不会被当成机场节点。
+
+四个 AI 组共用美国、日本、新加坡三个候选地区，并排除港澳标签。`🤖 国际 AI` 和 `OpenAI` 自动选择节点，`Anthropic` 和 `✨ Gemini` 使用 `select` 手动固定节点。四个 AI 组没有匹配节点时都使用 `REJECT`，避免回退直连。分流范围与剩余服务见 [AI 分流说明](<ai-routing.md>)。节点名称只用于筛选，不能证明出口 IP 的实际地区或 Gemini 可用性。先选一个能正常使用 Gemini 的节点，保持出口稳定；新加坡可以作为首选尝试，但不保证优于其他地区。
+
+Gemini 规则来自 MetaCubeX 的 `google-gemini` 和 VPSDance 的 `google-ai` 上游，优先于通用 AI 和国外服务规则。`google-ai` 还覆盖部分其他 Google AI 服务及 Antigravity 进程，这些流量也使用 Gemini 组。更新时先发布规则，再发布订阅模板，最后在客户端更新订阅。
 
 Worker 源码在 [`worker/clash-profile.js`](../worker/clash-profile.js)，
 部署用 `node scripts/deploy-clash-worker.mjs`（需要 `Workers Scripts:Edit` 权限）。
@@ -155,15 +159,16 @@ Tailscale key 只从订阅 URL 注入，每台设备使用各自的 key。
 
 ## 流水线
 
-`.github/workflows/deploy-profile.yml`，与 `release.yml`（规则发布）相互独立：
+[模板发布流程](<../.github/workflows/deploy-profile.yml>) 在 [规则发布流程](<../.github/workflows/release.yml>) 成功后自动运行，也支持手动运行和每日 02:17 UTC 定时运行。只修改模板发布流程、发布脚本或公开规则检查脚本时，也会直接触发。
 
-```
-push（改动 sources.json / 渲染或发布脚本 / 测试 / package.json / package-lock.json / workflow）
-  └─ 或每日 02:17 UTC 定时
+```text
+规则发布成功、手动运行或定时触发
        ▼
-渲染 profile → 推送到 Cloudflare KV → Worker 对外提供
+验证公开规则的来源与筛选类型 → 渲染 profile → 推送到 Cloudflare KV
        ▼
-FlClash 从固定 URL 拉取（地址不变）
+Worker 对外提供 → FlClash 从固定 URL 拉取
 ```
 
-规则集本身是独立的 raw URL，客户端按 `interval: 86400` 自己刷新，所以改规则**不需要**重新跑这条流水线。
+公开规则缺失、来源不匹配或载荷无效时，流程在写入 KV 前停止。新增规则集或合并规则来源时，先运行规则发布流程。
+
+规则集使用独立的 raw URL，客户端按 `interval: 86400` 刷新。只更新已有上游的规则内容时，客户端无需更新完整订阅。release 分支保留旧的开发服务规则文件，兼容尚未更新完整订阅的客户端。

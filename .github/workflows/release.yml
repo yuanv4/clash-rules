@@ -74,11 +74,17 @@ jobs:
           cp -- "${provider_files[@]}" "$release_worktree/rules/"
           cp -- "${custom_files[@]}" "$release_worktree/custom/"
 
+          legacy_count=0
+          if [[ ! -f "$release_worktree/rules/dev_services.yaml" ]] && git -C "$release_worktree" cat-file -e HEAD:rules/dev_services.yaml 2>/dev/null; then
+            git -C "$release_worktree" restore --source=HEAD --worktree -- rules/dev_services.yaml
+            legacy_count=1
+          fi
+
           git -C "$release_worktree" add -A
           mapfile -d '' -t tracked_files < <(git -C "$release_worktree" ls-files --cached -z)
           provider_count=${#provider_files[@]}
           custom_count=${#custom_files[@]}
-          expected_count=$((provider_count + custom_count))
+          expected_count=$((provider_count + custom_count + legacy_count))
           if [[ "${#tracked_files[@]}" -ne $expected_count ]]; then
             echo "Expected exactly ${expected_count} tracked publication artifacts, found ${#tracked_files[@]}." >&2
             exit 1

@@ -38,6 +38,7 @@ const SOURCE_CONFIG_PATH = path.join(ROOT_DIR, "sources.json");
 
 const TEST_URL = "https://cp.cloudflare.com/generate_204";
 const AI_TEST_URL = "https://chatgpt.com/";
+const GEMINI_TEST_URL = "https://gemini.google.com/app";
 
 /** 远程订阅 provider 的默认自动刷新间隔（秒）；0 = 关闭自动刷新，由客户端手动触发。 */
 const DEFAULT_PROVIDER_INTERVAL = 3600;
@@ -49,7 +50,9 @@ const ADULT_GROUP = "🔞 成人内容";
 const DOMESTIC_GROUP = "🇨🇳 国内服务";
 const FOREIGN_GROUP = "🌐 国外服务";
 const AI_GROUP = "🤖 国际 AI";
-const DEV_GROUP = "🧑‍💻 开发服务";
+const GEMINI_GROUP = "✨ Gemini";
+const OPENAI_GROUP = "OpenAI";
+const ANTHROPIC_GROUP = "Anthropic";
 const STREAMING_GROUP = "🎬 流媒体服务";
 
 // 机场会在节点列表里塞「剩余流量 / 到期时间」这类假节点，统一剔除；
@@ -60,14 +63,17 @@ const TAILSCALE_NODE_ALT = "^(?:TAILSCALE|TAILSCALE-DIRECT)$";
 const NODE_EXCLUDE_ALT = `${FAKE_NODE_ALT}|${TAILSCALE_NODE_ALT}`;
 const NODE_EXCLUDE_PATTERN = `(?:${NODE_EXCLUDE_ALT})`;
 
-// mihomo 的 filter 走 Go RE2，不支持环视断言，所以地区名/地区代码改用边界分组。
-// AI 组可选节点：台湾、新加坡；港澳在 AI_EXCLUDE_PATTERN 里排除。
+// 所有 AI 组共用美国、日本、新加坡候选标签。
 const AI_REGION_PATTERN =
-  "(?i)(?:台灣|台湾|台北|新加坡|狮城|taiwan|taipei|singapore|🇹🇼|🇸🇬|" +
-  "(?:^|[^a-z0-9])(?:tw|twn|sg|sgp)(?:$|[^a-z0-9]))";
-const AI_EXCLUDED_ALT =
-  "🇭🇰|🇲🇴|香港|澳门|澳門|hong\\s*kong|macao|macau|(?:^|[^a-z0-9])(?:hk|hkg|mo|mac)(?:$|[^a-z0-9])";
-const AI_EXCLUDE_PATTERN = `(?i)(?:${AI_EXCLUDED_ALT}|${NODE_EXCLUDE_ALT})`;
+  "(?i)(?:日本|东京|東京|大阪|japan|tokyo|osaka|🇯🇵|" +
+  "新加坡|狮城|獅城|singapore|🇸🇬|" +
+  "美国|美國|洛杉矶|洛杉磯|圣何塞|聖何塞|西雅图|西雅圖|硅谷|纽约|紐約|united\\s*states|🇺🇸|" +
+  "(?:^|[^a-z])(?:jp|jpn|sg|sgp|us|usa)(?:$|[^a-z]))";
+
+// 显式排除港澳标签，以及订阅信息和 Tailscale 节点。
+const REGION_EXCLUDED_ALT =
+  "🇭🇰|🇲🇴|香港|澳门|澳門|hong\\s*kong|macao|macau|(?:^|[^a-z])(?:hk|hkg|mo|mac)(?:$|[^a-z])";
+const REGION_EXCLUDE_PATTERN = `(?i)(?:${REGION_EXCLUDED_ALT}|${NODE_EXCLUDE_ALT})`;
 
 /**
  * Tailscale 出口由 Cloudflare Worker 在请求时按查询参数注入（worker/clash-profile.js），
@@ -184,7 +190,7 @@ export const parseSubscriptionConfig = (raw, proxyGroup) => {
     "DIRECT", "REJECT", "REJECT-DROP", "PASS", "COMPATIBLE", "GLOBAL",
     "TAILSCALE", "TAILSCALE-DIRECT", TAILSCALE_GROUP,
     FALLBACK_GROUP, AD_BLOCK_GROUP, ADULT_GROUP, DOMESTIC_GROUP,
-    FOREIGN_GROUP, AI_GROUP, DEV_GROUP, STREAMING_GROUP, proxyGroup,
+    FOREIGN_GROUP, AI_GROUP, GEMINI_GROUP, OPENAI_GROUP, ANTHROPIC_GROUP, STREAMING_GROUP, proxyGroup,
   ]);
   const names = new Set();
   if (!raw || !raw.trim()) {
@@ -312,7 +318,9 @@ const buildGroups = (proxyGroup) => {
     DOMESTIC_GROUP,
     FOREIGN_GROUP,
     AI_GROUP,
-    DEV_GROUP,
+    GEMINI_GROUP,
+    OPENAI_GROUP,
+    ANTHROPIC_GROUP,
     STREAMING_GROUP,
     FALLBACK_GROUP,
   ];
@@ -339,7 +347,6 @@ const buildGroups = (proxyGroup) => {
   );
 
   for (const name of orderedBusiness) {
-    // 广告/成人内容默认 REJECT，其余默认走自动选择。
     if (name === AD_BLOCK_GROUP || name === ADULT_GROUP) {
       push(`  - name: ${q(name)}
     type: select
@@ -354,7 +361,17 @@ const buildGroups = (proxyGroup) => {
     default-selected: DIRECT`);
       continue;
     }
-    if (name === AI_GROUP) {
+    if (name === GEMINI_GROUP || name === ANTHROPIC_GROUP) {
+      push(`  - name: ${q(name)}
+    type: select
+    url: ${q(name === GEMINI_GROUP ? GEMINI_TEST_URL : "https://claude.ai/")}
+    include-all: true
+    filter: ${q(AI_REGION_PATTERN)}
+    exclude-filter: ${q(REGION_EXCLUDE_PATTERN)}
+    empty-fallback: REJECT`);
+      continue;
+    }
+    if (name === AI_GROUP || name === OPENAI_GROUP) {
       push(`  - name: ${q(name)}
     type: url-test
     url: ${q(AI_TEST_URL)}
@@ -365,7 +382,8 @@ const buildGroups = (proxyGroup) => {
     lazy: false
     include-all: true
     filter: ${q(AI_REGION_PATTERN)}
-    exclude-filter: ${q(AI_EXCLUDE_PATTERN)}`);
+    exclude-filter: ${q(REGION_EXCLUDE_PATTERN)}
+    empty-fallback: REJECT`);
       continue;
     }
     if (name === DOMESTIC_GROUP) {

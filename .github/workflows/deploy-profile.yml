@@ -1,22 +1,22 @@
 name: Deploy FlClash Profile
 
 # 生成 FlClash 自定义配置并推送到 Cloudflare Workers KV。
-# 与 release.yml 相互独立：这里只碰 KV，不动 release 分支。
+# 规则发布成功后再发布模板；发布前核对公开规则来源。
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Build And Publish Rule Providers"]
+    types: [completed]
+    branches: [main, master]
   push:
     branches:
       - main
       - master
     paths:
       - ".github/workflows/deploy-profile.yml"
-      - "scripts/render-flclash-profile.mjs"
       - "scripts/publish-flclash-profile.mjs"
-      - "scripts/*.test.mjs"
-      - "sources.json"
-      - "package.json"
-      - "package-lock.json"
+      - "scripts/verify-published-rules.mjs"
   schedule:
     # 每天 02:17 UTC（北京时间 10:17）
     - cron: "17 2 * * *"
@@ -30,6 +30,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
 
     steps:
@@ -46,6 +47,9 @@ jobs:
 
       - name: Test configuration pipeline
         run: npm test
+
+      - name: Verify published rule providers
+        run: node scripts/verify-published-rules.mjs
 
       - name: Check required secrets
         env:
