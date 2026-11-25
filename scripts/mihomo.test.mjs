@@ -34,7 +34,6 @@ for (const { names, provider = [], groups, expected } of cases) {
       const template = renderProfile(source, JSON.stringify({ local }));
       const config = parse(injectTailscale(template, new URL("https://example.test/?ts=off")).body);
       delete config["rule-providers"];
-      delete config.dns;
       config.rules = ["MATCH,REJECT"];
       if (provider.length) {
         const providerFile = path.join(root, "provider.yaml");

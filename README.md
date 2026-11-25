@@ -78,14 +78,16 @@ JSON 对象：键是 provider 名（字母、数字、`_`、`.`、`-`），值�
 | 想修改什么 | 修改位置 | 后续操作 |
 | --- | --- | --- |
 | 自定义国外域名 | [custom/foreign.txt](<custom/foreign.txt>) | 推送，等待规则发布 |
-| 上游、规则集合、DNS 排除项 | [sources.json](<sources.json>) | 按需发布规则和模板 |
+| 上游、规则集合 | [sources.json](<sources.json>) | 按需发布规则和模板 |
 | 机场 / 静态节点 / 刷新间隔 / 临时停用 | Secret `SUBSCRIPTIONS_JSON` | 手动运行 Deploy FlClash Profile |
 | 策略组 / AI 筛选 | [模板渲染器](<scripts/render-flclash-profile.mjs>) | 验证后发布模板 |
 | Tailscale 注入 / 私有路径 | [Worker](<worker/clash-profile.js>) / Secrets | 手动运行 Deploy Clash Profile Worker |
 
 规则每日北京时间 **06:30** 更新，成功后自动更新模板；模板另在 **10:17** 定时更新。Worker 只手动部署。发布后按需刷新客户端规则或完整订阅。旧版订阅使用的开发服务与 OpenAI 规则文件会在 release 分支保留；新模板将开发服务交给国外服务组，将 OpenAI 交给通用 AI 组。
 
-更多说明：[自定义规则](<docs/custom-rules.md>) · [DNS fake-ip 排除](<docs/fake-ip-filter.md>)。自定义国外规则不能覆盖前面已命中的拦截或国内规则。
+生成的订阅不包含 DNS 配置，由客户端默认设置或本地 DNS 设置决定解析行为。FlClash 用户可关闭 DNS 覆写，并检查客户端实际使用的 DNS。订阅仍会生成本项目的规则和策略组，并非机场的完整官方配置。
+
+更多说明：[自定义规则](<docs/custom-rules.md>)。自定义国外规则不能覆盖前面已命中的拦截或国内规则。
 
 ## 本地检查
 

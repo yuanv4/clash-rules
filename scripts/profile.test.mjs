@@ -21,9 +21,14 @@ const parsedResponse = async (...args) => {
   return parseYaml(await response.text());
 };
 
+test("generated template has no top-level DNS configuration", () => {
+  assert.doesNotMatch(template(), /^dns\s*:/m);
+});
+
 for (const [mode, names] of Object.entries({ off: [], interface: ["TAILSCALE-DIRECT"], tsnet: ["TAILSCALE"], both: ["TAILSCALE-DIRECT", "TAILSCALE"] })) {
   test(`renderer to Worker YAML: ${mode}`, async () => {
     const config = await parsedResponse(`?ts=${mode}&tskey=${fakeKey}&iface=Fake0`);
+    assert.equal(Object.hasOwn(config, "dns"), false);
     assert.deepEqual(config.proxies.map((p) => p.name), ["Test node", ...names]);
     const group = config["proxy-groups"].find((g) => g.name === "Tailscale");
     assert.deepEqual(group.proxies, [...names, "DIRECT"]);

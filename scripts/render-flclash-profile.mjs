@@ -424,25 +424,12 @@ const buildRules = (sourceProviders) => {
   return lines.join("\n");
 };
 
-const buildDns = (fakeIpFilter) =>
-  [
-    "  enable: true",
-    "  enhanced-mode: fake-ip",
-    "  fake-ip-range: 198.18.0.1/16",
-    "  nameserver:",
-    "    - https://223.5.5.5/dns-query",
-    "    - https://1.12.12.12/dns-query",
-    "  fake-ip-filter:",
-    ...fakeIpFilter.map((entry) => `    - ${q(entry)}`),
-  ].join("\n");
-
 export const renderProfile = (source, subscriptionsJson) => {
   if (!source.release_base_url) throw new Error("sources.json is missing release_base_url");
   if (!Array.isArray(source.providers) || source.providers.length === 0) {
     throw new Error("sources.json is missing providers");
   }
 
-  const fakeIpFilter = Array.isArray(source.fake_ip_filter) ? source.fake_ip_filter : [];
   const proxyGroup = source.proxy_group;
   if (typeof proxyGroup !== "string" || !proxyGroup.trim()) throw new Error("sources.json is missing proxy_group");
   const { providers: subscriptions, staticProxyLines } = parseSubscriptionConfig(subscriptionsJson, proxyGroup);
@@ -474,7 +461,6 @@ export const renderProfile = (source, subscriptionsJson) => {
   sections.push(`rule-providers:\n${buildRuleProviders(source.providers, source.release_base_url)}`);
   sections.push(`proxy-groups:\n${buildGroups(proxyGroup, source.providers)}`);
   sections.push(`rules:\n${buildRules(source.providers)}`);
-  if (fakeIpFilter.length > 0) sections.push(`dns:\n${buildDns(fakeIpFilter)}`);
 
   const profile = `${sections.join("\n\n")}\n`;
 
