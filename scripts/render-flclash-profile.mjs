@@ -310,22 +310,15 @@ const buildRuleProviders = (sourceProviders, releaseBaseUrl) =>
     })
     .join("\n");
 
-const buildGroups = (proxyGroup) => {
-  const businessGroups = [
-    TAILSCALE_GROUP,
-    AD_BLOCK_GROUP,
-    ADULT_GROUP,
-    DOMESTIC_GROUP,
-    FOREIGN_GROUP,
-    AI_GROUP,
-    GEMINI_GROUP,
-    OPENAI_GROUP,
-    ANTHROPIC_GROUP,
-    STREAMING_GROUP,
+const buildGroups = (proxyGroup, sourceProviders) => {
+  const excludedFromNodeGroups = new Set([
+    "DIRECT", "REJECT", "REJECT-DROP", "PASS", "COMPATIBLE", "GLOBAL",
+    TAILSCALE_GROUP, FALLBACK_GROUP, proxyGroup,
+  ]);
+  const orderedBusiness = [
+    ...new Set(sourceProviders.map(({ target }) => target).filter((name) => !excludedFromNodeGroups.has(name))),
     FALLBACK_GROUP,
   ];
-  const excludedFromNodeGroups = new Set([TAILSCALE_GROUP, proxyGroup]);
-  const orderedBusiness = businessGroups.filter((name) => !excludedFromNodeGroups.has(name));
 
   const tailscaleProxies = [TAILSCALE_GROUP_PLACEHOLDER];
 
@@ -464,7 +457,7 @@ export const renderProfile = (source, subscriptionsJson) => {
   }
 
   sections.push(`rule-providers:\n${buildRuleProviders(source.providers, source.release_base_url)}`);
-  sections.push(`proxy-groups:\n${buildGroups(proxyGroup)}`);
+  sections.push(`proxy-groups:\n${buildGroups(proxyGroup, source.providers)}`);
   sections.push(`rules:\n${buildRules(source.providers)}`);
   if (fakeIpFilter.length > 0) sections.push(`dns:\n${buildDns(fakeIpFilter)}`);
 

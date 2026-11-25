@@ -26,6 +26,8 @@
 
 Gemini 规则合并 [MetaCubeX google-gemini](https://github.com/MetaCubeX/meta-rules-dat/blob/meta/geo/geosite/google-gemini.yaml) 和 [VPSDance google-ai](https://github.com/VPSDance/ai-proxy-rules/blob/main/rules/clash/google-ai.yaml) 上游，优先于通用 AI 和 Google 规则。VPSDance 的集合还包含其他 Google AI 服务及 Antigravity 进程规则，这些流量也进入 Gemini 组。Gemini 不使用本地自定义规则。
 
+代理组按规则首次匹配的优先级显示，同一目标组只显示一次。`♻️ 自动选择` 作为共用工具组置顶，随后是 Tailscale 和各规则集的目标组，`🐟 漏网之鱼` 置底。
+
 开发服务规则已并入 `🌐 国外服务`，统一使用国外服务组选择的出口。AI、流媒体和国内服务的前置规则仍优先匹配。
 
 OpenAI 与 Anthropic 的域名规则使用 MetaCubeX 专属上游，进程及 IP 规则从 VPSDance 专属上游筛选，优先于国际 AI。剩余服务、上游范围和复核命令见 [AI 分流说明](<docs/ai-routing.md>)。

@@ -39,6 +39,26 @@ for (const [mode, names] of Object.entries({ off: [], interface: ["TAILSCALE-DIR
   });
 }
 
+test("proxy groups follow rule priority and merge repeated targets", async () => {
+  const config = await parsedResponse();
+  assert.deepEqual(config["proxy-groups"].map(({ name }) => name), [
+    source.proxy_group, "Tailscale", "🛑 广告过滤", "🔞 成人内容", "✨ Gemini",
+    "OpenAI", "Anthropic", "🤖 国际 AI", "🎬 流媒体服务", "🇨🇳 国内服务", "🌐 国外服务", "🐟 漏网之鱼",
+  ]);
+  const reorderedSource = {
+    ...source,
+    providers: [
+      source.providers.find(({ name }) => name === "foreign_services"),
+      ...source.providers.filter(({ name }) => name !== "foreign_services"),
+    ],
+  };
+  const reordered = await parsedResponse("", template(subscriptions, reorderedSource));
+  assert.deepEqual(reordered["proxy-groups"].map(({ name }) => name), [
+    source.proxy_group, "Tailscale", "🌐 国外服务", "🛑 广告过滤", "🔞 成人内容", "✨ Gemini",
+    "OpenAI", "Anthropic", "🤖 国际 AI", "🎬 流媒体服务", "🇨🇳 国内服务", "🐟 漏网之鱼",
+  ]);
+});
+
 test("remote-only and static-only output remain valid", async () => {
   assert.deepEqual((await parsedResponse("", template({ remote: subscriptions.remote }))).proxies, []);
   assert.equal((await parsedResponse("", template({ local: subscriptions.local }))).proxies.length, 1);
