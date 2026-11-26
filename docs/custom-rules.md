@@ -31,7 +31,7 @@ The file uses classical rules without an outbound target. For example:
 DOMAIN-SUFFIX,69shuba.com
 ```
 
-The build reads the file from the checkout and merges it into `dist/rules/foreign_services.yaml`. The extension script points that rule set at `[clash-rules] 🌐 国外服务`.
+The build reads the file from the checkout and merges it into `dist/rules/foreign_services.yaml`. The extension script points that rule set at `🌐 国外服务`.
 
 ## Release publication
 

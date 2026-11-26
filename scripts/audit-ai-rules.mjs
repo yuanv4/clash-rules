@@ -79,10 +79,10 @@ const main = async () => {
     target: rules.find((provider) => provider.rules.some((rule) => rule.type === "PROCESS-NAME" && rule.value === process))?.target ?? null,
   }));
   for (const check of domainChecks.filter(({ service }) => ["OpenAI", "OpenAI API", "Codex", "Sora", "Claude", "Anthropic API"].includes(service))) {
-    assert.equal(check.target, ["Claude", "Anthropic API"].includes(check.service) ? `${prefix}Anthropic` : `${prefix}🤖 通用 AI`, check.service);
+    assert.equal(check.target, ["Claude", "Anthropic API"].includes(check.service) ? "Anthropic" : "🤖 通用 AI", check.service);
   }
   for (const check of processChecks) {
-    assert.equal(check.target, /claude|cowork/i.test(check.process) ? `${prefix}Anthropic` : `${prefix}🤖 通用 AI`, check.process);
+    assert.equal(check.target, /claude|cowork/i.test(check.process) ? "Anthropic" : "🤖 通用 AI", check.process);
   }
   const networkChecks = [
     ["IP-CIDR", "199.47.142.0/23", "🤖 通用 AI"],
@@ -95,7 +95,7 @@ const main = async () => {
     ["IP-ASN", "399358", "Anthropic"],
   ].map(([type, value, expected]) => {
     const target = rules.find((provider) => provider.rules.some((rule) => rule.type === type && rule.value === value))?.target ?? null;
-    assert.equal(target, prefix + expected, `${type},${value}`);
+    assert.equal(target, expected, `${type},${value}`);
     return { type, value, target };
   });
   const dedicatedRules = new Set(rules.filter(({ name }) => name !== "ai").flatMap(({ rules }) => rules.map((rule) => JSON.stringify(rule))));

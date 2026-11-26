@@ -20,15 +20,23 @@ for (const [filename, mode] of Object.entries(files)) {
     const input = sample();
     const original = structuredClone(input);
     const result = run(script, input);
+    const groupNames = new Set(result["proxy-groups"].map(({ name }) => name));
+    assert.ok([...groupNames].every((name) => !name.startsWith(prefix)));
+    const outboundNames = new Set([...groupNames, ...result.proxies.map(({ name }) => name), "DIRECT", "REJECT"]);
+    for (const group of result["proxy-groups"]) for (const name of group.proxies ?? []) assert.ok(outboundNames.has(name), name);
+    for (const rule of result.rules) {
+      const parts = rule.split(",");
+      assert.ok(outboundNames.has(parts[0] === "MATCH" ? parts[1] : parts[2]), rule);
+    }
     assert.deepEqual(input, original);
     for (const key of Object.keys(original).filter((key) => !["rule-providers", "proxy-groups", "rules", "proxies"].includes(key))) assert.deepEqual(result[key], original[key]);
     assert.deepEqual(result.proxies.slice(0, 2), original.proxies);
     assert.ok(!Object.hasOwn(result["rule-providers"], "airport"));
     assert.ok(!result["proxy-groups"].some(({ name }) => name === "airport"));
     assert.ok(!result.rules.includes("MATCH,airport"));
-    assert.deepEqual(result.rules.filter((rule) => /^(MATCH|FINAL),/.test(rule)), [`MATCH,${prefix}🐟 漏网之鱼`]);
-    assert.equal(result.rules.at(-1), `MATCH,${prefix}🐟 漏网之鱼`);
-    assert.equal(result["proxy-groups"].find(({ name }) => name === `${prefix}🐟 漏网之鱼`)["default-selected"], "DIRECT");
+    assert.deepEqual(result.rules.filter((rule) => /^(MATCH|FINAL),/.test(rule)), ["MATCH,🐟 漏网之鱼"]);
+    assert.equal(result.rules.at(-1), "MATCH,🐟 漏网之鱼");
+    assert.equal(result["proxy-groups"].find(({ name }) => name === "🐟 漏网之鱼")["default-selected"], "DIRECT");
     assert.deepEqual(run(script, result), result);
     const names = result.proxies.slice(2).map(({ name }) => name);
     assert.deepEqual(names, mode === "off" ? [] : mode === "interface" ? [`${prefix}TAILSCALE-DIRECT`] : mode === "tsnet" ? [`${prefix}TAILSCALE`] : [`${prefix}TAILSCALE-DIRECT`, `${prefix}TAILSCALE`]);
@@ -36,7 +44,7 @@ for (const [filename, mode] of Object.entries(files)) {
     if (ts) assert.deepEqual(ts, { name: `${prefix}TAILSCALE`, type: "tailscale", "state-dir": "./tailscale", udp: true, "accept-routes": true, "ip-version": "ipv4-prefer" });
     const direct = result.proxies.find(({ name }) => name === `${prefix}TAILSCALE-DIRECT`);
     if (direct) assert.equal(direct["interface-name"], "Tailscale");
-    assert.equal(result.rules.some((rule) => rule.includes(`${prefix}Tailscale`)), mode !== "off");
+    assert.equal(result.rules.some((rule) => rule.includes(",Tailscale")), mode !== "off");
   });
 }
 
@@ -72,7 +80,7 @@ test("invalid configuration shapes fail without revealing values", () => {
 
 test("AI and East Asia filters and rule priorities follow routing requirements", () => {
   const result = run(renderFlClashScript({ source, tailscaleMode: "both" }), sample());
-  const group = (name) => result["proxy-groups"].find((g) => g.name === prefix + name);
+  const group = (name) => result["proxy-groups"].find((g) => g.name === name);
   const selected = (g, name) => new RegExp(g.filter.replace(/^\(\?i\)/, ""), "i").test(name) && !new RegExp(g["exclude-filter"].replace(/^\(\?i\)/, ""), "i").test(name);
   for (const name of ["🤖 通用 AI", "Anthropic", "✨ Gemini"]) {
     const g = group(name);

@@ -12,15 +12,14 @@ import vm from "node:vm";
 import { renderFlClashScript } from "./render-flclash-script.mjs";
 
 const source = JSON.parse(await readFile(new URL("../sources.json", import.meta.url), "utf8"));
-const prefix = "[clash-rules] ";
 const generated = vm.runInNewContext(`${renderFlClashScript({ source })}; main`);
-const aiGroups = ["🤖 通用 AI", "Anthropic", "✨ Gemini"].map((name) => prefix + name);
+const aiGroups = ["🤖 通用 AI", "Anthropic", "✨ Gemini"];
 const cases = [
   { names: ["US01", "JP01", "SG01", "HK01-US", "MO01-SG01", "TW01"], groups: aiGroups, expected: ["JP01", "SG01", "US01"] },
   { names: ["DE01", "HK01-US"], groups: aiGroups, expected: ["REJECT"] },
-  { names: ["HK01", "MO01", "香港中转-美国01", "HK01-SG01"], provider: ["TW01", "JP01", "US01-HK01", "新加坡-日本01", "HK01-UK01"], groups: [prefix + source.proxy_group], expected: ["HK01", "JP01", "MO01", "TW01"] },
-  { names: ["US01-HK01"], provider: ["HK01-SG01"], groups: [prefix + source.proxy_group], expected: ["REJECT"] },
-  { names: ["US01"], provider: ["SG01"], groups: [prefix + source.proxy_group], expected: ["REJECT"] },
+  { names: ["HK01", "MO01", "香港中转-美国01", "HK01-SG01"], provider: ["TW01", "JP01", "US01-HK01", "新加坡-日本01", "HK01-UK01"], groups: [source.proxy_group], expected: ["HK01", "JP01", "MO01", "TW01"] },
+  { names: ["US01-HK01"], provider: ["HK01-SG01"], groups: [source.proxy_group], expected: ["REJECT"] },
+  { names: ["US01"], provider: ["SG01"], groups: [source.proxy_group], expected: ["REJECT"] },
 ];
 for (const { names, provider = [], groups, expected } of cases) {
   test(`Mihomo enforces ${groups.join(", ")} membership: ${[...names, ...provider].join(", ")}`, { skip: !process.env.MIHOMO_PATH }, async () => {
