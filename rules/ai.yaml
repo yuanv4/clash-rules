@@ -3,13 +3,18 @@
 # License 1 [MetaCubeX/meta-rules-dat]: GPL-3.0 (https://github.com/MetaCubeX/meta-rules-dat/blob/master/LICENSE)
 # Source 2 [VPSDance/ai-proxy-rules]: https://github.com/VPSDance/ai-proxy-rules (https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/openai.yaml)
 # License 2 [VPSDance/ai-proxy-rules]: MIT (https://github.com/VPSDance/ai-proxy-rules/blob/main/LICENSE)
-# Source 3 [VPSDance/ai-proxy-rules]: https://github.com/VPSDance/ai-proxy-rules (https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/global.yaml)
-# License 3 [VPSDance/ai-proxy-rules]: MIT (https://github.com/VPSDance/ai-proxy-rules/blob/main/LICENSE)
-# Source 4 [SukkaLab/ruleset.skk.moe]: https://github.com/SukkaLab/ruleset.skk.moe (https://raw.githubusercontent.com/SukkaLab/ruleset.skk.moe/master/Clash/non_ip/apple_intelligence.txt)
-# License 4 [SukkaLab/ruleset.skk.moe]: AGPL-3.0 (https://github.com/SukkaLab/ruleset.skk.moe/blob/master/LICENSE)
-# Source 5 [MetaCubeX/meta-rules-dat]: https://github.com/MetaCubeX/meta-rules-dat (https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ai-!cn.yaml)
-# License 5 [MetaCubeX/meta-rules-dat]: GPL-3.0 (https://github.com/MetaCubeX/meta-rules-dat/blob/master/LICENSE)
+# Source 3 [MetaCubeX/meta-rules-dat]: https://github.com/MetaCubeX/meta-rules-dat (https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/anthropic.yaml)
+# License 3 [MetaCubeX/meta-rules-dat]: GPL-3.0 (https://github.com/MetaCubeX/meta-rules-dat/blob/master/LICENSE)
+# Source 4 [VPSDance/ai-proxy-rules]: https://github.com/VPSDance/ai-proxy-rules (https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/anthropic.yaml)
+# License 4 [VPSDance/ai-proxy-rules]: MIT (https://github.com/VPSDance/ai-proxy-rules/blob/main/LICENSE)
+# Source 5 [VPSDance/ai-proxy-rules]: https://github.com/VPSDance/ai-proxy-rules (https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/global.yaml)
+# License 5 [VPSDance/ai-proxy-rules]: MIT (https://github.com/VPSDance/ai-proxy-rules/blob/main/LICENSE)
+# Source 6 [SukkaLab/ruleset.skk.moe]: https://github.com/SukkaLab/ruleset.skk.moe (https://raw.githubusercontent.com/SukkaLab/ruleset.skk.moe/master/Clash/non_ip/apple_intelligence.txt)
+# License 6 [SukkaLab/ruleset.skk.moe]: AGPL-3.0 (https://github.com/SukkaLab/ruleset.skk.moe/blob/master/LICENSE)
+# Source 7 [MetaCubeX/meta-rules-dat]: https://github.com/MetaCubeX/meta-rules-dat (https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ai-!cn.yaml)
+# License 7 [MetaCubeX/meta-rules-dat]: GPL-3.0 (https://github.com/MetaCubeX/meta-rules-dat/blob/master/LICENSE)
 # Included rule types from source 2: PROCESS-NAME, IP-CIDR, IP-CIDR6, IP-ASN
+# Included rule types from source 4: PROCESS-NAME, IP-CIDR, IP-CIDR6, IP-ASN
 payload:
   - "DOMAIN-SUFFIX,openaiapi-site.azureedge.net"
   - "DOMAIN-SUFFIX,openaiassets.blob.core.windows.net"
@@ -46,6 +51,35 @@ payload:
   - "IP-CIDR,64.23.132.171/32,no-resolve"
   - "IP-CIDR6,2604:f20::/32,no-resolve"
   - "IP-ASN,401518,no-resolve"
+  - "DOMAIN-SUFFIX,servd-anthropic-website.b-cdn.net"
+  - "DOMAIN-SUFFIX,ant.dev"
+  - "DOMAIN-SUFFIX,anthropic.com"
+  - "DOMAIN-SUFFIX,anthropic.team"
+  - "DOMAIN-SUFFIX,antspace.dev"
+  - "DOMAIN-SUFFIX,chatbotclaude.com"
+  - "DOMAIN-SUFFIX,clau.de"
+  - "DOMAIN-SUFFIX,claude.ai"
+  - "DOMAIN-SUFFIX,claude.app"
+  - "DOMAIN-SUFFIX,claude.com"
+  - "DOMAIN-SUFFIX,claude.dev"
+  - "DOMAIN-SUFFIX,claude.new"
+  - "DOMAIN-SUFFIX,claude.site"
+  - "DOMAIN-SUFFIX,claudeacademy.com"
+  - "DOMAIN-SUFFIX,claudemcpclient.com"
+  - "DOMAIN-SUFFIX,claudemcpcontent.com"
+  - "DOMAIN-SUFFIX,claudepages.dev"
+  - "DOMAIN-SUFFIX,claudestudio.com"
+  - "DOMAIN-SUFFIX,claudeusercontent.com"
+  - "DOMAIN-SUFFIX,http-intake.logs.us5.datadoghq.com"
+  - "DOMAIN-SUFFIX,o1158394.ingest.us.sentry.io"
+  - "PROCESS-NAME,Claude"
+  - "PROCESS-NAME,Claude.exe"
+  - "PROCESS-NAME,claude"
+  - "PROCESS-NAME,claude.exe"
+  - "PROCESS-NAME,cowork-svc.exe"
+  - "IP-CIDR,160.79.104.0/21,no-resolve"
+  - "IP-CIDR6,2607:6bc0::/32,no-resolve"
+  - "IP-ASN,399358,no-resolve"
   - "DOMAIN-SUFFIX,firefly.adobe.com"
   - "DOMAIN-SUFFIX,firefly.adobe.io"
   - "DOMAIN,aws-language-servers.us-east-1.amazonaws.com"
@@ -63,32 +97,11 @@ payload:
   - "DOMAIN-SUFFIX,q.eu-central-1.amazonaws.com"
   - "DOMAIN-SUFFIX,q.us-east-1.amazonaws.com"
   - "DOMAIN-SUFFIX,sso.amazonaws.com"
-  - "DOMAIN-SUFFIX,anthropic.com"
   - "DOMAIN-SUFFIX,anthropic.com.cn"
-  - "DOMAIN-SUFFIX,antspace.dev"
-  - "DOMAIN-SUFFIX,clau.de"
-  - "DOMAIN-SUFFIX,claude.ai"
-  - "DOMAIN-SUFFIX,claude.app"
-  - "DOMAIN-SUFFIX,claude.com"
-  - "DOMAIN-SUFFIX,claude.new"
-  - "DOMAIN-SUFFIX,claude.site"
-  - "DOMAIN-SUFFIX,claudemcpclient.com"
-  - "DOMAIN-SUFFIX,claudemcpcontent.com"
-  - "DOMAIN-SUFFIX,claudepages.dev"
-  - "DOMAIN-SUFFIX,claudestudio.com"
-  - "DOMAIN-SUFFIX,claudeusercontent.com"
   - "DOMAIN-SUFFIX,modelcontextprotocol.com"
   - "DOMAIN-SUFFIX,modelcontextprotocol.io"
   - "DOMAIN-SUFFIX,modelcontextprotocol.net"
   - "DOMAIN-SUFFIX,modelcontextprotocol.org"
-  - "PROCESS-NAME,Claude"
-  - "PROCESS-NAME,Claude.exe"
-  - "PROCESS-NAME,claude"
-  - "PROCESS-NAME,claude.exe"
-  - "PROCESS-NAME,cowork-svc.exe"
-  - "IP-CIDR,160.79.104.0/21,no-resolve"
-  - "IP-CIDR6,2607:6bc0::/32,no-resolve"
-  - "IP-ASN,399358,no-resolve"
   - "DOMAIN,anthropic-com.ghost.io"
   - "DOMAIN,anthropic.auth0.com"
   - "DOMAIN,anthropic.com.cdn.cloudflare.net"
@@ -97,11 +110,6 @@ payload:
   - "DOMAIN,cdn.usefathom.com"
   - "DOMAIN,servd-anthropic-website.b-cdn.net"
   - "DOMAIN,storage.googleapis.com"
-  - "DOMAIN-SUFFIX,ant.dev"
-  - "DOMAIN-SUFFIX,anthropic.team"
-  - "DOMAIN-SUFFIX,chatbotclaude.com"
-  - "DOMAIN-SUFFIX,claude.dev"
-  - "DOMAIN-SUFFIX,claudeacademy.com"
   - "DOMAIN-SUFFIX,intercom.io"
   - "DOMAIN-SUFFIX,intercomcdn.com"
   - "DOMAIN-SUFFIX,interface.feedback"
@@ -376,7 +384,6 @@ payload:
   - "DOMAIN,gspe1-ssl.ls.apple.com"
   - "DOMAIN,apple-relay.cloudflare.com"
   - "DOMAIN,apple-relay.fastly-edge.com"
-  - "DOMAIN-SUFFIX,servd-anthropic-website.b-cdn.net"
   - "DOMAIN-SUFFIX,copilot-proxy.githubusercontent.com"
   - "DOMAIN-SUFFIX,copilot-workspace.githubnext.com"
   - "DOMAIN-SUFFIX,production-copilot-host-westus.webpubsub.azure.com"
@@ -438,7 +445,5 @@ payload:
   - "DOMAIN-SUFFIX,coderabbit.gallery.vsassets.io"
   - "DOMAIN-SUFFIX,gateway.ai.cloudflare.com"
   - "DOMAIN-SUFFIX,dola.com"
-  - "DOMAIN-SUFFIX,http-intake.logs.us5.datadoghq.com"
-  - "DOMAIN-SUFFIX,o1158394.ingest.us.sentry.io"
   - "DOMAIN-SUFFIX,copilot-telemetry-service.githubusercontent.com"
   - "DOMAIN-SUFFIX,copilot-telemetry.githubusercontent.com"
