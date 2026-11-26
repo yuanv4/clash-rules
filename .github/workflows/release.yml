@@ -76,7 +76,7 @@ jobs:
           cp -- "${custom_files[@]}" "$release_worktree/custom/"
 
           legacy_count=0
-          for legacy_provider in dev_services openai; do
+          for legacy_provider in dev_services openai anthropic; do
             legacy_file="rules/${legacy_provider}.yaml"
             if [[ ! -f "$release_worktree/$legacy_file" ]] && git -C "$release_worktree" cat-file -e "HEAD:$legacy_file" 2>/dev/null; then
               git -C "$release_worktree" restore --source=HEAD --worktree -- "$legacy_file"

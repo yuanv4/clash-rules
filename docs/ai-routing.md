@@ -1,28 +1,26 @@
 # AI 分流范围
 
-扩展脚本生成的三个 AI 组共用美国、日本、新加坡候选地区，排除港澳标签、订阅信息和项目 Tailscale 节点。节点名用于筛选，不能证明实际出口地区或服务可用性。客户端直接显示表中的组名，不添加项目前缀。
+扩展脚本生成的两个 AI 组共用美国、日本、新加坡候选地区，排除港澳标签、订阅信息和项目 Tailscale 节点。节点名用于筛选，不能证明实际出口地区或服务可用性。客户端直接显示表中的组名，不添加项目前缀。
 
 | 代理组 | 选择方式 | 主要范围 |
 | --- | --- | --- |
 | `✨ Gemini` | 手动固定节点 | Gemini、AI Studio、NotebookLM，以及上游覆盖的其他 Google AI 服务和 Antigravity |
-| `Anthropic` | 手动固定节点 | Claude、Anthropic API、Claude Code、Cowork |
-| `🤖 通用 AI` | 自动测速选择 | ChatGPT、OpenAI API、Codex、Sora，以及其余上游 AI 服务 |
+| `🤖 通用 AI` | 自动测速选择 | ChatGPT、OpenAI API、Codex、Sora、Claude、Anthropic API、Claude Code、Cowork，以及其余上游 AI 服务 |
 
-OpenAI 已合并回原国际 AI 组，合并后的名称为 `🤖 通用 AI`。名称表示该组处理多家 AI 服务，并与 Gemini、Anthropic 的专属手动组区分。
+OpenAI 与 Anthropic 已合并回原国际 AI 组，合并后的名称为 `🤖 通用 AI`。名称表示该组处理多家 AI 服务，并与 `✨ Gemini` 专属手动组区分。
 
-三个 AI 组没有候选节点时都使用 `REJECT`，避免回退直连。客户端支持进程识别时，进程规则覆盖对应应用的连接。
+两个 AI 组没有候选节点时都使用 `REJECT`，避免回退直连。客户端支持进程识别时，进程规则覆盖对应应用的连接。
 
 ## 上游与匹配顺序
 
-Gemini、Anthropic 位于通用 AI 和国外服务规则之前。广告、成人内容等更早的规则仍然优先。
+Gemini 位于通用 AI 和国外服务规则之前。广告、成人内容等更早的规则仍然优先。
 
 - Gemini 合并 [MetaCubeX google-gemini](https://github.com/MetaCubeX/meta-rules-dat/blob/meta/geo/geosite/google-gemini.yaml) 和 [VPSDance google-ai](https://github.com/VPSDance/ai-proxy-rules/blob/main/rules/clash/google-ai.yaml)。
-- Anthropic 的域名规则来自 [MetaCubeX anthropic](https://github.com/MetaCubeX/meta-rules-dat/blob/meta/geo/geosite/anthropic.yaml)。进程及 IP 规则来自 [VPSDance anthropic](https://github.com/VPSDance/ai-proxy-rules/blob/main/rules/clash/anthropic.yaml)。
-- 通用 AI 保留 [MetaCubeX openai](https://github.com/MetaCubeX/meta-rules-dat/blob/meta/geo/geosite/openai.yaml) 域名规则和 [VPSDance openai](https://github.com/VPSDance/ai-proxy-rules/blob/main/rules/clash/openai.yaml) 进程及 IP 规则，并合并 [VPSDance global](https://github.com/VPSDance/ai-proxy-rules/blob/main/rules/clash/global.yaml)、[Sukka Apple Intelligence](https://github.com/SukkaLab/ruleset.skk.moe/blob/master/Clash/non_ip/apple_intelligence.txt) 和 [MetaCubeX category-ai-!cn](https://github.com/MetaCubeX/meta-rules-dat/blob/meta/geo/geosite/category-ai-!cn.yaml)。
+- 通用 AI 保留 [MetaCubeX openai](https://github.com/MetaCubeX/meta-rules-dat/blob/meta/geo/geosite/openai.yaml)、[MetaCubeX anthropic](https://github.com/MetaCubeX/meta-rules-dat/blob/meta/geo/geosite/anthropic.yaml) 域名规则和 [VPSDance openai](https://github.com/VPSDance/ai-proxy-rules/blob/main/rules/clash/openai.yaml)、[VPSDance anthropic](https://github.com/VPSDance/ai-proxy-rules/blob/main/rules/clash/anthropic.yaml) 进程及 IP 规则，并合并 [VPSDance global](https://github.com/VPSDance/ai-proxy-rules/blob/main/rules/clash/global.yaml)、[Sukka Apple Intelligence](https://github.com/SukkaLab/ruleset.skk.moe/blob/master/Clash/non_ip/apple_intelligence.txt) 和 [MetaCubeX category-ai-!cn](https://github.com/MetaCubeX/meta-rules-dat/blob/meta/geo/geosite/category-ai-!cn.yaml)。
 
-OpenAI 和 Anthropic 的 VPSDance 专属输入设置 `include_rule_types`，只保留 `PROCESS-NAME`、`IP-CIDR`、`IP-CIDR6` 和 `IP-ASN`。Anthropic 不额外引入其中的 `auth0.com`、`sentry.io` 等宽泛共享域名。通用 AI 保留原有综合上游范围。生成文件的注释记录来源、许可证和筛选类型。
+OpenAI 和 Anthropic 的 VPSDance 专属输入设置 `include_rule_types`，只保留 `PROCESS-NAME`、`IP-CIDR`、`IP-CIDR6` 和 `IP-ASN`，不额外引入其中的 `auth0.com`、`sentry.io` 等宽泛共享域名。通用 AI 保留原有综合上游范围。生成文件的注释记录来源、许可证和筛选类型。
 
-通用 AI 文件仍保留与专属规则重复的条目。它们与 Gemini、Anthropic 重叠时，由更早的专属组处理。其余域名、共享依赖和关键词继续使用通用 AI。
+通用 AI 文件仍保留与专属规则重复的条目。它们与 Gemini 重叠时，由更早的专属组处理。其余域名、共享依赖和关键词继续使用通用 AI。
 
 ## 通用 AI 覆盖的服务
 
@@ -31,6 +29,7 @@ OpenAI 和 Anthropic 的 VPSDance 专属输入设置 `include_rule_types`，只�
 | 类别 | 服务 |
 | --- | --- |
 | OpenAI | ChatGPT、OpenAI API、Codex、Sora |
+| Anthropic | Claude、Anthropic API、Claude Code、Cowork |
 | 对话与搜索 | Perplexity、Grok / xAI、Microsoft Copilot、Poe、Character.AI、Meta AI、Mistral、Cohere、You.com、Phind、Duck.ai、Pi / Inflection、Genspark |
 | 编程助手 | GitHub Copilot、Cursor、Windsurf、Augment Code、Devin、Factory、JetBrains AI、Kilo Code、Kiro、Amazon Q、Replit、Bolt、Lovable、v0、Cline、Continue、Tabnine、Sourcegraph / Cody / Amp、CodeRabbit、Zed、Command Code、Qoder、OpenCode |
 | 模型与推理平台 | Hugging Face、OpenRouter、Groq、Cerebras、Together AI、Replicate、Fireworks、Chutes、Cloudflare AI、DeepInfra、Novita、H2O.ai、LM Studio、Ollama、LMArena / Arena、Artificial Analysis |
@@ -39,7 +38,7 @@ OpenAI 和 Anthropic 的 VPSDance 专属输入设置 `include_rule_types`，只�
 | Agent 与开发工具 | Manus、Dify、LangChain、CrewAI、OpenClaw、AnythingLLM、Context7 |
 | 其他 | Apple Intelligence、Coze / Cici、Trae，以及上游包含的 Kimi、MiniMax 海外域名 |
 
-进程规则中，ChatGPT、Codex、Augment、Cursor、Windsurf 由通用 AI 处理。Claude、Cowork 由 Anthropic 处理，Antigravity 由 Gemini 处理。进程识别取决于客户端、系统权限和核心支持。
+进程规则中，ChatGPT、Codex、Claude、Cowork、Augment、Cursor、Windsurf 由通用 AI 处理，Antigravity 由 Gemini 处理。进程识别取决于客户端、系统权限和核心支持。
 
 ## 复核当前上游
 
@@ -51,8 +50,8 @@ node scripts/audit-ai-rules.mjs <build-directory>/rules
 node scripts/audit-ai-rules.mjs <build-directory>/rules --list
 ```
 
-[核查脚本](<../scripts/audit-ai-rules.mjs>) 按配置顺序比较三个 AI provider，输出代表域名、进程和专用网络条目的归属，并校验 OpenAI 流量进入通用 AI、Claude 流量进入 Anthropic。`--list` 另输出通用 AI 的原始规则，包括已被前面专属规则接管的重叠条目。
+[核查脚本](<../scripts/audit-ai-rules.mjs>) 按配置顺序比较两个 AI provider，输出代表域名、进程和专用网络条目的归属，并校验 OpenAI 和 Anthropic 流量进入通用 AI。`--list` 另输出通用 AI 的原始规则，包括已被前面专属规则接管的重叠条目。
 
 域名核查不模拟 DNS、IP、进程匹配、前置拦截或真实连接。网络条目核查验证规则存在及 provider 优先顺序，不模拟 CIDR 或 ASN 查询。上游更新后服务范围会变化，需重新构建复核。
 
-新增或合并规则来源时，发布流程会在同一次提交中发布规则集和扩展脚本，再在客户端同步脚本。脚本完整覆盖官方分流规则、代理组和规则集，保留官方 DNS、hosts 和节点；原机场规则不再参与匹配。release 分支继续保留历史 OpenAI 和开发服务规则文件。
+新增或合并规则来源时，发布流程会在同一次提交中发布规则集和扩展脚本，再在客户端同步脚本。脚本完整覆盖官方分流规则、代理组和规则集，保留官方 DNS、hosts 和节点；原机场规则不再参与匹配。release 分支继续保留历史 Anthropic、OpenAI 和开发服务规则文件。

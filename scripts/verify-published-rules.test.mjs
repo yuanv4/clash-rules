@@ -25,7 +25,7 @@ test("published provider check accepts ready artifacts of both formats", async (
 
 test("published provider check rejects a missing rule artifact", async () => {
   const files = artifacts();
-  files.delete(urlFor("anthropic"));
+  files.delete(urlFor("ai"));
   await assert.rejects(verifyPublishedRules(source, reader(files)), /404/);
 });
 
@@ -47,10 +47,10 @@ test("published provider check rejects a stale filtered artifact after removing 
 
 test("published provider check rejects stale type filters and empty payloads", async () => {
   const files = artifacts();
-  const url = urlFor("anthropic");
+  const url = urlFor("ai");
   files.set(url, files.get(url).replace(/^# Included rule types.*\n/mu, ""));
-  await assert.rejects(verifyPublishedRules(source, reader(files)), /anthropic.*configured sources/);
+  await assert.rejects(verifyPublishedRules(source, reader(files)), /ai.*configured sources/);
   const empty = artifacts();
-  empty.set(url, renderYaml(config.providers.find(({ name }) => name === "anthropic"), []).replace("payload:\n", "payload: []\n"));
+  empty.set(url, renderYaml(config.providers.find(({ name }) => name === "ai"), []).replace("payload:\n", "payload: []\n"));
   await assert.rejects(verifyPublishedRules(source, reader(empty)), /no usable rules/);
 });

@@ -154,18 +154,20 @@ test("AI and East Asia filters and rule priorities follow routing requirements",
   const result = run(renderFlClashScript({ source, tailscaleMode: "both" }), sample());
   const group = (name) => result["proxy-groups"].find((g) => g.name === name);
   const selected = (g, name) => new RegExp(g.filter.replace(/^\(\?i\)/, ""), "i").test(name) && !new RegExp(g["exclude-filter"].replace(/^\(\?i\)/, ""), "i").test(name);
-  for (const name of ["🤖 通用 AI", "Anthropic", "✨ Gemini"]) {
+  for (const name of ["🤖 通用 AI", "✨ Gemini"]) {
     const g = group(name);
     assert.equal(g.type, name === "🤖 通用 AI" ? "url-test" : "select");
     for (const node of ["US01", "JP01", "SG01"]) assert.ok(selected(g, node));
     for (const node of ["HK01-US", "MO01-SG01", "TAILSCALE"]) assert.ok(!selected(g, node));
   }
+  assert.equal(group("Anthropic"), undefined);
+  assert.equal(Object.hasOwn(result["rule-providers"], "anthropic"), false);
+  assert.equal(result.rules.some((rule) => rule.startsWith("RULE-SET,anthropic,")), false);
   const auto = group(source.proxy_group);
   for (const node of ["HK01", "JP01", "TW01"]) assert.ok(selected(auto, node));
   for (const node of ["HK01-US", "JP01-SG01", "TAILSCALE"]) assert.ok(!selected(auto, node));
   const ruleIndex = (name) => result.rules.findIndex((rule) => rule.startsWith(`RULE-SET,${name},`));
   assert.ok(ruleIndex("gemini") < ruleIndex("ai"));
-  assert.ok(ruleIndex("anthropic") < ruleIndex("ai"));
   assert.ok(ruleIndex("ai") < ruleIndex("foreign_services"));
   assert.equal(group("🇨🇳 国内服务")["default-selected"], "DIRECT");
   assert.equal(group("🛑 广告过滤")["default-selected"], "REJECT");

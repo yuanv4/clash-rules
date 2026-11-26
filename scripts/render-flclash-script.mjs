@@ -59,9 +59,9 @@ export function buildRoutingExtension(source, tailscaleMode = "off") {
     if (BUILTINS.has(target) || target === source.proxy_group) continue;
     const name = target;
     if (target === "🛑 广告过滤" || target === "🔞 成人内容") groups.push({ name, type: "select", proxies: ["REJECT", "DIRECT"], "default-selected": "REJECT" });
-    else if (["✨ Gemini", "Anthropic", "🤖 通用 AI"].includes(target)) {
+    else if (["✨ Gemini", "🤖 通用 AI"].includes(target)) {
       const general = target === "🤖 通用 AI";
-      groups.push({ name, type: general ? "url-test" : "select", url: general ? "https://chatgpt.com/" : target === "✨ Gemini" ? "https://gemini.google.com/app" : "https://claude.ai/", ...(general ? { "expected-status": 200, interval: 90, timeout: 5000, tolerance: 50, lazy: false } : {}), "include-all": true, filter: AI_REGION_PATTERN, "exclude-filter": REGION_EXCLUDE_PATTERN, "empty-fallback": "REJECT" });
+      groups.push({ name, type: general ? "url-test" : "select", url: general ? "https://chatgpt.com/" : "https://gemini.google.com/app", ...(general ? { "expected-status": 200, interval: 90, timeout: 5000, tolerance: 50, lazy: false } : {}), "include-all": true, filter: AI_REGION_PATTERN, "exclude-filter": REGION_EXCLUDE_PATTERN, "empty-fallback": "REJECT" });
     } else groups.push({ name, type: "select", proxies: ["DIRECT", auto], "default-selected": target === "🇨🇳 国内服务" ? "DIRECT" : auto });
   }
   for (const provider of source.providers) {

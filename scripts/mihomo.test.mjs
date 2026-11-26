@@ -13,7 +13,7 @@ import { renderFlClashScript } from "./render-flclash-script.mjs";
 
 const source = JSON.parse(await readFile(new URL("../sources.json", import.meta.url), "utf8"));
 const generated = vm.runInNewContext(`${renderFlClashScript({ source })}; main`);
-const aiGroups = ["🤖 通用 AI", "Anthropic", "✨ Gemini"];
+const aiGroups = ["🤖 通用 AI", "✨ Gemini"];
 const cases = [
   { names: ["US01", "JP01", "SG01", "HK01-US", "MO01-SG01", "TW01"], groups: aiGroups, expected: ["JP01", "SG01", "US01"] },
   { names: ["DE01", "HK01-US"], groups: aiGroups, expected: ["REJECT"] },

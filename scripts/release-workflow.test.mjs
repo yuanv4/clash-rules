@@ -24,7 +24,7 @@ const run = (command, args, cwd, env = process.env) => {
   return result.stdout.trim();
 };
 
-for (const legacyProviders of [[], ["dev_services"], ["openai"], ["dev_services", "openai"]]) {
+for (const legacyProviders of [[], ["dev_services"], ["openai"], ["anthropic"], ["dev_services", "openai", "anthropic"]]) {
   test(`release sync preserves legacy providers: ${legacyProviders.join(", ") || "none"}`, async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "clash-release-test-"));
     try {
@@ -44,6 +44,7 @@ for (const legacyProviders of [[], ["dev_services"], ["openai"], ["dev_services"
       const legacyTexts = {
         dev_services: "payload:\n  - DOMAIN-SUFFIX,developer.test\n",
         openai: "payload:\n  - DOMAIN-SUFFIX,openai.test\n",
+        anthropic: "payload:\n  - DOMAIN-SUFFIX,anthropic.test\n",
       };
       for (const provider of legacyProviders) await writeFile(path.join(checkout, "rules", `${provider}.yaml`), legacyTexts[provider]);
       await writeFile(path.join(checkout, "custom", "foreign.txt"), "DOMAIN-SUFFIX,custom.test\n");
