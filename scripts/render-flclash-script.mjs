@@ -5,13 +5,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const PREFIX = "[clash-rules] ";
-const named = (name) => PREFIX + name;
 const BUILTINS = new Set(["DIRECT", "REJECT", "REJECT-DROP", "PASS", "COMPATIBLE", "GLOBAL"]);
 const TEST_URL = "https://cp.cloudflare.com/generate_204";
 const FAKE_NODE_ALT =
   "当前流量|剩余流量|距離下次重置|距离下次重置|到期时间|过期时间|套餐|官网|群组|订阅地址";
-const TAILSCALE_NODE_ALT = "^(?:\\[clash-rules\\] )?TAILSCALE(?:-DIRECT)?$";
+const TAILSCALE_NODE_ALT = "^TAILSCALE(?:-DIRECT)?$";
 const NODE_EXCLUDE_ALT = `${FAKE_NODE_ALT}|${TAILSCALE_NODE_ALT}`;
 const NODE_EXCLUDE_PATTERN = `(?:${NODE_EXCLUDE_ALT})`;
 
@@ -52,8 +50,8 @@ export function buildRoutingExtension(source, tailscaleMode = "off") {
   const rules = [];
   if (tailscaleMode !== "off") {
     const nodes = [];
-    if (tailscaleMode === "interface" || tailscaleMode === "both") nodes.push(named("TAILSCALE-DIRECT"));
-    if (tailscaleMode === "tsnet" || tailscaleMode === "both") nodes.push(named("TAILSCALE"));
+    if (tailscaleMode === "interface" || tailscaleMode === "both") nodes.push("TAILSCALE-DIRECT");
+    if (tailscaleMode === "tsnet" || tailscaleMode === "both") nodes.push("TAILSCALE");
     groups.push({ name: "Tailscale", type: "select", proxies: [...nodes, "DIRECT"], "default-selected": nodes[0] });
     rules.push("IP-CIDR,100.64.0.0/10,Tailscale,no-resolve", "IP-CIDR,100.100.100.100/32,Tailscale,no-resolve", "DOMAIN-SUFFIX,ts.net,Tailscale");
   }
@@ -69,8 +67,8 @@ export function buildRoutingExtension(source, tailscaleMode = "off") {
   for (const provider of source.providers) {
     const behavior = provider.behavior ?? "classical";
     const extension = behavior === "domain" ? "txt" : "yaml";
-    ruleProviders[named(provider.name)] = { type: "http", behavior, format: behavior === "domain" ? "text" : "yaml", interval: 86400, url: `${source.release_base_url}/rules/${provider.name}.${extension}`, path: `./rules/${provider.name}.${extension}` };
-    rules.push(`RULE-SET,${named(provider.name)},${provider.target}${provider.no_resolve ? ",no-resolve" : ""}`);
+    ruleProviders[provider.name] = { type: "http", behavior, format: behavior === "domain" ? "text" : "yaml", interval: 86400, url: `${source.release_base_url}/rules/${provider.name}.${extension}`, path: `./rules/${provider.name}.${extension}` };
+    rules.push(`RULE-SET,${provider.name},${provider.target}${provider.no_resolve ? ",no-resolve" : ""}`);
   }
   groups.push({ name: "🐟 漏网之鱼", type: "select", proxies: ["DIRECT", auto], "default-selected": "DIRECT" });
   rules.push("MATCH,🐟 漏网之鱼");
@@ -78,31 +76,35 @@ export function buildRoutingExtension(source, tailscaleMode = "off") {
 }
 
 function applyRoutingExtension(config, extension) {
-  const prefix = "[clash-rules] ";
   const mapping = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
   if (!mapping(config)) throw new Error("Configuration must be an object");
   if (Object.prototype.hasOwnProperty.call(config, "proxies") && !Array.isArray(config.proxies)) throw new Error("Configuration proxies must be an array");
   const proxies = config.proxies || [];
   if (proxies.some((item) => !mapping(item) || typeof item.name !== "string")) throw new Error("Configuration contains invalid routing entries");
-  const owned = (name) => name.startsWith(prefix);
+  const direct = { name: "TAILSCALE-DIRECT", type: "direct", "interface-name": "Tailscale" };
+  const tsnet = { name: "TAILSCALE", type: "tailscale", "state-dir": "./tailscale", udp: true, "accept-routes": true, "ip-version": "ipv4-prefer" };
+  const definitions = [direct, tsnet];
+  const owned = (proxy) => ["[clash-rules] TAILSCALE", "[clash-rules] TAILSCALE-DIRECT"].includes(proxy.name) || definitions.some((node) => Object.keys(proxy).length === Object.keys(node).length && Object.keys(node).every((key) => proxy[key] === node[key]));
+  const retained = proxies.filter((proxy) => !owned(proxy));
   const result = { ...config, "rule-providers": { ...extension.ruleProviders }, "proxy-groups": [...extension.groups], rules: [...extension.rules] };
   const nodes = [];
-  if (extension.tailscaleMode === "interface" || extension.tailscaleMode === "both") nodes.push({ name: prefix + "TAILSCALE-DIRECT", type: "direct", "interface-name": "Tailscale" });
+  if (extension.tailscaleMode === "interface" || extension.tailscaleMode === "both") nodes.push(direct);
   if (extension.tailscaleMode === "tsnet" || extension.tailscaleMode === "both") {
-    nodes.push({ name: prefix + "TAILSCALE", type: "tailscale", "state-dir": "./tailscale", udp: true, "accept-routes": true, "ip-version": "ipv4-prefer" });
+    nodes.push(tsnet);
     const dns = config.dns;
     if (mapping(dns) && dns["enhanced-mode"] === "fake-ip" && (!Object.prototype.hasOwnProperty.call(dns, "fake-ip-filter-mode") || dns["fake-ip-filter-mode"] === "blacklist") && (!Object.prototype.hasOwnProperty.call(dns, "fake-ip-filter") || Array.isArray(dns["fake-ip-filter"]))) {
       const filter = dns["fake-ip-filter"] || [];
       if (!filter.includes("controlplane.tailscale.com")) result.dns = { ...dns, "fake-ip-filter": [...filter, "controlplane.tailscale.com"] };
     }
   }
-  if (Object.prototype.hasOwnProperty.call(config, "proxies") || nodes.length) result.proxies = [...proxies.filter((proxy) => !owned(proxy.name)), ...nodes];
+  for (const node of nodes) if (retained.some((proxy) => proxy.name === node.name)) throw new Error(`Tailscale node name conflict: ${node.name}`);
+  if (Object.prototype.hasOwnProperty.call(config, "proxies") || nodes.length) result.proxies = [...retained, ...nodes];
   return result;
 }
 
 export function renderFlClashScript({ source, tailscaleMode = "off" }) {
   const data = buildRoutingExtension(source, tailscaleMode);
-  return `// Generated by clash-rules. The [clash-rules] namespace is reserved for nodes and rule providers.\nfunction main(config) {\n  return (${applyRoutingExtension.toString().replace(/\r\n/g, "\n")})(config, ${JSON.stringify(data)});\n}\n`;
+  return `function main(config) {\n  return (${applyRoutingExtension.toString().replace(/\r\n/g, "\n")})(config, ${JSON.stringify(data)});\n}\n`;
 }
 
 async function main() {

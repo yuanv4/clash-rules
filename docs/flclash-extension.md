@@ -43,13 +43,13 @@
 
 如果官方 DNS 或节点配置通过 `#代理组`、`rule-set:` 或 `dialer-proxy` 等字段引用了机场原有条目，覆盖后需要核对这些依赖。脚本不会自动修复这些引用。
 
-代理组使用 `🤖 通用 AI`、`Anthropic` 等原始名称，不添加项目前缀。只有项目节点和规则集键使用 `[clash-rules] ` 前缀，以标识项目条目；不要给自己的节点使用这个前缀。
+代理组和规则集键使用原始名称，不添加项目前缀。项目占用 `TAILSCALE` 和 `TAILSCALE-DIRECT` 节点名。脚本保留机场节点；如果所选模式需要的名称与定义不同的机场节点冲突，脚本会报错并保留原配置。切换模式时，脚本移除与项目完整定义一致的节点，并清理旧的 `[clash-rules] TAILSCALE` 和 `[clash-rules] TAILSCALE-DIRECT` 节点。
 
 以上是脚本本身的修改范围。FlClash 之后仍会应用客户端设置；如果配置了 DNS 覆写、系统 DNS 追加或其他扩展，应另外核对最终配置。
 
 ## 系统 Tailscale 网卡
 
-桌面版本生成 `[clash-rules] TAILSCALE-DIRECT` 节点，使用 `type: direct` 和 `interface-name: Tailscale`。
+桌面版本生成 `TAILSCALE-DIRECT` 节点，使用 `type: direct` 和 `interface-name: Tailscale`。
 
 先启动并登录系统 Tailscale，确认操作系统中的实际网卡名。默认名称适用于名为 `Tailscale` 的网卡，不保证适用于所有平台。这个节点不会安装 Tailscale、创建网卡或替你登录。
 
@@ -59,7 +59,7 @@ Android 常规单用户环境下，系统 Tailscale 与 FlClash 会争用 VPN �
 
 ## 内嵌 Tailscale 登录
 
-Android 和同时提供两种出口的版本生成 `[clash-rules] TAILSCALE` 节点。节点不写入 `auth-key`，使用本机的 `./tailscale` 状态目录保存登录状态。
+Android 和同时提供两种出口的版本生成 `TAILSCALE` 节点。节点不写入 `auth-key`，使用本机的 `./tailscale` 状态目录保存登录状态。
 
 1. 绑定包含内嵌节点的脚本，应用配置。
 2. 在 FlClash 中开启日志收集，并将日志级别设为 Info 或 Debug。

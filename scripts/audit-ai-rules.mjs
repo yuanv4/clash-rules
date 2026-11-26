@@ -27,10 +27,9 @@ const main = async () => {
   const source = JSON.parse(await readFile(path.join(root, "sources.json"), "utf8"));
   const main = vm.runInNewContext(`${renderFlClashScript({ source })}; main`);
   const generated = main({});
-  const prefix = "[clash-rules] ";
   const providers = generated.rules.map((rule) => rule.split(","))
-    .filter(([type, key]) => type === "RULE-SET" && ["gemini", "anthropic", "ai"].includes(key.slice(prefix.length)))
-    .map(([, key, target]) => ({ name: key.slice(prefix.length), target }));
+    .filter(([type, key]) => type === "RULE-SET" && ["gemini", "anthropic", "ai"].includes(key))
+    .map(([, key, target]) => ({ name: key, target }));
   const rules = await Promise.all(providers.map(async (provider) => ({
     ...provider,
     rules: parseRules(await readFile(path.join(rulesDir, `${provider.name}.yaml`), "utf8"), provider.name, "clash-yaml"),

@@ -9,10 +9,10 @@ import vm from "node:vm";
 import { renderFlClashScript } from "./render-flclash-script.mjs";
 
 const source = JSON.parse(await readFile(new URL("../sources.json", import.meta.url), "utf8"));
-const prefix = "[clash-rules] ";
+const legacyPrefix = "[clash-rules] ";
 const files = { "flclash.js": "off", "flclash-desktop.js": "interface", "flclash-android.js": "tsnet", "flclash-both.js": "both" };
 const run = (script, config) => JSON.parse(JSON.stringify(vm.runInNewContext(`${script}; main`)(config)));
-const sample = () => ({ dns: { enable: true, listen: "127.0.0.1:7874", "proxy-server-nameserver": ["127.0.0.1:7874"] }, hosts: { "example.test": "192.0.2.1" }, tun: { enable: true }, ipv6: true, sniffer: { enable: true }, "mixed-port": 7890, profile: { "store-selected": true }, unknown: { future: [1, 2] }, "proxy-providers": { airport: { type: "http", url: "https://example.test/sub" } }, proxies: [{ name: "JP01", type: "socks5", server: "example.test", port: 1080 }, { name: "TAILSCALE", type: "direct" }], "rule-providers": { airport: { type: "file", path: "airport.yaml" } }, "proxy-groups": [{ name: "airport", type: "select", proxies: ["JP01"] }], rules: ["DOMAIN,example.test,airport", "MATCH,airport"] });
+const sample = () => ({ dns: { enable: true, listen: "127.0.0.1:7874", "proxy-server-nameserver": ["127.0.0.1:7874"] }, hosts: { "example.test": "192.0.2.1" }, tun: { enable: true }, ipv6: true, sniffer: { enable: true }, "mixed-port": 7890, profile: { "store-selected": true }, unknown: { future: [1, 2] }, "proxy-providers": { airport: { type: "http", url: "https://example.test/sub" } }, proxies: [{ name: "JP01", type: "socks5", server: "example.test", port: 1080 }, { name: "AIRPORT-TAILSCALE", type: "direct" }], "rule-providers": { airport: { type: "file", path: "airport.yaml" } }, "proxy-groups": [{ name: "airport", type: "select", proxies: ["JP01"] }], rules: ["DOMAIN,example.test,airport", "MATCH,airport"] });
 
 for (const [filename, mode] of Object.entries(files)) {
   test(`${filename} replaces routing while preserving airport settings`, () => {
@@ -21,11 +21,15 @@ for (const [filename, mode] of Object.entries(files)) {
     const original = structuredClone(input);
     const result = run(script, input);
     const groupNames = new Set(result["proxy-groups"].map(({ name }) => name));
-    assert.ok([...groupNames].every((name) => !name.startsWith(prefix)));
+    assert.ok([...groupNames].every((name) => !name.startsWith(legacyPrefix)));
+    assert.deepEqual(Object.keys(result["rule-providers"]), source.providers.map(({ name }) => name));
+    assert.ok(Object.keys(result["rule-providers"]).every((name) => !name.startsWith(legacyPrefix)));
     const outboundNames = new Set([...groupNames, ...result.proxies.map(({ name }) => name), "DIRECT", "REJECT"]);
     for (const group of result["proxy-groups"]) for (const name of group.proxies ?? []) assert.ok(outboundNames.has(name), name);
     for (const rule of result.rules) {
       const parts = rule.split(",");
+      if (parts[0] === "RULE-SET") assert.ok(Object.hasOwn(result["rule-providers"], parts[1]), rule);
+      assert.ok(!rule.includes(legacyPrefix), rule);
       assert.ok(outboundNames.has(parts[0] === "MATCH" ? parts[1] : parts[2]), rule);
     }
     assert.deepEqual(input, original);
@@ -39,10 +43,10 @@ for (const [filename, mode] of Object.entries(files)) {
     assert.equal(result["proxy-groups"].find(({ name }) => name === "🐟 漏网之鱼")["default-selected"], "DIRECT");
     assert.deepEqual(run(script, result), result);
     const names = result.proxies.slice(2).map(({ name }) => name);
-    assert.deepEqual(names, mode === "off" ? [] : mode === "interface" ? [`${prefix}TAILSCALE-DIRECT`] : mode === "tsnet" ? [`${prefix}TAILSCALE`] : [`${prefix}TAILSCALE-DIRECT`, `${prefix}TAILSCALE`]);
-    const ts = result.proxies.find(({ name }) => name === `${prefix}TAILSCALE`);
-    if (ts) assert.deepEqual(ts, { name: `${prefix}TAILSCALE`, type: "tailscale", "state-dir": "./tailscale", udp: true, "accept-routes": true, "ip-version": "ipv4-prefer" });
-    const direct = result.proxies.find(({ name }) => name === `${prefix}TAILSCALE-DIRECT`);
+    assert.deepEqual(names, mode === "off" ? [] : mode === "interface" ? ["TAILSCALE-DIRECT"] : mode === "tsnet" ? ["TAILSCALE"] : ["TAILSCALE-DIRECT", "TAILSCALE"]);
+    const ts = result.proxies.find(({ name }) => name === "TAILSCALE");
+    if (ts) assert.deepEqual(ts, { name: "TAILSCALE", type: "tailscale", "state-dir": "./tailscale", udp: true, "accept-routes": true, "ip-version": "ipv4-prefer" });
+    const direct = result.proxies.find(({ name }) => name === "TAILSCALE-DIRECT");
     if (direct) assert.equal(direct["interface-name"], "Tailscale");
     assert.equal(result.rules.some((rule) => rule.includes(",Tailscale")), mode !== "off");
   });
@@ -59,7 +63,7 @@ test("fake-ip DNS gains only the control-plane exception for embedded modes", ()
     assert.deepEqual(result.dns, { ...original.dns, "fake-ip-filter": embedded ? ["duplicate.test", "duplicate.test", "controlplane.tailscale.com"] : original.dns["fake-ip-filter"] });
     assert.deepEqual(input, original);
     assert.deepEqual(run(script, result), result);
-    const node = result.proxies.find(({ name }) => name === `${prefix}TAILSCALE`);
+    const node = result.proxies.find(({ name }) => name === "TAILSCALE");
     if (node) { assert.equal(Object.hasOwn(node, "auth-key"), false); assert.equal(Object.hasOwn(node, "dialer-proxy"), false); }
   }
 });
@@ -94,6 +98,38 @@ test("mode switches replace project nodes and preserve absent proxies in off mod
   }
 });
 
+test("legacy project nodes migrate without removing unrelated nodes", () => {
+  for (const mode of Object.values(files)) {
+    const input = sample();
+    input.proxies.push({ name: `${legacyPrefix}TAILSCALE`, type: "old" }, { name: `${legacyPrefix}TAILSCALE-DIRECT`, type: "old" }, { name: `${legacyPrefix}OTHER`, type: "direct" });
+    const result = run(renderFlClashScript({ source, tailscaleMode: mode }), input);
+    assert.ok(!result.proxies.some(({ name }) => name === `${legacyPrefix}TAILSCALE` || name === `${legacyPrefix}TAILSCALE-DIRECT`));
+    assert.ok(result.proxies.some(({ name }) => name === `${legacyPrefix}OTHER`));
+  }
+});
+
+test("project node ownership does not depend on property order", () => {
+  const input = { proxies: [
+    { "interface-name": "Tailscale", type: "direct", name: "TAILSCALE-DIRECT" },
+    { udp: true, "ip-version": "ipv4-prefer", name: "TAILSCALE", "accept-routes": true, type: "tailscale", "state-dir": "./tailscale" },
+  ] };
+  assert.deepEqual(run(renderFlClashScript({ source }), input).proxies, []);
+});
+
+test("different same-name nodes survive off mode and cause safe conflicts when wanted", () => {
+  for (const [name, mode, variants] of [
+    ["TAILSCALE", "tsnet", [{ type: "direct" }, { type: "tailscale", "state-dir": "./tailscale", udp: true, "accept-routes": true, "ip-version": "ipv4-prefer", secret: "private-credential" }]],
+    ["TAILSCALE-DIRECT", "interface", [{ type: "direct", "interface-name": "other", secret: "private-credential" }, { type: "direct", "interface-name": "Tailscale", secret: "private-credential" }]],
+  ]) for (const variant of variants) {
+    const input = { proxies: [{ name, ...variant }] };
+    const original = structuredClone(input);
+    assert.deepEqual(run(renderFlClashScript({ source }), input).proxies, input.proxies);
+    const main = vm.runInNewContext(`${renderFlClashScript({ source, tailscaleMode: mode })}; main`);
+    assert.throws(() => main(input), (error) => error.message.includes(name) && !error.message.includes("private-credential"));
+    assert.deepEqual(input, original);
+  }
+});
+
 test("old routing values are replaced while nodes and DNS remain intact", () => {
   const script = renderFlClashScript({ source });
   const expected = run(script, sample());
@@ -122,12 +158,12 @@ test("AI and East Asia filters and rule priorities follow routing requirements",
     const g = group(name);
     assert.equal(g.type, name === "🤖 通用 AI" ? "url-test" : "select");
     for (const node of ["US01", "JP01", "SG01"]) assert.ok(selected(g, node));
-    for (const node of ["HK01-US", "MO01-SG01", `${prefix}TAILSCALE`]) assert.ok(!selected(g, node));
+    for (const node of ["HK01-US", "MO01-SG01", "TAILSCALE"]) assert.ok(!selected(g, node));
   }
   const auto = group(source.proxy_group);
   for (const node of ["HK01", "JP01", "TW01"]) assert.ok(selected(auto, node));
-  for (const node of ["HK01-US", "JP01-SG01", `${prefix}TAILSCALE`]) assert.ok(!selected(auto, node));
-  const ruleIndex = (name) => result.rules.findIndex((rule) => rule.startsWith(`RULE-SET,${prefix}${name},`));
+  for (const node of ["HK01-US", "JP01-SG01", "TAILSCALE"]) assert.ok(!selected(auto, node));
+  const ruleIndex = (name) => result.rules.findIndex((rule) => rule.startsWith(`RULE-SET,${name},`));
   assert.ok(ruleIndex("gemini") < ruleIndex("ai"));
   assert.ok(ruleIndex("anthropic") < ruleIndex("ai"));
   assert.ok(ruleIndex("ai") < ruleIndex("foreign_services"));
