@@ -13,9 +13,12 @@ import { renderFlClashScript } from "./render-flclash-script.mjs";
 
 const source = JSON.parse(await readFile(new URL("../sources.json", import.meta.url), "utf8"));
 const generated = vm.runInNewContext(`${renderFlClashScript({ source })}; main`);
-const aiGroups = ["🤖 通用 AI", "✨ Gemini"];
+const aiGroups = ["🤖 通用 AI", "✨ Google / Gemini"];
 const cases = [
-  { names: ["US01", "JP01", "SG01", "HK01-US", "MO01-SG01", "TW01"], groups: aiGroups, expected: ["JP01", "SG01", "US01"] },
+  { names: ["US01", "JP01", "SG01", "HK01-US", "MO01-SG01", "TW01"], groups: ["🤖 通用 AI"], expected: ["JP01", "SG01", "US01"] },
+  { names: ["US01", "JP01", "SG01", "HK01-US", "MO01-SG01", "TW01"], groups: ["✨ Google / Gemini"], expected: ["US01"] },
+  { names: ["JP01", "SG01"], groups: ["✨ Google / Gemini"], expected: ["REJECT"] },
+  { names: ["JP01", "SG01"], groups: ["🤖 通用 AI"], expected: ["JP01", "SG01"] },
   { names: ["DE01", "HK01-US"], groups: aiGroups, expected: ["REJECT"] },
   { names: ["HK01", "香港 02", "MO01", "香港中转-美国01", "HK01-SG01"], provider: ["Hong Kong 03", "HKG04", "TW01", "JP01", "US01-HK01", "HK01-JP01", "新加坡-日本01", "HK01-UK01"], groups: [source.proxy_group], expected: ["HK01", "HKG04", "Hong Kong 03", "香港 02"] },
   { names: ["US01-HK01", "JP01", "TW01"], provider: ["HK01-SG01", "HK01-JP01"], groups: [source.proxy_group], expected: ["REJECT"] },

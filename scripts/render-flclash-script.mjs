@@ -29,12 +29,14 @@ const NON_HONG_KONG_ALT =
   "us|usa|sg|sgp|uk|gbr|gb|au|aus|ca|can|de|deu|fr|fra|ru|rus|in|ind|vn|vnm|th|tha|my|mys|id|idn|ph|phl|nl|nld|tr|tur)(?:$|[^a-z])";
 const HONG_KONG_EXCLUDE_PATTERN = `(?i)(?:${NON_HONG_KONG_ALT}|${NODE_EXCLUDE_PATTERN})`;
 
-// 所有 AI 组共用美国、日本、新加坡候选标签。
+const US_REGION_ALT =
+  "美国|美國|洛杉矶|洛杉磯|圣何塞|聖何塞|西雅图|西雅圖|硅谷|纽约|紐約|united\\s*states|🇺🇸|" +
+  "(?:^|[^a-z])(?:us|usa)(?:$|[^a-z])";
+const GOOGLE_REGION_PATTERN = `(?i)(?:${US_REGION_ALT})`;
 const AI_REGION_PATTERN =
   "(?i)(?:日本|东京|東京|大阪|japan|tokyo|osaka|🇯🇵|" +
   "新加坡|狮城|獅城|singapore|🇸🇬|" +
-  "美国|美國|洛杉矶|洛杉磯|圣何塞|聖何塞|西雅图|西雅圖|硅谷|纽约|紐約|united\\s*states|🇺🇸|" +
-  "(?:^|[^a-z])(?:jp|jpn|sg|sgp|us|usa)(?:$|[^a-z]))";
+  "(?:^|[^a-z])(?:jp|jpn|sg|sgp)(?:$|[^a-z])|" + US_REGION_ALT + ")";
 
 // 显式排除港澳标签，以及订阅信息和 Tailscale 节点。
 const REGION_EXCLUDED_ALT =
@@ -61,9 +63,9 @@ export function buildRoutingExtension(source, tailscaleMode = "off") {
     if (BUILTINS.has(target) || target === source.proxy_group) continue;
     const name = target;
     if (target === "🛑 广告过滤" || target === "🔞 成人内容") groups.push({ name, type: "select", proxies: ["REJECT", "DIRECT"], "default-selected": "REJECT" });
-    else if (["✨ Gemini", "🤖 通用 AI"].includes(target)) {
+    else if (["✨ Google / Gemini", "🤖 通用 AI"].includes(target)) {
       const general = target === "🤖 通用 AI";
-      groups.push({ name, type: general ? "url-test" : "select", url: general ? "https://chatgpt.com/" : "https://gemini.google.com/app", ...(general ? { "expected-status": 200, interval: 90, timeout: 5000, tolerance: 50, lazy: false } : {}), "include-all": true, filter: AI_REGION_PATTERN, "exclude-filter": REGION_EXCLUDE_PATTERN, "empty-fallback": "REJECT" });
+      groups.push({ name, type: general ? "url-test" : "select", url: general ? "https://chatgpt.com/" : "https://gemini.google.com/app", ...(general ? { "expected-status": 200, interval: 90, timeout: 5000, tolerance: 50, lazy: false } : {}), "include-all": true, filter: general ? AI_REGION_PATTERN : GOOGLE_REGION_PATTERN, "exclude-filter": REGION_EXCLUDE_PATTERN, "empty-fallback": "REJECT" });
     } else groups.push({ name, type: "select", proxies: ["DIRECT", auto], "default-selected": target === "🇨🇳 国内服务" ? "DIRECT" : auto });
   }
   for (const provider of source.providers) {

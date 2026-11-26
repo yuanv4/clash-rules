@@ -90,11 +90,13 @@
     },
     {
       "name": "gemini",
-      "target": "✨ Gemini",
+      "target": "✨ Google / Gemini",
       "no_resolve": true,
       "inputs": [
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/google-gemini.yaml"},
-        {"input": "VPSDance/ai-proxy-rules", "path": "rules/clash/google-ai.yaml"}
+        {"input": "VPSDance/ai-proxy-rules", "path": "rules/clash/google-ai.yaml"},
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/google.yaml"},
+        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geoip/google.yaml"}
       ]
     },
     {
@@ -138,8 +140,6 @@
       "target": "🌐 国外服务",
       "no_resolve": true,
       "inputs": [
-        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/google.yaml"},
-        {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geoip/google.yaml"},
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/telegram.yaml"},
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geoip/telegram.yaml"},
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/steam.yaml"},

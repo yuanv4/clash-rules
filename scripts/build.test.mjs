@@ -302,14 +302,16 @@ test("sources.json removes domestic AI routing while preserving provider provena
   assert.deepEqual(adultContentProvider.inputs.map((input) => input.inputFormat), ["clash-yaml"]);
 
   const geminiProvider = normalized.providers.find(({ name }) => name === "gemini");
-  assert.equal(geminiProvider.target, "✨ Gemini");
+  assert.equal(geminiProvider.target, "✨ Google / Gemini");
   assert.equal(geminiProvider.noResolve, true);
   assert.deepEqual(geminiProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google-gemini.yaml",
     "https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/google-ai.yaml",
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google.yaml",
+    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/google.yaml",
   ]);
-  assert.deepEqual(geminiProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "clash-yaml"]);
-  assert.deepEqual(geminiProvider.inputs.map((input) => input.license.id), ["GPL-3.0", "MIT"]);
+  assert.deepEqual(geminiProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml"]);
+  assert.deepEqual(geminiProvider.inputs.map((input) => input.license.id), ["GPL-3.0", "MIT", "GPL-3.0", "GPL-3.0"]);
 
   const aiProvider = normalized.providers.find(({ name }) => name === "ai");
   assert.equal(aiProvider.target, "🤖 通用 AI");
@@ -367,8 +369,6 @@ test("sources.json removes domestic AI routing while preserving provider provena
   assert.equal(foreignServicesProvider.noResolve, true);
   assert.equal(normalized.providers.filter((provider) => provider.target === "🌐 国外服务").length, 1);
   assert.deepEqual(foreignServicesProvider.inputs.map((input) => input.sourceUrl), [
-    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google.yaml",
-    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/google.yaml",
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/telegram.yaml",
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/telegram.yaml",
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/steam.yaml",
@@ -379,7 +379,7 @@ test("sources.json removes domestic AI routing while preserving provider provena
     "https://raw.githubusercontent.com/yuanv4/clash-rules/release/custom/foreign.txt",
   ]);
   assert.deepEqual(foreignServicesProvider.inputs.map((input) => input.inputFormat), [
-    "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "raw-list",
+    "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "raw-list",
   ]);
   assert.equal(foreignServicesProvider.inputs.at(-1).sourceRepository, "https://github.com/yuanv4/clash-rules");
   assert.equal(foreignServicesProvider.inputs.at(-1).license.id, "MIT");
@@ -404,10 +404,10 @@ test("sources.json removes domestic AI routing while preserving provider provena
   assert.ok(directRendered.includes("# Source 2 [SukkaLab/ruleset.skk.moe]:"));
   const foreignServicesRendered = renderYaml(foreignServicesProvider, []);
   assert.ok(foreignServicesRendered.includes("# Source 1 [MetaCubeX/meta-rules-dat]:"));
-  assert.ok(foreignServicesRendered.includes("# Source 8 [MetaCubeX/meta-rules-dat]:"));
+  assert.ok(foreignServicesRendered.includes("# Source 7 [MetaCubeX/meta-rules-dat]:"));
   assert.ok(foreignServicesRendered.includes("geo/geosite/geolocation-!cn.yaml"));
-  assert.ok(foreignServicesRendered.includes("# Source 10 [yuanv4/clash-rules]: https://github.com/yuanv4/clash-rules (https://raw.githubusercontent.com/yuanv4/clash-rules/release/custom/foreign.txt)"));
-  assert.ok(foreignServicesRendered.includes("# License 10 [yuanv4/clash-rules]: MIT (https://spdx.org/licenses/MIT.html)"));
+  assert.ok(foreignServicesRendered.includes("# Source 8 [yuanv4/clash-rules]: https://github.com/yuanv4/clash-rules (https://raw.githubusercontent.com/yuanv4/clash-rules/release/custom/foreign.txt)"));
+  assert.ok(foreignServicesRendered.includes("# License 8 [yuanv4/clash-rules]: MIT (https://spdx.org/licenses/MIT.html)"));
 });
 
 test("merges inputs with first-occurrence canonical deduplication", () => {

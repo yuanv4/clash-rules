@@ -154,12 +154,20 @@ test("AI and Hong Kong filters and rule priorities follow routing requirements",
   const result = run(renderFlClashScript({ source, tailscaleMode: "both" }), sample());
   const group = (name) => result["proxy-groups"].find((g) => g.name === name);
   const selected = (g, name) => new RegExp(g.filter.replace(/^\(\?i\)/, ""), "i").test(name) && !new RegExp(g["exclude-filter"].replace(/^\(\?i\)/, ""), "i").test(name);
-  for (const name of ["🤖 通用 AI", "✨ Gemini"]) {
+  for (const name of ["🤖 通用 AI", "✨ Google / Gemini"]) {
     const g = group(name);
     assert.equal(g.type, name === "🤖 通用 AI" ? "url-test" : "select");
-    for (const node of ["US01", "JP01", "SG01"]) assert.ok(selected(g, node));
-    for (const node of ["HK01-US", "MO01-SG01", "TAILSCALE"]) assert.ok(!selected(g, node));
+    for (const node of ["US01", "USA 02", "美国 03", "🇺🇸 04"]) assert.ok(selected(g, node), node);
+    for (const node of ["HK01-US", "MO01-SG01", "美国 剩余流量", "TAILSCALE", "TAILSCALE-DIRECT"]) assert.ok(!selected(g, node), node);
   }
+  const google = group("✨ Google / Gemini");
+  for (const node of ["JP01", "SG01", "日本 02", "新加坡 02"]) assert.ok(!selected(google, node), node);
+  for (const node of ["JP01", "SG01", "日本 02", "新加坡 02"]) assert.ok(selected(group("🤖 通用 AI"), node), node);
+  assert.equal(google.url, "https://gemini.google.com/app");
+  assert.equal(google["empty-fallback"], "REJECT");
+  assert.equal(google["include-all"], true);
+  assert.equal(result["rule-providers"].gemini.url, `${source.release_base_url}/rules/gemini.yaml`);
+  assert.ok(result.rules.includes("RULE-SET,gemini,✨ Google / Gemini,no-resolve"));
   assert.equal(group("Anthropic"), undefined);
   assert.equal(Object.hasOwn(result["rule-providers"], "anthropic"), false);
   assert.equal(result.rules.some((rule) => rule.startsWith("RULE-SET,anthropic,")), false);
@@ -167,6 +175,8 @@ test("AI and Hong Kong filters and rule priorities follow routing requirements",
   for (const node of ["HK01", "香港 02", "Hong Kong 03", "🇭🇰 04", "HKG05", "HK trusted", "HK August"]) assert.ok(selected(auto, node), node);
   for (const node of ["JP01", "TW01", "MO01", "KR01", "CN01", "HK01-US", "HK01-JP01", "JP01-SG01", "香港中转-美国01", "US01-HK01", "香港 剩余流量", "TAILSCALE", "TAILSCALE-DIRECT"]) assert.ok(!selected(auto, node), node);
   const ruleIndex = (name) => result.rules.findIndex((rule) => rule.startsWith(`RULE-SET,${name},`));
+  assert.ok(ruleIndex("adult_content") < ruleIndex("gemini"));
+  assert.ok(ruleIndex("gemini") >= 0 && ruleIndex("ai") >= 0);
   assert.ok(ruleIndex("gemini") < ruleIndex("ai"));
   assert.ok(ruleIndex("ai") < ruleIndex("foreign_services"));
   assert.equal(group("🇨🇳 国内服务")["default-selected"], "DIRECT");

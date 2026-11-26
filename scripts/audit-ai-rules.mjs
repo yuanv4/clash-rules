@@ -100,7 +100,7 @@ const main = async () => {
   const dedicatedRules = new Set(rules.filter(({ name }) => name !== "ai").flatMap(({ rules }) => rules.map((rule) => JSON.stringify(rule))));
   const unshadowedNonDomainRules = rules.find(({ name }) => name === "ai").rules.filter((rule) => !rule.type.startsWith("DOMAIN") && !dedicatedRules.has(JSON.stringify(rule)));
   console.log(JSON.stringify({
-    scope: "First matching domain rule among Gemini and general AI providers. Excludes earlier blocking rules, IP, process, DNS, and live connectivity checks. A null target means these AI providers did not match the probe domain.",
+    scope: "Domain checks report the first match among the Google / Gemini and general AI providers only. They exclude earlier rules, IP, process, DNS, and live connectivity. A null target means neither checked provider matched the probe domain.",
     providerOrder: providers.map(({ name }) => name),
     domainChecks,
     processChecks,

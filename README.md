@@ -12,7 +12,7 @@
 1. 在 FlClash 中导入机场提供的完整配置订阅，并选中该配置。
 2. 从下表选择一个脚本，通过 URL 导入 FlClash 的脚本列表。
 3. 在这份官方订阅的扩展设置中绑定脚本，并使用规则模式。
-4. 查看最终配置，确认官方 DNS、hosts 和节点仍在，分流规则已换成项目规则，并出现 `🤖 通用 AI`、`✨ Gemini` 等项目分组。
+4. 查看最终配置，确认官方 DNS、hosts 和节点仍在，分流规则已换成项目规则，并出现 `🤖 通用 AI`、`✨ Google / Gemini` 等项目分组。
 
 以下链接在新的发布流程成功后可用。脚本是扩展文件，不能作为机场订阅导入。
 
@@ -40,11 +40,11 @@
 
 ## 分流行为
 
-项目规则默认拦截广告和成人内容，国内服务组默认直连，国外服务组默认使用自动选择。`🤖 通用 AI` 和 `✨ Gemini` 共用美国、日本、新加坡候选地区。通用 AI 自动测速，Gemini 手动选择节点；没有候选节点时使用 `REJECT`。
+项目规则默认拦截广告和成人内容，国内服务组默认直连，国外服务组默认使用自动选择。`🤖 通用 AI` 从美国、日本、新加坡节点中自动测速。`✨ Google / Gemini` 从美国节点中手动选择。Google / Gemini 没有符合条件的美国节点时使用 `REJECT`，通用 AI 没有候选节点时也使用 `REJECT`。
 
 项目代理组按规则首次匹配顺序排列，自动选择组置前，漏网组置后，Tailscale 组仅在相应版本中出现。自动选择按节点名称保守筛选香港；同时带已知非香港地区标签的节点会被排除，无匹配节点时使用 `REJECT`。名称标签不能证明真实出口位置。项目 Tailscale 节点不会进入业务节点组。
 
-Gemini 合并 MetaCubeX `google-gemini` 与 VPSDance `google-ai`，优先于通用 AI 和国外服务。开发服务并入国外服务，OpenAI 与 Anthropic 并入通用 AI，保留对应域名、进程和网络规则。详见 [AI 分流范围](docs/ai-routing.md) 和 [自定义规则](docs/custom-rules.md)。
+Google 与 Gemini 共用手动组，合并 MetaCubeX `google-gemini`、VPSDance `google-ai` 及 MetaCubeX Google 域名和 IP 规则。该组优先于通用 AI 和国外服务，广告、成人内容等前置规则仍然优先。开发服务并入国外服务，OpenAI 与 Anthropic 并入通用 AI，保留对应域名、进程和网络规则。详见 [AI 分流范围](docs/ai-routing.md) 和 [自定义规则](docs/custom-rules.md)。
 
 ## 构建与发布
 
