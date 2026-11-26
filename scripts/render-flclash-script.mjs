@@ -88,7 +88,14 @@ function applyRoutingExtension(config, extension) {
   const result = { ...config, "rule-providers": { ...extension.ruleProviders }, "proxy-groups": [...extension.groups], rules: [...extension.rules] };
   const nodes = [];
   if (extension.tailscaleMode === "interface" || extension.tailscaleMode === "both") nodes.push({ name: prefix + "TAILSCALE-DIRECT", type: "direct", "interface-name": "Tailscale" });
-  if (extension.tailscaleMode === "tsnet" || extension.tailscaleMode === "both") nodes.push({ name: prefix + "TAILSCALE", type: "tailscale", "state-dir": "./tailscale", udp: true, "accept-routes": true, "ip-version": "ipv4-prefer" });
+  if (extension.tailscaleMode === "tsnet" || extension.tailscaleMode === "both") {
+    nodes.push({ name: prefix + "TAILSCALE", type: "tailscale", "state-dir": "./tailscale", udp: true, "accept-routes": true, "ip-version": "ipv4-prefer" });
+    const dns = config.dns;
+    if (mapping(dns) && dns["enhanced-mode"] === "fake-ip" && (!Object.prototype.hasOwnProperty.call(dns, "fake-ip-filter-mode") || dns["fake-ip-filter-mode"] === "blacklist") && (!Object.prototype.hasOwnProperty.call(dns, "fake-ip-filter") || Array.isArray(dns["fake-ip-filter"]))) {
+      const filter = dns["fake-ip-filter"] || [];
+      if (!filter.includes("controlplane.tailscale.com")) result.dns = { ...dns, "fake-ip-filter": [...filter, "controlplane.tailscale.com"] };
+    }
+  }
   if (Object.prototype.hasOwnProperty.call(config, "proxies") || nodes.length) result.proxies = [...proxies.filter((proxy) => !owned(proxy.name)), ...nodes];
   return result;
 }

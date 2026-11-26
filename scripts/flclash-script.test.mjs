@@ -48,6 +48,42 @@ for (const [filename, mode] of Object.entries(files)) {
   });
 }
 
+test("fake-ip DNS gains only the control-plane exception for embedded modes", () => {
+  for (const mode of Object.values(files)) {
+    const script = renderFlClashScript({ source, tailscaleMode: mode });
+    const input = sample();
+    input.dns = { ...input.dns, "enhanced-mode": "fake-ip", "fake-ip-filter-mode": "blacklist", "fake-ip-filter": ["duplicate.test", "duplicate.test"] };
+    const original = structuredClone(input);
+    const result = run(script, input);
+    const embedded = mode === "tsnet" || mode === "both";
+    assert.deepEqual(result.dns, { ...original.dns, "fake-ip-filter": embedded ? ["duplicate.test", "duplicate.test", "controlplane.tailscale.com"] : original.dns["fake-ip-filter"] });
+    assert.deepEqual(input, original);
+    assert.deepEqual(run(script, result), result);
+    const node = result.proxies.find(({ name }) => name === `${prefix}TAILSCALE`);
+    if (node) { assert.equal(Object.hasOwn(node, "auth-key"), false); assert.equal(Object.hasOwn(node, "dialer-proxy"), false); }
+  }
+});
+
+test("embedded modes preserve existing and unsupported DNS shapes", () => {
+  for (const mode of ["tsnet", "both"]) {
+    const script = renderFlClashScript({ source, tailscaleMode: mode });
+    const existing = { "enhanced-mode": "fake-ip", "fake-ip-filter": ["controlplane.tailscale.com", "repeat", "repeat"] };
+    const main = vm.runInNewContext(`${script}; main`);
+    assert.equal(main({ dns: existing }).dns, existing);
+    for (const dns of [existing, null, [], "dns", { "enhanced-mode": "redir-host", "fake-ip-filter": ["example.test"] }, { "enhanced-mode": "fake-ip", "fake-ip-filter-mode": "whitelist", "fake-ip-filter": [] }, { "enhanced-mode": "fake-ip", "fake-ip-filter": "invalid" }, { "enhanced-mode": "fake-ip", "fake-ip-filter": null }]) {
+      const input = { ...sample(), dns };
+      const original = structuredClone(input);
+      assert.deepEqual(run(script, input).dns, dns);
+      assert.deepEqual(input, original);
+    }
+    const input = sample();
+    delete input.dns;
+    assert.equal(Object.hasOwn(run(script, input), "dns"), false);
+    input.dns = { "enhanced-mode": "fake-ip", "proxy-server-nameserver": ["127.0.0.1:7874"] };
+    assert.deepEqual(run(script, input).dns, { ...input.dns, "fake-ip-filter": ["controlplane.tailscale.com"] });
+  }
+});
+
 test("mode switches replace project nodes and preserve absent proxies in off mode", () => {
   const scripts = Object.fromEntries(Object.values(files).map((mode) => [mode, renderFlClashScript({ source, tailscaleMode: mode })]));
   const bare = run(scripts.off, {});

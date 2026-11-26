@@ -34,11 +34,14 @@
 | `rule-providers` | 完整替换为项目规则集 |
 | `proxy-groups` | 完整替换为项目代理组 |
 | `proxies` | 在相应版本中加入 Tailscale 节点，保留机场原节点；切换版本时移除本项目先前生成的节点 |
+| `dns` | 内嵌 tsnet 版本在 fake-ip 黑名单过滤时追加控制域例外，其他值保持原样 |
 | 其他字段 | 保留官方配置的原值及字段存在状态 |
 
-脚本不设置或改写 `dns`、`hosts`、`tun`、`ipv6`、`sniffer`、端口、`profile`、`proxy-providers` 或机场自定义字段。机场原分流规则、代理组和规则集被替换。
+内嵌 tsnet 版本在 `enhanced-mode` 为 `fake-ip`，且 `fake-ip-filter-mode` 为 `blacklist` 或省略时，将 `controlplane.tailscale.com` 追加到 `fake-ip-filter`。列表不存在时会创建列表，已有该域名时不重复添加。过滤列表不是数组或过滤模式不是黑名单时保持原样，需要自行核对 DNS 配置。
 
-如果官方 DNS 或节点配置通过 `#代理组`、`rule-set:` 或 `dialer-proxy` 等字段引用了机场原有条目，覆盖后需要核对这些依赖。脚本不会自动改写 DNS 或节点字段。
+除这一 DNS 例外外，脚本保留 `dns`、`hosts`、`tun`、`ipv6`、`sniffer`、端口、`profile`、`proxy-providers` 和机场自定义字段。机场原分流规则、代理组和规则集被替换。
+
+如果官方 DNS 或节点配置通过 `#代理组`、`rule-set:` 或 `dialer-proxy` 等字段引用了机场原有条目，覆盖后需要核对这些依赖。脚本不会自动修复这些引用。
 
 代理组使用 `🤖 通用 AI`、`Anthropic` 等原始名称，不添加项目前缀。只有项目节点和规则集键使用 `[clash-rules] ` 前缀，以标识项目条目；不要给自己的节点使用这个前缀。
 
@@ -59,14 +62,15 @@ Android 常规单用户环境下，系统 Tailscale 与 FlClash 会争用 VPN �
 Android 和同时提供两种出口的版本生成 `[clash-rules] TAILSCALE` 节点。节点不写入 `auth-key`，使用本机的 `./tailscale` 状态目录保存登录状态。
 
 1. 绑定包含内嵌节点的脚本，应用配置。
-2. Android 版本在项目 Tailscale 组使用内嵌节点；同时提供两种方式的版本需要在组内选中它。
-3. 访问一个 Tailnet 内的 `100.x` IP，触发内嵌节点连接。
-4. 打开 FlClash 内核日志，找到 Tailscale 的交互式登录 URL，在浏览器中完成授权。
-5. 再次访问该 `100.x` IP，并在 Tailscale 管理后台核对设备状态。
+2. 在 FlClash 中开启日志收集，并将日志级别设为 Info 或 Debug。
+3. 在项目 Tailscale 组选择内嵌节点。
+4. 用 HTTP 或 TCP 访问 Tailnet 内真实设备的 `100.x` IP，触发内嵌节点连接。
+5. 查看内核日志中带 `[Tailscale]` 的内部日志。如果出现交互式登录 URL，在浏览器中完成授权。
+6. 再次访问该 `100.x` IP，并在 Tailscale 管理后台核对设备状态。
 
-Mihomo 的 Tailscale 出站按需连接，应用配置本身不保证立即开始登录。首次连接可能需要等待。文档依据为 [Mihomo Tailscale 出站](https://wiki.metacubex.one/config/proxies/tailscale/)，Android 日志展示和授权流程仍需在你的客户端验证。
+Mihomo 的 Tailscale 出站按需连接，应用配置本身不保证立即开始登录。已有登录状态时不保证出现新的登录 URL。文档依据为 [Mihomo Tailscale 出站](https://wiki.metacubex.one/config/proxies/tailscale/)。Android 16 和 FlClash 0.9.4 的实机验证使用已有登录状态，确认了 Tailnet 连通，未验证全新 Android 首次授权流程。
 
-脚本添加 `100.64.0.0/10`、`100.100.100.100/32` 和 `ts.net` 对应路由，并将项目 Tailscale 节点排除在业务自动选择组之外。脚本不修改 DNS；这些路由本身不保证 Tailnet 设备名能够解析，先用 IP 验证链路。
+代理专用 DNS 指向本机 fake-ip 监听时，Tailscale 控制域可能被解析为无法直连的 fake IP。上述黑名单例外使该控制域使用真实地址。脚本添加 `100.64.0.0/10`、`100.100.100.100/32` 和 `ts.net` 对应路由，并将项目 Tailscale 节点排除在业务自动选择组之外。这些路由不保证 Tailnet 设备名能够解析，先用 IP 验证链路。
 
 ## 更新的三个来源
 
@@ -90,7 +94,7 @@ Amy 等要求手动开启访问窗口、限制出口 IP 的订阅，更新官方
 
 1. 保留旧配置，另外添加官方完整订阅。
 2. 导入并绑定新的公开脚本。
-3. 对照原始官方配置，核对 DNS 的整个映射、hosts 和节点。
+3. 对照原始官方配置，核对 DNS 映射、上述控制域例外、hosts 和节点。
 4. 验证 AI 分流、默认出口及所需的 Tailscale 链路。
 5. 确认迁移完成后，再单独停用线上 Worker、KV 和相关凭据。
 
@@ -98,7 +102,7 @@ Amy 等要求手动开启访问窗口、限制出口 IP 的订阅，更新官方
 
 ## 验收清单
 
-- 官方 DNS 映射、hosts、TUN、IPv6、嗅探、端口和自定义字段保持原值。
+- 除内嵌 tsnet 版本的上述控制域例外外，官方 DNS 映射、hosts、TUN、IPv6、嗅探、端口和自定义字段保持原值。
 - 官方节点和节点提供商仍保留，代理组及规则集已换成项目定义。
 - 官方 `rules` 被项目规则替换，项目 `MATCH` 位于最后。
 - 通用 AI 自动选择，Anthropic 和 Gemini 可分别手动选择。
