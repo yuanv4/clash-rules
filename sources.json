@@ -1,6 +1,6 @@
 {
   "release_base_url": "https://raw.githubusercontent.com/yuanv4/clash-rules/release",
-  "proxy_group": "♻️ 自动选择",
+  "proxy_group": "自动选择",
   "inputs": [
     {
       "name": "SukkaLab/ruleset.skk.moe",
@@ -65,14 +65,14 @@
     },
     {
       "name": "reject_domainset",
-      "target": "🛑 广告过滤",
+      "target": "广告过滤",
       "behavior": "domain",
       "no_resolve": true,
       "inputs": [{"input": "SukkaLab/ruleset.skk.moe", "path": "Clash/domainset/reject.txt", "input_format": "domain-text"}]
     },
     {
       "name": "reject",
-      "target": "🛑 广告过滤",
+      "target": "广告过滤",
       "no_resolve": true,
       "inputs": [
         {"input": "SukkaLab/ruleset.skk.moe", "path": "Clash/non_ip/reject.txt"},
@@ -82,7 +82,7 @@
     },
     {
       "name": "adult_content",
-      "target": "🔞 成人内容",
+      "target": "成人内容",
       "no_resolve": true,
       "inputs": [
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/category-porn.yaml"}
@@ -90,7 +90,7 @@
     },
     {
       "name": "gemini",
-      "target": "✨ Google / Gemini",
+      "target": "Google / Gemini",
       "no_resolve": true,
       "inputs": [
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/google-gemini.yaml"},
@@ -101,7 +101,7 @@
     },
     {
       "name": "openai",
-      "target": "🧠 OpenAI",
+      "target": "OpenAI",
       "no_resolve": true,
       "inputs": [
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/openai.yaml"},
@@ -110,7 +110,7 @@
     },
     {
       "name": "anthropic",
-      "target": "🧩 Anthropic",
+      "target": "Anthropic",
       "no_resolve": true,
       "inputs": [
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/anthropic.yaml"},
@@ -119,7 +119,7 @@
     },
     {
       "name": "ai",
-      "target": "🤖 通用 AI",
+      "target": "通用 AI",
       "no_resolve": true,
       "inputs": [
         {"input": "VPSDance/ai-proxy-rules", "path": "rules/clash/global.yaml"},
@@ -129,7 +129,7 @@
     },
     {
       "name": "streaming_services",
-      "target": "🎬 流媒体服务",
+      "target": "流媒体服务",
       "no_resolve": true,
       "inputs": [
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/netflix.yaml"},
@@ -140,7 +140,7 @@
     },
     {
       "name": "cn_services",
-      "target": "🇨🇳 国内服务",
+      "target": "国内服务",
       "no_resolve": true,
       "inputs": [
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/apple-cn.yaml"},
@@ -151,7 +151,7 @@
     },
     {
       "name": "foreign_services",
-      "target": "🌐 国外服务",
+      "target": "国外服务",
       "no_resolve": true,
       "inputs": [
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/telegram.yaml"},

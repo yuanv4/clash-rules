@@ -78,20 +78,20 @@ const main = async () => {
     target: rules.find((provider) => provider.rules.some((rule) => rule.type === "PROCESS-NAME" && rule.value === process))?.target ?? null,
   }));
   for (const check of domainChecks.filter(({ service }) => ["OpenAI", "OpenAI API", "Codex", "Sora", "Claude", "Anthropic API"].includes(service))) {
-    assert.equal(check.target, ["Claude", "Anthropic API"].includes(check.service) ? "🧩 Anthropic" : "🧠 OpenAI", check.service);
+    assert.equal(check.target, ["Claude", "Anthropic API"].includes(check.service) ? "Anthropic" : "OpenAI", check.service);
   }
   for (const check of processChecks) {
-    assert.equal(check.target, ["Claude", "Claude.exe", "claude", "claude.exe", "cowork-svc.exe"].includes(check.process) ? "🧩 Anthropic" : "🧠 OpenAI", check.process);
+    assert.equal(check.target, ["Claude", "Claude.exe", "claude", "claude.exe", "cowork-svc.exe"].includes(check.process) ? "Anthropic" : "OpenAI", check.process);
   }
   const networkChecks = [
-    ["IP-CIDR", "199.47.142.0/23", "🧠 OpenAI"],
-    ["IP-CIDR", "24.199.123.28/32", "🧠 OpenAI"],
-    ["IP-CIDR", "64.23.132.171/32", "🧠 OpenAI"],
-    ["IP-CIDR6", "2604:f20::/32", "🧠 OpenAI"],
-    ["IP-ASN", "401518", "🧠 OpenAI"],
-    ["IP-CIDR", "160.79.104.0/21", "🧩 Anthropic"],
-    ["IP-CIDR6", "2607:6bc0::/32", "🧩 Anthropic"],
-    ["IP-ASN", "399358", "🧩 Anthropic"],
+    ["IP-CIDR", "199.47.142.0/23", "OpenAI"],
+    ["IP-CIDR", "24.199.123.28/32", "OpenAI"],
+    ["IP-CIDR", "64.23.132.171/32", "OpenAI"],
+    ["IP-CIDR6", "2604:f20::/32", "OpenAI"],
+    ["IP-ASN", "401518", "OpenAI"],
+    ["IP-CIDR", "160.79.104.0/21", "Anthropic"],
+    ["IP-CIDR6", "2607:6bc0::/32", "Anthropic"],
+    ["IP-ASN", "399358", "Anthropic"],
   ].map(([type, value, expected]) => {
     const target = rules.find((provider) => provider.rules.some((rule) => rule.type === type && rule.value === value))?.target ?? null;
     assert.equal(target, expected, `${type},${value}`);

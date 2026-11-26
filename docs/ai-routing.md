@@ -1,13 +1,13 @@
 # AI 分流范围
 
-扩展脚本按节点名称筛选候选地区。`✨ Google / Gemini` 使用美国节点，`🤖 通用 AI` 使用美国、日本、新加坡节点。`🧠 OpenAI` 和 `🧩 Anthropic` 使用台湾、日本、新加坡节点，同时排除带美国标签的混合名称。各 AI 组排除港澳标签、订阅信息和项目 Tailscale 节点。节点名不能证明实际出口地区或服务可用性。客户端直接显示表中的组名，不添加项目前缀。
+扩展脚本按节点名称筛选候选地区。`Google / Gemini` 使用美国节点，`通用 AI` 使用美国、日本、新加坡节点。`OpenAI` 和 `Anthropic` 使用台湾、日本、新加坡节点，同时排除带美国标签的混合名称。各 AI 组排除港澳标签、订阅信息和项目 Tailscale 节点。节点名不能证明实际出口地区或服务可用性。客户端直接显示表中的组名，不添加项目前缀。
 
 | 代理组 | 选择方式 | 主要范围 |
 | --- | --- | --- |
-| `✨ Google / Gemini` | 手动固定节点 | Google 域名和 IP、Gemini、AI Studio、NotebookLM，以及上游覆盖的其他 Google AI 服务和 Antigravity |
-| `🧠 OpenAI` | 自动测速选择 | ChatGPT、OpenAI API、Codex、Sora |
-| `🧩 Anthropic` | 手动固定节点 | Claude、Anthropic API、Claude Code、Cowork |
-| `🤖 通用 AI` | 自动测速选择 | 其余上游 AI 服务 |
+| `Google / Gemini` | 手动固定节点 | Google 域名和 IP、Gemini、AI Studio、NotebookLM，以及上游覆盖的其他 Google AI 服务和 Antigravity |
+| `OpenAI` | 自动测速选择 | ChatGPT、OpenAI API、Codex、Sora |
+| `Anthropic` | 手动固定节点 | Claude、Anthropic API、Claude Code、Cowork |
+| `通用 AI` | 自动测速选择 | 其余上游 AI 服务 |
 
 各 AI 组没有符合条件的节点时使用 `REJECT`。客户端支持进程识别时，进程规则覆盖对应应用的连接。
 

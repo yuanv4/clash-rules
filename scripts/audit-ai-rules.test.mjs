@@ -35,11 +35,11 @@ test("audit CLI reports dedicated AI routes and rejects missing OpenAI and Anthr
   assert.equal(result.status, 0, result.stderr);
   const report = JSON.parse(result.stdout);
   assert.deepEqual(report.providerOrder, ["gemini", "openai", "anthropic", "ai"]);
-  for (const [service, target] of [["OpenAI", "🧠 OpenAI"], ["Codex", "🧠 OpenAI"], ["Claude", "🧩 Anthropic"], ["Anthropic API", "🧩 Anthropic"], ["Perplexity", "🤖 通用 AI"], ["Gemini", "✨ Google / Gemini"]]) {
+  for (const [service, target] of [["OpenAI", "OpenAI"], ["Codex", "OpenAI"], ["Claude", "Anthropic"], ["Anthropic API", "Anthropic"], ["Perplexity", "通用 AI"], ["Gemini", "Google / Gemini"]]) {
     assert.equal(report.domainChecks.find((check) => check.service === service).target, target, service);
   }
-  assert.equal(report.processChecks.find(({ process }) => process === "Codex").target, "🧠 OpenAI");
-  assert.equal(report.processChecks.find(({ process }) => process === "Claude").target, "🧩 Anthropic");
+  assert.equal(report.processChecks.find(({ process }) => process === "Codex").target, "OpenAI");
+  assert.equal(report.processChecks.find(({ process }) => process === "Claude").target, "Anthropic");
   assert.ok(report.generalAiRules.some((rule) => rule.type === "PROCESS-NAME" && rule.value === "Codex"));
   assert.ok(report.generalAiRules.some((rule) => rule.type === "PROCESS-NAME" && rule.value === "Claude"));
   assert.ok(!Object.hasOwn(report, "internationalAiRules"));

@@ -13,16 +13,16 @@ import { renderFlClashScript } from "./render-flclash-script.mjs";
 
 const source = JSON.parse(await readFile(new URL("../sources.json", import.meta.url), "utf8"));
 const generated = vm.runInNewContext(`${renderFlClashScript({ source })}; main`);
-const aiGroups = ["🤖 通用 AI", "✨ Google / Gemini", "🧠 OpenAI", "🧩 Anthropic"];
-const dedicatedGroups = ["🧠 OpenAI", "🧩 Anthropic"];
+const aiGroups = ["通用 AI", "Google / Gemini", "OpenAI", "Anthropic"];
+const dedicatedGroups = ["OpenAI", "Anthropic"];
 const cases = [
   { names: ["TW01", "JP01", "SG01", "US01", "JP01-US01", "HK01-JP01", "MO01-SG01"], groups: dedicatedGroups, expected: ["JP01", "SG01", "TW01"] },
   { names: ["台灣 01", "日本 01", "新加坡 01", "🇹🇼 01"], provider: ["TWN 01", "JPN 01", "SGP 01", "Taipei 01", "🇯🇵 01", "🇸🇬 01"], groups: dedicatedGroups, expected: ["JPN 01", "SGP 01", "TWN 01", "Taipei 01", "台灣 01", "日本 01", "新加坡 01", "🇯🇵 01", "🇸🇬 01", "🇹🇼 01"].sort() },
   { names: ["US01", "JP01-US01"], provider: ["台湾 美国", "🇸🇬 🇺🇸"], groups: dedicatedGroups, expected: ["REJECT"] },
-  { names: ["US01", "JP01", "SG01", "HK01-US", "MO01-SG01", "TW01"], groups: ["🤖 通用 AI"], expected: ["JP01", "SG01", "US01"] },
-  { names: ["US01", "JP01", "SG01", "HK01-US", "MO01-SG01", "TW01"], groups: ["✨ Google / Gemini"], expected: ["US01"] },
-  { names: ["JP01", "SG01"], groups: ["✨ Google / Gemini"], expected: ["REJECT"] },
-  { names: ["JP01", "SG01"], groups: ["🤖 通用 AI"], expected: ["JP01", "SG01"] },
+  { names: ["US01", "JP01", "SG01", "HK01-US", "MO01-SG01", "TW01"], groups: ["通用 AI"], expected: ["JP01", "SG01", "US01"] },
+  { names: ["US01", "JP01", "SG01", "HK01-US", "MO01-SG01", "TW01"], groups: ["Google / Gemini"], expected: ["US01"] },
+  { names: ["JP01", "SG01"], groups: ["Google / Gemini"], expected: ["REJECT"] },
+  { names: ["JP01", "SG01"], groups: ["通用 AI"], expected: ["JP01", "SG01"] },
   { names: ["DE01", "HK01-US"], groups: aiGroups, expected: ["REJECT"] },
   { names: ["HK01", "香港 02", "MO01", "香港中转-美国01", "HK01-SG01", "香港 剩余流量", "TAILSCALE"], provider: ["Hong Kong 03", "HKG04", "TW01", "JP01", "US01-HK01", "HK01-JP01", "新加坡-日本01", "HK01-UK01", "到期时间 2027", "TAILSCALE-DIRECT"], groups: [source.proxy_group], expected: ["HK01", "香港 02", "MO01", "香港中转-美国01", "HK01-SG01", "Hong Kong 03", "HKG04", "TW01", "JP01", "US01-HK01", "HK01-JP01", "新加坡-日本01", "HK01-UK01"].sort() },
   { names: ["US01"], provider: ["SG01"], groups: [source.proxy_group], expected: ["SG01", "US01"] },
