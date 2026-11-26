@@ -54,6 +54,7 @@ for (const legacyProviders of [[], ["dev_services"], ["openai"], ["anthropic"], 
       await mkdir(path.join(checkout, "dist", "rules"), { recursive: true });
       const publishedText = "payload:\n  - DOMAIN-SUFFIX,new.test\n";
       await writeFile(path.join(checkout, "dist", "rules", "foreign_services.yaml"), publishedText);
+      for (const provider of ["openai", "anthropic"]) await writeFile(path.join(checkout, "dist", "rules", `${provider}.yaml`), publishedText);
       const scriptDir = path.join(checkout, "dist", "scripts");
       run(process.execPath, [fileURLToPath(new URL("./render-flclash-script.mjs", import.meta.url)), "--output-dir", scriptDir], checkout);
       const generatedScripts = Object.fromEntries(await Promise.all(scriptNames.map(async (name) => [name, (await readFile(path.join(scriptDir, name), "utf8")).trim()])));
@@ -62,9 +63,10 @@ for (const legacyProviders of [[], ["dev_services"], ["openai"], ["anthropic"], 
       const published = run("git", ["--git-dir", origin, "show", "release:rules/foreign_services.yaml"], root);
       assert.equal(published, publishedText.trim());
       const files = run("git", ["--git-dir", origin, "ls-tree", "-r", "--name-only", "release"], root).split("\n");
-      assert.deepEqual(files.sort(), ["custom/foreign.txt", ...legacyProviders.map((provider) => `rules/${provider}.yaml`), "rules/foreign_services.yaml", ...scriptNames.map((name) => `scripts/${name}`)].sort());
+      assert.deepEqual(files.sort(), ["custom/foreign.txt", ...new Set([...legacyProviders, "openai", "anthropic"].map((provider) => `rules/${provider}.yaml`)), "rules/foreign_services.yaml", ...scriptNames.map((name) => `scripts/${name}`)].sort());
+      for (const provider of ["openai", "anthropic"]) assert.equal(run("git", ["--git-dir", origin, "show", `release:rules/${provider}.yaml`], root), publishedText.trim());
       for (const name of scriptNames) assert.equal(run("git", ["--git-dir", origin, "show", `release:scripts/${name}`], root), generatedScripts[name]);
-      for (const provider of legacyProviders) {
+      for (const provider of legacyProviders.filter((name) => name === "dev_services")) {
         assert.equal(run("git", ["--git-dir", origin, "show", `release:rules/${provider}.yaml`], root), legacyTexts[provider].trim());
       }
     } finally {

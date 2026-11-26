@@ -40,11 +40,13 @@
 
 ## 分流行为
 
-项目规则默认拦截广告和成人内容，国内服务组默认直连，国外服务组默认使用自动选择。`🤖 通用 AI` 从美国、日本、新加坡节点中自动测速。`✨ Google / Gemini` 从美国节点中手动选择。Google / Gemini 没有符合条件的美国节点时使用 `REJECT`，通用 AI 没有候选节点时也使用 `REJECT`。
+项目规则默认拦截广告和成人内容，国内服务组默认直连，国外服务组默认使用自动选择。`🤖 通用 AI` 从美国、日本、新加坡节点中自动测速。`✨ Google / Gemini` 从美国节点中手动选择。`🧠 OpenAI` 从台湾、日本、新加坡节点中自动测速，`🧩 Anthropic` 从同样地区的节点中手动选择。各 AI 组没有符合条件的节点时使用 `REJECT`。
 
 项目代理组按规则首次匹配顺序排列，自动选择组置前，漏网组置后，Tailscale 组仅在相应版本中出现。自动选择按节点名称保守筛选香港；同时带已知非香港地区标签的节点会被排除，无匹配节点时使用 `REJECT`。名称标签不能证明真实出口位置。项目 Tailscale 节点不会进入业务节点组。
 
-Google 与 Gemini 共用手动组，合并 MetaCubeX `google-gemini`、VPSDance `google-ai` 及 MetaCubeX Google 域名和 IP 规则。该组优先于通用 AI 和国外服务，广告、成人内容等前置规则仍然优先。开发服务并入国外服务，OpenAI 与 Anthropic 并入通用 AI，保留对应域名、进程和网络规则。详见 [AI 分流范围](docs/ai-routing.md) 和 [自定义规则](docs/custom-rules.md)。
+品牌组使用固定版本的 [Dashboard Icons](https://github.com/homarr-labs/dashboard-icons/tree/23fc02e7710a66e0c774989f6e78372e9b6c2e15/png)，功能组使用固定版本的 [Qure Color](https://github.com/Koolson/Qure/tree/b16b260625f873266f6a6a9b88710132774997b8/IconSet/Color)，以统一各自的图标风格。品牌图形由社区维护。图标映射更新并发布后，在 FlClash 同步扩展脚本。
+
+Google 与 Gemini 共用手动组，合并 MetaCubeX `google-gemini`、VPSDance `google-ai` 及 MetaCubeX Google 域名和 IP 规则。该组优先于通用 AI 和国外服务，广告、成人内容等前置规则仍然优先。OpenAI 与 Anthropic 各有专属域名、进程和网络规则，优先于通用 AI；开发服务并入国外服务。详见 [AI 分流范围](docs/ai-routing.md) 和 [自定义规则](docs/custom-rules.md)。
 
 ## 构建与发布
 

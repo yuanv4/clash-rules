@@ -7,6 +7,23 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const BUILTINS = new Set(["DIRECT", "REJECT", "REJECT-DROP", "PASS", "COMPATIBLE", "GLOBAL"]);
 const TEST_URL = "https://cp.cloudflare.com/generate_204";
+const QURE_ICON_BASE = "https://raw.githubusercontent.com/Koolson/Qure/b16b260625f873266f6a6a9b88710132774997b8/IconSet/Color";
+const DASHBOARD_ICON_BASE = "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/23fc02e7710a66e0c774989f6e78372e9b6c2e15/png";
+const GROUP_ICONS = {
+  "♻️ 自动选择": `${QURE_ICON_BASE}/Auto.png`,
+  "🛑 广告过滤": `${QURE_ICON_BASE}/Advertising.png`,
+  "🔞 成人内容": `${QURE_ICON_BASE}/Reject.png`,
+  "✨ Google / Gemini": `${DASHBOARD_ICON_BASE}/google.png`,
+  "🧠 OpenAI": `${DASHBOARD_ICON_BASE}/chatgpt.png`,
+  "🧩 Anthropic": `${DASHBOARD_ICON_BASE}/anthropic.png`,
+  "🤖 通用 AI": `${QURE_ICON_BASE}/AI.png`,
+  "🎬 流媒体服务": `${QURE_ICON_BASE}/Streaming.png`,
+  "🇨🇳 国内服务": `${QURE_ICON_BASE}/China.png`,
+  "🌐 国外服务": `${QURE_ICON_BASE}/Global.png`,
+  "🐟 漏网之鱼": `${QURE_ICON_BASE}/Final.png`,
+  Tailscale: `${DASHBOARD_ICON_BASE}/tailscale-light.png`,
+};
+const FALLBACK_GROUP_ICON = `${QURE_ICON_BASE}/Global.png`;
 const FAKE_NODE_ALT =
   "当前流量|剩余流量|距離下次重置|距离下次重置|到期时间|过期时间|套餐|官网|群组|订阅地址";
 const TAILSCALE_NODE_ALT = "^TAILSCALE(?:-DIRECT)?$";
@@ -42,7 +59,14 @@ const AI_REGION_PATTERN =
 const REGION_EXCLUDED_ALT =
   "🇭🇰|🇲🇴|香港|澳门|澳門|hong\\s*kong|macao|macau|(?:^|[^a-z])(?:hk|hkg|mo|mac)(?:$|[^a-z])";
 const REGION_EXCLUDE_PATTERN = `(?i)(?:${REGION_EXCLUDED_ALT}|${NODE_EXCLUDE_ALT})`;
-
+const DEDICATED_REGION_PATTERN = "(?i)(?:台湾|台灣|台北|日本|东京|東京|大阪|新加坡|狮城|獅城|taiwan|taipei|japan|tokyo|osaka|singapore|🇹🇼|🇯🇵|🇸🇬|(?:^|[^a-z])(?:tw|twn|jp|jpn|sg|sgp)(?:$|[^a-z]))";
+const DEDICATED_EXCLUDE_PATTERN = `(?i)(?:${REGION_EXCLUDED_ALT}|${NODE_EXCLUDE_ALT}|${US_REGION_ALT}|(?:^|[^a-z])america(?:$|[^a-z]))`;
+const AI_POLICIES = {
+  "✨ Google / Gemini": { type: "select", url: "https://gemini.google.com/app", filter: GOOGLE_REGION_PATTERN, "exclude-filter": REGION_EXCLUDE_PATTERN },
+  "🧠 OpenAI": { type: "url-test", url: "https://chatgpt.com/", filter: DEDICATED_REGION_PATTERN, "exclude-filter": DEDICATED_EXCLUDE_PATTERN, "expected-status": 200, interval: 90, timeout: 5000, tolerance: 50, lazy: false },
+  "🧩 Anthropic": { type: "select", url: "https://claude.ai/", filter: DEDICATED_REGION_PATTERN, "exclude-filter": DEDICATED_EXCLUDE_PATTERN },
+  "🤖 通用 AI": { type: "url-test", url: "https://chatgpt.com/", filter: AI_REGION_PATTERN, "exclude-filter": REGION_EXCLUDE_PATTERN, "expected-status": 200, interval: 90, timeout: 5000, tolerance: 50, lazy: false },
+};
 
 
 export function buildRoutingExtension(source, tailscaleMode = "off") {
@@ -63,9 +87,8 @@ export function buildRoutingExtension(source, tailscaleMode = "off") {
     if (BUILTINS.has(target) || target === source.proxy_group) continue;
     const name = target;
     if (target === "🛑 广告过滤" || target === "🔞 成人内容") groups.push({ name, type: "select", proxies: ["REJECT", "DIRECT"], "default-selected": "REJECT" });
-    else if (["✨ Google / Gemini", "🤖 通用 AI"].includes(target)) {
-      const general = target === "🤖 通用 AI";
-      groups.push({ name, type: general ? "url-test" : "select", url: general ? "https://chatgpt.com/" : "https://gemini.google.com/app", ...(general ? { "expected-status": 200, interval: 90, timeout: 5000, tolerance: 50, lazy: false } : {}), "include-all": true, filter: general ? AI_REGION_PATTERN : GOOGLE_REGION_PATTERN, "exclude-filter": REGION_EXCLUDE_PATTERN, "empty-fallback": "REJECT" });
+    else if (Object.hasOwn(AI_POLICIES, target)) {
+      groups.push({ name, ...AI_POLICIES[target], "include-all": true, "empty-fallback": "REJECT" });
     } else groups.push({ name, type: "select", proxies: ["DIRECT", auto], "default-selected": target === "🇨🇳 国内服务" ? "DIRECT" : auto });
   }
   for (const provider of source.providers) {
@@ -76,7 +99,7 @@ export function buildRoutingExtension(source, tailscaleMode = "off") {
   }
   groups.push({ name: "🐟 漏网之鱼", type: "select", proxies: ["DIRECT", auto], "default-selected": "DIRECT" });
   rules.push("MATCH,🐟 漏网之鱼");
-  return { ruleProviders, groups, rules, tailscaleMode };
+  return { ruleProviders, groups: groups.map((group) => ({ ...group, icon: Object.hasOwn(GROUP_ICONS, group.name) ? GROUP_ICONS[group.name] : FALLBACK_GROUP_ICON })), rules, tailscaleMode };
 }
 
 function applyRoutingExtension(config, extension) {

@@ -41,16 +41,16 @@ test("published provider check blocks stale foreign rules before developer merge
 
 test("published provider check rejects a stale filtered artifact after removing its filter", async () => {
   const unfilteredSource = structuredClone(source);
-  delete unfilteredSource.providers.find(({ name }) => name === "ai").inputs[1].include_rule_types;
-  await assert.rejects(verifyPublishedRules(unfilteredSource, reader(artifacts())), /provider ai .*configured sources/);
+  delete unfilteredSource.providers.find(({ name }) => name === "openai").inputs[1].include_rule_types;
+  await assert.rejects(verifyPublishedRules(unfilteredSource, reader(artifacts())), /provider openai .*configured sources/);
 });
 
 test("published provider check rejects stale type filters and empty payloads", async () => {
   const files = artifacts();
-  const url = urlFor("ai");
+  const url = urlFor("anthropic");
   files.set(url, files.get(url).replace(/^# Included rule types.*\n/mu, ""));
-  await assert.rejects(verifyPublishedRules(source, reader(files)), /ai.*configured sources/);
+  await assert.rejects(verifyPublishedRules(source, reader(files)), /anthropic.*configured sources/);
   const empty = artifacts();
-  empty.set(url, renderYaml(config.providers.find(({ name }) => name === "ai"), []).replace("payload:\n", "payload: []\n"));
+  empty.set(url, renderYaml(config.providers.find(({ name }) => name === "anthropic"), []).replace("payload:\n", "payload: []\n"));
   await assert.rejects(verifyPublishedRules(source, reader(empty)), /no usable rules/);
 });

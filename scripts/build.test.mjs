@@ -250,6 +250,8 @@ test("sources.json removes domestic AI routing while preserving provider provena
     "reject",
     "adult_content",
     "gemini",
+    "openai",
+    "anthropic",
     "ai",
     "streaming_services",
     "cn_services",
@@ -315,22 +317,22 @@ test("sources.json removes domestic AI routing while preserving provider provena
 
   const aiProvider = normalized.providers.find(({ name }) => name === "ai");
   assert.equal(aiProvider.target, "🤖 通用 AI");
-  assert.equal(providerNames.includes("openai"), false);
-  assert.equal(providerNames.includes("anthropic"), false);
+  for (const [name, target] of [["openai", "🧠 OpenAI"], ["anthropic", "🧩 Anthropic"]]) {
+    const provider = normalized.providers.find((item) => item.name === name);
+    assert.equal(provider.target, target);
+    assert.equal(provider.noResolve, true);
+    assert.deepEqual(provider.inputs.map((input) => input.sourceUrl), [
+      `https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/${name}.yaml`,
+      `https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/${name}.yaml`,
+    ]);
+    assert.deepEqual(provider.inputs[1].includeRuleTypes, ["PROCESS-NAME", "IP-CIDR", "IP-CIDR6", "IP-ASN"]);
+  }
+  assert.deepEqual(providerNames.filter((name) => ["gemini", "openai", "anthropic", "ai"].includes(name)), ["gemini", "openai", "anthropic", "ai"]);
   assert.deepEqual(aiProvider.inputs.map((input) => input.sourceUrl), [
-    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/openai.yaml",
-    "https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/openai.yaml",
-    "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/anthropic.yaml",
-    "https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/anthropic.yaml",
     "https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/global.yaml",
     "https://raw.githubusercontent.com/SukkaLab/ruleset.skk.moe/master/Clash/non_ip/apple_intelligence.txt",
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ai-!cn.yaml",
   ]);
-  assert.deepEqual(aiProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml", "raw-list", "clash-yaml"]);
-  assert.deepEqual(aiProvider.inputs[1].includeRuleTypes, ["PROCESS-NAME", "IP-CIDR", "IP-CIDR6", "IP-ASN"]);
-  assert.deepEqual(aiProvider.inputs[3].includeRuleTypes, ["PROCESS-NAME", "IP-CIDR", "IP-CIDR6", "IP-ASN"]);
-  assert.equal(aiProvider.inputs[2].license.id, "GPL-3.0");
-  assert.equal(aiProvider.inputs[3].license.id, "MIT");
 
   const domesticProvider = normalized.providers.find(({ name }) => name === "cn_services");
   assert.equal(domesticProvider.name, "cn_services");

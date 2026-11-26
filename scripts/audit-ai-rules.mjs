@@ -28,7 +28,7 @@ const main = async () => {
   const main = vm.runInNewContext(`${renderFlClashScript({ source })}; main`);
   const generated = main({});
   const providers = generated.rules.map((rule) => rule.split(","))
-    .filter(([type, key]) => type === "RULE-SET" && ["gemini", "ai"].includes(key))
+    .filter(([type, key]) => type === "RULE-SET" && ["gemini", "openai", "anthropic", "ai"].includes(key))
     .map(([, key, target]) => ({ name: key, target }));
   const rules = await Promise.all(providers.map(async (provider) => ({
     ...provider,
@@ -78,20 +78,20 @@ const main = async () => {
     target: rules.find((provider) => provider.rules.some((rule) => rule.type === "PROCESS-NAME" && rule.value === process))?.target ?? null,
   }));
   for (const check of domainChecks.filter(({ service }) => ["OpenAI", "OpenAI API", "Codex", "Sora", "Claude", "Anthropic API"].includes(service))) {
-    assert.equal(check.target, "🤖 通用 AI", check.service);
+    assert.equal(check.target, ["Claude", "Anthropic API"].includes(check.service) ? "🧩 Anthropic" : "🧠 OpenAI", check.service);
   }
   for (const check of processChecks) {
-    assert.equal(check.target, "🤖 通用 AI", check.process);
+    assert.equal(check.target, ["Claude", "Claude.exe", "claude", "claude.exe", "cowork-svc.exe"].includes(check.process) ? "🧩 Anthropic" : "🧠 OpenAI", check.process);
   }
   const networkChecks = [
-    ["IP-CIDR", "199.47.142.0/23", "🤖 通用 AI"],
-    ["IP-CIDR", "24.199.123.28/32", "🤖 通用 AI"],
-    ["IP-CIDR", "64.23.132.171/32", "🤖 通用 AI"],
-    ["IP-CIDR6", "2604:f20::/32", "🤖 通用 AI"],
-    ["IP-ASN", "401518", "🤖 通用 AI"],
-    ["IP-CIDR", "160.79.104.0/21", "🤖 通用 AI"],
-    ["IP-CIDR6", "2607:6bc0::/32", "🤖 通用 AI"],
-    ["IP-ASN", "399358", "🤖 通用 AI"],
+    ["IP-CIDR", "199.47.142.0/23", "🧠 OpenAI"],
+    ["IP-CIDR", "24.199.123.28/32", "🧠 OpenAI"],
+    ["IP-CIDR", "64.23.132.171/32", "🧠 OpenAI"],
+    ["IP-CIDR6", "2604:f20::/32", "🧠 OpenAI"],
+    ["IP-ASN", "401518", "🧠 OpenAI"],
+    ["IP-CIDR", "160.79.104.0/21", "🧩 Anthropic"],
+    ["IP-CIDR6", "2607:6bc0::/32", "🧩 Anthropic"],
+    ["IP-ASN", "399358", "🧩 Anthropic"],
   ].map(([type, value, expected]) => {
     const target = rules.find((provider) => provider.rules.some((rule) => rule.type === type && rule.value === value))?.target ?? null;
     assert.equal(target, expected, `${type},${value}`);
@@ -100,7 +100,7 @@ const main = async () => {
   const dedicatedRules = new Set(rules.filter(({ name }) => name !== "ai").flatMap(({ rules }) => rules.map((rule) => JSON.stringify(rule))));
   const unshadowedNonDomainRules = rules.find(({ name }) => name === "ai").rules.filter((rule) => !rule.type.startsWith("DOMAIN") && !dedicatedRules.has(JSON.stringify(rule)));
   console.log(JSON.stringify({
-    scope: "Domain checks report the first match among the Google / Gemini and general AI providers only. They exclude earlier rules, IP, process, DNS, and live connectivity. A null target means neither checked provider matched the probe domain.",
+    scope: "Domain checks report the first match among the Google / Gemini, OpenAI, Anthropic and general AI providers only. They exclude earlier rules, IP, process, DNS, and live connectivity. A null target means no checked provider matched the probe domain.",
     providerOrder: providers.map(({ name }) => name),
     domainChecks,
     processChecks,

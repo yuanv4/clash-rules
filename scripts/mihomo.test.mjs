@@ -13,8 +13,12 @@ import { renderFlClashScript } from "./render-flclash-script.mjs";
 
 const source = JSON.parse(await readFile(new URL("../sources.json", import.meta.url), "utf8"));
 const generated = vm.runInNewContext(`${renderFlClashScript({ source })}; main`);
-const aiGroups = ["🤖 通用 AI", "✨ Google / Gemini"];
+const aiGroups = ["🤖 通用 AI", "✨ Google / Gemini", "🧠 OpenAI", "🧩 Anthropic"];
+const dedicatedGroups = ["🧠 OpenAI", "🧩 Anthropic"];
 const cases = [
+  { names: ["TW01", "JP01", "SG01", "US01", "JP01-US01", "HK01-JP01", "MO01-SG01"], groups: dedicatedGroups, expected: ["JP01", "SG01", "TW01"] },
+  { names: ["台灣 01", "日本 01", "新加坡 01", "🇹🇼 01"], provider: ["TWN 01", "JPN 01", "SGP 01", "Taipei 01", "🇯🇵 01", "🇸🇬 01"], groups: dedicatedGroups, expected: ["JPN 01", "SGP 01", "TWN 01", "Taipei 01", "台灣 01", "日本 01", "新加坡 01", "🇯🇵 01", "🇸🇬 01", "🇹🇼 01"].sort() },
+  { names: ["US01", "JP01-US01"], provider: ["台湾 美国", "🇸🇬 🇺🇸"], groups: dedicatedGroups, expected: ["REJECT"] },
   { names: ["US01", "JP01", "SG01", "HK01-US", "MO01-SG01", "TW01"], groups: ["🤖 通用 AI"], expected: ["JP01", "SG01", "US01"] },
   { names: ["US01", "JP01", "SG01", "HK01-US", "MO01-SG01", "TW01"], groups: ["✨ Google / Gemini"], expected: ["US01"] },
   { names: ["JP01", "SG01"], groups: ["✨ Google / Gemini"], expected: ["REJECT"] },

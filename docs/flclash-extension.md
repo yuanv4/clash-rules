@@ -13,7 +13,7 @@
 | [flclash-android.js](https://raw.githubusercontent.com/yuanv4/clash-rules/release/scripts/flclash-android.js) | 内嵌 tsnet | 在支持该出站的 FlClash 内核中直接连接 Tailnet |
 | [flclash-both.js](https://raw.githubusercontent.com/yuanv4/clash-rules/release/scripts/flclash-both.js) | 同时提供两者 | 需要在同一组内手动切换两种出口 |
 
-所有版本都公开发布，不包含机场 URL、节点凭据或 Tailscale auth key。
+所有版本都公开发布，不包含机场 URL、节点凭据或 Tailscale auth key。品牌组使用固定版本的 [Dashboard Icons](https://github.com/homarr-labs/dashboard-icons/tree/23fc02e7710a66e0c774989f6e78372e9b6c2e15/png)，功能组使用固定版本的 [Qure Color](https://github.com/Koolson/Qure/tree/b16b260625f873266f6a6a9b88710132774997b8/IconSet/Color)，以统一各自的图标风格。品牌图形由社区维护。图标映射更新并发布后，在 FlClash 同步脚本。
 
 ## 导入与绑定
 
@@ -105,7 +105,7 @@ Amy 等要求手动开启访问窗口、限制出口 IP 的订阅，更新官方
 - 除内嵌 tsnet 版本的上述控制域例外外，官方 DNS 映射、hosts、TUN、IPv6、嗅探、端口和自定义字段保持原值。
 - 官方节点和节点提供商仍保留，代理组及规则集已换成项目定义。
 - 官方 `rules` 被项目规则替换，项目 `MATCH` 位于最后。
-- 通用 AI 自动选择，Google 与 Gemini 共用的 `✨ Google / Gemini` 组可手动选择。
+- 通用 AI 自动选择，Google 与 Gemini 共用的 `✨ Google / Gemini` 组可手动选择。`🧠 OpenAI` 自动选择、`🧩 Anthropic` 手动选择，两个组均只筛选台湾、日本、新加坡节点；没有候选节点时使用 `REJECT`。
 - 广告、成人内容、国内服务和国外服务按项目规则处理。
 - 漏网组默认 `DIRECT`，可以在客户端手动调整。
 - 不启用 Tailscale 的版本不添加项目 Tailscale 节点、组和路由。

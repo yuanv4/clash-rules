@@ -8,21 +8,24 @@ import { fileURLToPath } from "node:url";
 import { normalizeConfiguration, parseRules, renderYaml } from "./build.mjs";
 import { matchesDomain } from "./audit-ai-rules.mjs";
 
-test("audit CLI reports merged AI routes and rejects missing OpenAI and Anthropic process rules", async (t) => {
+test("audit CLI reports dedicated AI routes and rejects missing OpenAI and Anthropic process rules", async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), "clash-audit-test-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   const source = JSON.parse(await readFile(new URL("../sources.json", import.meta.url), "utf8"));
   const providers = normalizeConfiguration(source).providers;
   const fixtures = {
     gemini: ["DOMAIN-SUFFIX,google.com", "DOMAIN-SUFFIX,youtube.com", "PROCESS-NAME,Antigravity"],
-    ai: [
+    openai: [
       "DOMAIN-SUFFIX,chatgpt.com", "DOMAIN-SUFFIX,openai.com", "DOMAIN-SUFFIX,sora.com",
-      "DOMAIN-SUFFIX,claude.ai", "DOMAIN-SUFFIX,anthropic.com", "DOMAIN-SUFFIX,perplexity.ai",
-      "DOMAIN-SUFFIX,google.com",
-      ...["ChatGPT", "ChatGPT.exe", "Codex", "Codex.exe", "chatgpt", "codex", "Claude", "Claude.exe", "claude", "claude.exe", "cowork-svc.exe", "Antigravity"].map((name) => `PROCESS-NAME,${name}`),
+      ...["ChatGPT", "ChatGPT.exe", "Codex", "Codex.exe", "chatgpt", "codex"].map((name) => `PROCESS-NAME,${name}`),
       "IP-CIDR,199.47.142.0/23", "IP-CIDR,24.199.123.28/32", "IP-CIDR,64.23.132.171/32", "IP-CIDR6,2604:f20::/32", "IP-ASN,401518",
+    ],
+    anthropic: [
+      "DOMAIN-SUFFIX,claude.ai", "DOMAIN-SUFFIX,anthropic.com",
+      ...["Claude", "Claude.exe", "claude", "claude.exe", "cowork-svc.exe"].map((name) => `PROCESS-NAME,${name}`),
       "IP-CIDR,160.79.104.0/21", "IP-CIDR6,2607:6bc0::/32", "IP-ASN,399358",
     ],
+    ai: ["DOMAIN-SUFFIX,perplexity.ai", "DOMAIN-SUFFIX,google.com", "DOMAIN-SUFFIX,chatgpt.com", "DOMAIN-SUFFIX,claude.ai", "PROCESS-NAME,Codex", "PROCESS-NAME,Claude", "PROCESS-NAME,Antigravity", "PROCESS-NAME,Cursor", "IP-ASN,401518", "IP-ASN,399358"],
   };
   for (const [name, lines] of Object.entries(fixtures)) {
     await writeFile(path.join(root, `${name}.yaml`), renderYaml(providers.find((provider) => provider.name === name), parseRules(lines.join("\n"), "fixture")));
@@ -31,22 +34,24 @@ test("audit CLI reports merged AI routes and rejects missing OpenAI and Anthropi
   const result = runAudit("--list");
   assert.equal(result.status, 0, result.stderr);
   const report = JSON.parse(result.stdout);
-  assert.deepEqual(report.providerOrder, ["gemini", "ai"]);
-  for (const [service, target] of [["OpenAI", "🤖 通用 AI"], ["Codex", "🤖 通用 AI"], ["Claude", "🤖 通用 AI"], ["Anthropic API", "🤖 通用 AI"], ["Perplexity", "🤖 通用 AI"], ["Gemini", "✨ Google / Gemini"]]) {
+  assert.deepEqual(report.providerOrder, ["gemini", "openai", "anthropic", "ai"]);
+  for (const [service, target] of [["OpenAI", "🧠 OpenAI"], ["Codex", "🧠 OpenAI"], ["Claude", "🧩 Anthropic"], ["Anthropic API", "🧩 Anthropic"], ["Perplexity", "🤖 通用 AI"], ["Gemini", "✨ Google / Gemini"]]) {
     assert.equal(report.domainChecks.find((check) => check.service === service).target, target, service);
   }
-  assert.equal(report.processChecks.find(({ process }) => process === "Codex").target, "🤖 通用 AI");
-  assert.equal(report.processChecks.find(({ process }) => process === "Claude").target, "🤖 通用 AI");
+  assert.equal(report.processChecks.find(({ process }) => process === "Codex").target, "🧠 OpenAI");
+  assert.equal(report.processChecks.find(({ process }) => process === "Claude").target, "🧩 Anthropic");
   assert.ok(report.generalAiRules.some((rule) => rule.type === "PROCESS-NAME" && rule.value === "Codex"));
   assert.ok(report.generalAiRules.some((rule) => rule.type === "PROCESS-NAME" && rule.value === "Claude"));
   assert.ok(!Object.hasOwn(report, "internationalAiRules"));
-  assert.ok(report.unshadowedNonDomainRules.some((rule) => rule.type === "PROCESS-NAME" && rule.value === "Claude"));
+  assert.ok(report.unshadowedNonDomainRules.some((rule) => rule.type === "PROCESS-NAME" && rule.value === "Cursor"));
+  assert.ok(!report.unshadowedNonDomainRules.some((rule) => rule.type === "PROCESS-NAME" && rule.value === "Claude"));
   assert.ok(!report.unshadowedNonDomainRules.some((rule) => rule.type === "PROCESS-NAME" && rule.value === "Antigravity"));
-  await writeFile(path.join(root, "ai.yaml"), renderYaml(providers.find(({ name }) => name === "ai"), parseRules(fixtures.ai.filter((line) => line !== "PROCESS-NAME,Codex").join("\n"), "fixture")));
+  await writeFile(path.join(root, "openai.yaml"), renderYaml(providers.find(({ name }) => name === "openai"), parseRules(fixtures.openai.filter((line) => line !== "PROCESS-NAME,Codex").join("\n"), "fixture")));
   const missingProcess = runAudit();
   assert.equal(missingProcess.status, 1);
   assert.match(missingProcess.stderr, /Codex/);
-  await writeFile(path.join(root, "ai.yaml"), renderYaml(providers.find(({ name }) => name === "ai"), parseRules(fixtures.ai.filter((line) => line !== "PROCESS-NAME,Claude").join("\n"), "fixture")));
+  await writeFile(path.join(root, "openai.yaml"), renderYaml(providers.find(({ name }) => name === "openai"), parseRules(fixtures.openai.join("\n"), "fixture")));
+  await writeFile(path.join(root, "anthropic.yaml"), renderYaml(providers.find(({ name }) => name === "anthropic"), parseRules(fixtures.anthropic.filter((line) => line !== "PROCESS-NAME,Claude").join("\n"), "fixture")));
   const missingClaudeProcess = runAudit();
   assert.equal(missingClaudeProcess.status, 1);
   assert.match(missingClaudeProcess.stderr, /Claude/);
