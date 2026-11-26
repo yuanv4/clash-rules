@@ -30,22 +30,6 @@ const TAILSCALE_NODE_ALT = "^TAILSCALE(?:-DIRECT)?$";
 const NODE_EXCLUDE_ALT = `${FAKE_NODE_ALT}|${TAILSCALE_NODE_ALT}`;
 const NODE_EXCLUDE_PATTERN = `(?:${NODE_EXCLUDE_ALT})`;
 
-// 自动选择组按节点名称识别香港地区。
-const HONG_KONG_REGION_PATTERN =
-  "(?i)(?:香港|🇭🇰|(?:^|[^a-z])(?:hong\\s*kong|hk|hkg)(?:$|[^a-z]))";
-
-// 自动选择排除带已知非香港地区标签的节点，不判断线路方向。
-const NON_HONG_KONG_ALT =
-  "澳门|澳門|台湾|台灣|台北|日本|东京|東京|大阪|韩国|韓國|首尔|首爾|中國|中国|大陆|大陸|蒙古|朝鲜|朝鮮|" +
-  "美国|美國|洛杉矶|洛杉磯|圣何塞|聖何塞|西雅图|西雅圖|硅谷|纽约|紐約|新加坡|狮城|獅城|英国|英國|伦敦|倫敦|澳大利亚|澳大利亞|澳洲|悉尼|墨尔本|墨爾本|加拿大|多伦多|多倫多|温哥华|溫哥華|德国|德國|法兰克福|法蘭克福|法国|法國|巴黎|俄罗斯|俄羅斯|莫斯科|印度|孟买|孟買|越南|胡志明|泰国|泰國|曼谷|马来西亚|馬來西亞|吉隆坡|印尼|印度尼西亚|印度尼西亞|雅加达|雅加達|菲律宾|菲律賓|马尼拉|馬尼拉|荷兰|荷蘭|阿姆斯特丹|土耳其|伊斯坦布尔|伊斯坦堡|" +
-  "🇲🇴|🇹🇼|🇯🇵|🇰🇷|🇨🇳|🇲🇳|🇰🇵|" +
-  "🇺🇸|🇸🇬|🇬🇧|🇦🇺|🇨🇦|🇩🇪|🇫🇷|🇷🇺|🇮🇳|🇻🇳|🇹🇭|🇲🇾|🇮🇩|🇵🇭|🇳🇱|🇹🇷|" +
-  "(?:^|[^a-z])(?:macao|macau|taiwan|taipei|japan|tokyo|osaka|south\\s*korea|north\\s*korea|korea|seoul|china|mongolia|" +
-  "united\\s*states|america|los\\s*angeles|san\\s*jose|seattle|silicon\\s*valley|new\\s*york|singapore|united\\s*kingdom|britain|london|australia|sydney|melbourne|canada|toronto|vancouver|germany|frankfurt|france|paris|russia|moscow|india|mumbai|vietnam|ho\\s*chi\\s*minh|thailand|bangkok|malaysia|kuala\\s*lumpur|indonesia|jakarta|philippines|manila|netherlands|amsterdam|turkey|turkiye|istanbul|" +
-  "mo|mac|tw|twn|jp|jpn|kr|kor|cn|chn|mn|mng|kp|prk|" +
-  "us|usa|sg|sgp|uk|gbr|gb|au|aus|ca|can|de|deu|fr|fra|ru|rus|in|ind|vn|vnm|th|tha|my|mys|id|idn|ph|phl|nl|nld|tr|tur)(?:$|[^a-z])";
-const HONG_KONG_EXCLUDE_PATTERN = `(?i)(?:${NON_HONG_KONG_ALT}|${NODE_EXCLUDE_PATTERN})`;
-
 const US_REGION_ALT =
   "美国|美國|洛杉矶|洛杉磯|圣何塞|聖何塞|西雅图|西雅圖|硅谷|纽约|紐約|united\\s*states|🇺🇸|" +
   "(?:^|[^a-z])(?:us|usa)(?:$|[^a-z])";
@@ -74,7 +58,7 @@ export function buildRoutingExtension(source, tailscaleMode = "off") {
   if (!source || !Array.isArray(source.providers) || !source.providers.length || !source.proxy_group || !source.release_base_url) throw new Error("Invalid rule sources");
   const auto = source.proxy_group;
   const ruleProviders = {};
-  const groups = [{ name: auto, type: "url-test", url: TEST_URL, interval: 300, tolerance: 50, "include-all": true, filter: HONG_KONG_REGION_PATTERN, "exclude-filter": HONG_KONG_EXCLUDE_PATTERN, "empty-fallback": "REJECT" }];
+  const groups = [{ name: auto, type: "url-test", url: TEST_URL, interval: 300, tolerance: 50, "include-all": true, "exclude-filter": NODE_EXCLUDE_PATTERN, "empty-fallback": "REJECT" }];
   const rules = [];
   if (tailscaleMode !== "off") {
     const nodes = [];

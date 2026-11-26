@@ -173,10 +173,10 @@ test("invalid configuration shapes fail without revealing values", () => {
   }
 });
 
-test("AI and Hong Kong filters and rule priorities follow routing requirements", () => {
+test("AI and automatic selection filters and rule priorities follow routing requirements", () => {
   const result = run(renderFlClashScript({ source, tailscaleMode: "both" }), sample());
   const group = (name) => result["proxy-groups"].find((g) => g.name === name);
-  const selected = (g, name) => new RegExp(g.filter.replace(/^\(\?i\)/, ""), "i").test(name) && !new RegExp(g["exclude-filter"].replace(/^\(\?i\)/, ""), "i").test(name);
+  const selected = (g, name) => (!g.filter || new RegExp(g.filter.replace(/^\(\?i\)/, ""), "i").test(name)) && !new RegExp(g["exclude-filter"].replace(/^\(\?i\)/, ""), "i").test(name);
   for (const name of ["🤖 通用 AI", "✨ Google / Gemini"]) {
     const g = group(name);
     assert.equal(g.type, name === "🤖 通用 AI" ? "url-test" : "select");
@@ -200,8 +200,10 @@ test("AI and Hong Kong filters and rule priorities follow routing requirements",
     for (const node of ["US01", "JP01-US01", "台湾 美国", "🇸🇬 🇺🇸", "HK01-JP01", "MO01-SG01", "台湾 剩余流量", "TAILSCALE"]) assert.ok(!selected(g, node), node);
   }
   const auto = group(source.proxy_group);
-  for (const node of ["HK01", "香港 02", "Hong Kong 03", "🇭🇰 04", "HKG05", "HK trusted", "HK August"]) assert.ok(selected(auto, node), node);
-  for (const node of ["JP01", "TW01", "MO01", "KR01", "CN01", "HK01-US", "HK01-JP01", "JP01-SG01", "香港中转-美国01", "US01-HK01", "香港 剩余流量", "TAILSCALE", "TAILSCALE-DIRECT"]) assert.ok(!selected(auto, node), node);
+  assert.equal(auto["include-all"], true);
+  assert.equal(auto["empty-fallback"], "REJECT");
+  for (const node of ["HK01", "香港 02", "Hong Kong 03", "🇭🇰 04", "HKG05", "JP01", "TW01", "MO01", "KR01", "CN01", "US01", "HK01-US", "HK01-JP01", "JP01-SG01", "香港中转-美国01", "US01-HK01", "无地区标签"]) assert.ok(selected(auto, node), node);
+  for (const node of ["香港 剩余流量", "到期时间 2027", "TAILSCALE", "TAILSCALE-DIRECT"]) assert.ok(!selected(auto, node), node);
   const ruleIndex = (name) => result.rules.findIndex((rule) => rule.startsWith(`RULE-SET,${name},`));
   assert.ok(ruleIndex("adult_content") < ruleIndex("gemini"));
   assert.ok(ruleIndex("gemini") >= 0 && ruleIndex("ai") >= 0);
