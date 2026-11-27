@@ -89,8 +89,8 @@
       ]
     },
     {
-      "name": "gemini",
-      "target": "Google / Gemini",
+      "name": "google",
+      "target": "Google",
       "no_resolve": true,
       "inputs": [
         {"input": "MetaCubeX/meta-rules-dat", "path": "geo/geosite/google-gemini.yaml"},

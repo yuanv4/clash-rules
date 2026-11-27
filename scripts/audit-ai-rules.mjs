@@ -28,7 +28,7 @@ const main = async () => {
   const main = vm.runInNewContext(`${renderFlClashScript({ source })}; main`);
   const generated = main({});
   const providers = generated.rules.map((rule) => rule.split(","))
-    .filter(([type, key]) => type === "RULE-SET" && ["gemini", "openai", "anthropic", "ai"].includes(key))
+    .filter(([type, key]) => type === "RULE-SET" && ["google", "openai", "anthropic", "ai"].includes(key))
     .map(([, key, target]) => ({ name: key, target }));
   const rules = await Promise.all(providers.map(async (provider) => ({
     ...provider,
@@ -100,7 +100,7 @@ const main = async () => {
   const dedicatedRules = new Set(rules.filter(({ name }) => name !== "ai").flatMap(({ rules }) => rules.map((rule) => JSON.stringify(rule))));
   const unshadowedNonDomainRules = rules.find(({ name }) => name === "ai").rules.filter((rule) => !rule.type.startsWith("DOMAIN") && !dedicatedRules.has(JSON.stringify(rule)));
   console.log(JSON.stringify({
-    scope: "Domain checks report the first match among the Google / Gemini, OpenAI, Anthropic and general AI providers only. They exclude earlier rules, IP, process, DNS, and live connectivity. A null target means no checked provider matched the probe domain.",
+    scope: "Domain checks report the first match among the Google, OpenAI, Anthropic and general AI providers only. They exclude earlier rules, IP, process, DNS, and live connectivity. A null target means no checked provider matched the probe domain.",
     providerOrder: providers.map(({ name }) => name),
     domainChecks,
     processChecks,

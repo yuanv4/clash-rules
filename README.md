@@ -12,7 +12,7 @@
 1. 在 FlClash 中导入机场提供的完整配置订阅，并选中该配置。
 2. 从下表选择一个脚本，通过 URL 导入 FlClash 的脚本列表。
 3. 在这份官方订阅的扩展设置中绑定脚本，并使用规则模式。
-4. 查看最终配置，确认官方 DNS、hosts 和节点仍在，分流规则已换成项目规则，并出现 `通用 AI`、`Google / Gemini` 等项目分组。
+4. 查看最终配置，确认官方 DNS、hosts 和节点仍在，分流规则已换成项目规则，并出现 `通用 AI`、`Google` 等项目分组。
 
 以下链接在新的发布流程成功后可用。脚本是扩展文件，不能作为机场订阅导入。
 
@@ -40,13 +40,13 @@
 
 ## 分流行为
 
-项目规则默认拦截广告和成人内容，国内服务组默认直连，国外服务组默认使用自动选择。`通用 AI` 从美国、日本、新加坡节点中自动测速。`Google / Gemini` 从美国节点中手动选择。`OpenAI` 从台湾、日本、新加坡节点中自动测速，`Anthropic` 从同样地区的节点中手动选择。各 AI 组没有符合条件的节点时使用 `REJECT`。
+项目规则默认拦截广告和成人内容，国内服务组默认直连，国外服务组默认使用自动选择。`通用 AI` 从美国、日本、新加坡节点中自动测速。`Google` 从美国节点中手动选择。`OpenAI` 从台湾、日本、新加坡节点中自动测速，`Anthropic` 从同样地区的节点中手动选择。各 AI 组没有符合条件的节点时使用 `REJECT`。
 
 项目代理组按规则首次匹配顺序排列，自动选择组置前，漏网组置后，Tailscale 组仅在相应版本中出现。自动选择包含所有地区的订阅节点，排除订阅信息节点和项目 Tailscale 节点，没有可用候选节点时使用 `REJECT`。名称标签不能证明真实出口位置。
 
 品牌组使用固定版本的 [Dashboard Icons](https://github.com/homarr-labs/dashboard-icons/tree/23fc02e7710a66e0c774989f6e78372e9b6c2e15/png)，功能组使用固定版本的 [Qure Color](https://github.com/Koolson/Qure/tree/b16b260625f873266f6a6a9b88710132774997b8/IconSet/Color)，以统一各自的图标风格。品牌图形由社区维护。图标映射更新并发布后，在 FlClash 同步扩展脚本。
 
-Google 与 Gemini 共用手动组，合并 MetaCubeX `google-gemini`、VPSDance `google-ai` 及 MetaCubeX Google 域名和 IP 规则。该组优先于通用 AI 和国外服务，广告、成人内容等前置规则仍然优先。OpenAI 与 Anthropic 各有专属域名、进程和网络规则，优先于通用 AI；开发服务并入国外服务。详见 [AI 分流范围](docs/ai-routing.md) 和 [自定义规则](docs/custom-rules.md)。
+`Google` 手动组同时处理 Google 与 Gemini 流量，合并 MetaCubeX `google-gemini`、VPSDance `google-ai` 及 MetaCubeX Google 域名和 IP 规则。该组优先于通用 AI 和国外服务，广告、成人内容等前置规则仍然优先。OpenAI 与 Anthropic 各有专属域名、进程和网络规则，优先于通用 AI；开发服务并入国外服务。详见 [AI 分流范围](docs/ai-routing.md) 和 [自定义规则](docs/custom-rules.md)。
 
 ## 构建与发布
 

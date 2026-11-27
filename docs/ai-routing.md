@@ -1,10 +1,10 @@
 # AI 分流范围
 
-扩展脚本按节点名称筛选候选地区。`Google / Gemini` 使用美国节点，`通用 AI` 使用美国、日本、新加坡节点。`OpenAI` 和 `Anthropic` 使用台湾、日本、新加坡节点，同时排除带美国标签的混合名称。各 AI 组排除港澳标签、订阅信息和项目 Tailscale 节点。节点名不能证明实际出口地区或服务可用性。客户端直接显示表中的组名，不添加项目前缀。
+扩展脚本按节点名称筛选候选地区。`Google` 使用美国节点，`通用 AI` 使用美国、日本、新加坡节点。`OpenAI` 和 `Anthropic` 使用台湾、日本、新加坡节点，同时排除带美国标签的混合名称。各 AI 组排除港澳标签、订阅信息和项目 Tailscale 节点。节点名不能证明实际出口地区或服务可用性。客户端直接显示表中的组名，不添加项目前缀。
 
 | 代理组 | 选择方式 | 主要范围 |
 | --- | --- | --- |
-| `Google / Gemini` | 手动固定节点 | Google 域名和 IP、Gemini、AI Studio、NotebookLM，以及上游覆盖的其他 Google AI 服务和 Antigravity |
+| `Google` | 手动固定节点 | Google 域名和 IP、Gemini、AI Studio、NotebookLM，以及上游覆盖的其他 Google AI 服务和 Antigravity |
 | `OpenAI` | 自动测速选择 | ChatGPT、OpenAI API、Codex、Sora |
 | `Anthropic` | 手动固定节点 | Claude、Anthropic API、Claude Code、Cowork |
 | `通用 AI` | 自动测速选择 | 其余上游 AI 服务 |
@@ -13,15 +13,15 @@
 
 ## 上游与匹配顺序
 
-Google 与 Gemini 共用 `gemini` 规则集和手动代理组。该规则集位于通用 AI 和国外服务规则之前，直连、广告、成人内容等前置规则仍然优先。
+Google 与 Gemini 共用 `google` 规则集和 `Google` 手动代理组。该规则集位于通用 AI 和国外服务规则之前，直连、广告、成人内容等前置规则仍然优先。
 
-- `gemini` 按顺序合并 [MetaCubeX google-gemini](https://github.com/MetaCubeX/meta-rules-dat/blob/meta/geo/geosite/google-gemini.yaml)、[VPSDance google-ai](https://github.com/VPSDance/ai-proxy-rules/blob/main/rules/clash/google-ai.yaml)、[MetaCubeX Google 域名](https://github.com/MetaCubeX/meta-rules-dat/blob/meta/geo/geosite/google.yaml) 和 [MetaCubeX Google IP](https://github.com/MetaCubeX/meta-rules-dat/blob/meta/geo/geoip/google.yaml)。
+- `google` 按顺序合并 [MetaCubeX google-gemini](https://github.com/MetaCubeX/meta-rules-dat/blob/meta/geo/geosite/google-gemini.yaml)、[VPSDance google-ai](https://github.com/VPSDance/ai-proxy-rules/blob/main/rules/clash/google-ai.yaml)、[MetaCubeX Google 域名](https://github.com/MetaCubeX/meta-rules-dat/blob/meta/geo/geosite/google.yaml) 和 [MetaCubeX Google IP](https://github.com/MetaCubeX/meta-rules-dat/blob/meta/geo/geoip/google.yaml)。
 - `openai` 和 `anthropic` 分别合并 MetaCubeX 的 [openai](https://github.com/MetaCubeX/meta-rules-dat/blob/meta/geo/geosite/openai.yaml)、[anthropic](https://github.com/MetaCubeX/meta-rules-dat/blob/meta/geo/geosite/anthropic.yaml) 域名规则和 VPSDance 的 [openai](https://github.com/VPSDance/ai-proxy-rules/blob/main/rules/clash/openai.yaml)、[anthropic](https://github.com/VPSDance/ai-proxy-rules/blob/main/rules/clash/anthropic.yaml) 进程及 IP 规则。
 - 通用 AI 合并 [VPSDance global](https://github.com/VPSDance/ai-proxy-rules/blob/main/rules/clash/global.yaml)、[Sukka Apple Intelligence](https://github.com/SukkaLab/ruleset.skk.moe/blob/master/Clash/non_ip/apple_intelligence.txt) 和 [MetaCubeX category-ai-!cn](https://github.com/MetaCubeX/meta-rules-dat/blob/meta/geo/geosite/category-ai-!cn.yaml)。
 
 OpenAI 和 Anthropic 的 VPSDance 专属输入设置 `include_rule_types`，只保留 `PROCESS-NAME`、`IP-CIDR`、`IP-CIDR6` 和 `IP-ASN`，不额外引入其中的 `auth0.com`、`sentry.io` 等宽泛共享域名。通用 AI 保留原有综合上游范围。生成文件的注释记录来源、许可证和筛选类型。
 
-规则按 `gemini`、`openai`、`anthropic`、`ai` 的顺序匹配。通用 AI 文件保留与专属规则重复的条目；前置规则没有匹配时，重叠条目由更早的专属组处理。其余域名、共享依赖和关键词继续使用通用 AI。
+规则按 `google`、`openai`、`anthropic`、`ai` 的顺序匹配。通用 AI 文件保留与专属规则重复的条目；前置规则没有匹配时，重叠条目由更早的专属组处理。其余域名、共享依赖和关键词继续使用通用 AI。
 
 ## 通用 AI 覆盖的服务
 
@@ -37,7 +37,7 @@ OpenAI 和 Anthropic 的 VPSDance 专属输入设置 `include_rule_types`，只�
 | Agent 与开发工具 | Manus、Dify、LangChain、CrewAI、OpenClaw、AnythingLLM、Context7 |
 | 其他 | Apple Intelligence、Coze / Cici、Trae，以及上游包含的 Kimi、MiniMax 海外域名 |
 
-进程规则中，ChatGPT、Codex 由 OpenAI 处理，Claude、Cowork 由 Anthropic 处理，Augment、Cursor、Windsurf 由通用 AI 处理，Antigravity 由 Google / Gemini 处理。前置规则仍然优先。进程识别取决于客户端、系统权限和核心支持。
+进程规则中，ChatGPT、Codex 由 OpenAI 处理，Claude、Cowork 由 Anthropic 处理，Augment、Cursor、Windsurf 由通用 AI 处理，Antigravity 由 `Google` 处理。前置规则仍然优先。进程识别取决于客户端、系统权限和核心支持。
 
 ## 复核当前上游
 

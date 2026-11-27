@@ -14,7 +14,7 @@ const qureBase = "https://raw.githubusercontent.com/Koolson/Qure/b16b260625f8732
 const dashboardBase = "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/23fc02e7710a66e0c774989f6e78372e9b6c2e15/png";
 const icons = {
   "自动选择": `${qureBase}/Auto.png`, "广告过滤": `${qureBase}/Advertising.png`, "成人内容": `${qureBase}/Reject.png`,
-  "Google / Gemini": `${dashboardBase}/google.png`, "OpenAI": `${dashboardBase}/chatgpt.png`, "Anthropic": `${dashboardBase}/anthropic.png`,
+  "Google": `${dashboardBase}/google.png`, "OpenAI": `${dashboardBase}/chatgpt.png`, "Anthropic": `${dashboardBase}/anthropic.png`,
   "通用 AI": `${qureBase}/AI.png`, "流媒体服务": `${qureBase}/Streaming.png`, "国内服务": `${qureBase}/China.png`,
   "国外服务": `${qureBase}/Global.png`, "漏网之鱼": `${qureBase}/Final.png`, Tailscale: `${dashboardBase}/tailscale-light.png`,
 };
@@ -177,20 +177,20 @@ test("AI and automatic selection filters and rule priorities follow routing requ
   const result = run(renderFlClashScript({ source, tailscaleMode: "both" }), sample());
   const group = (name) => result["proxy-groups"].find((g) => g.name === name);
   const selected = (g, name) => (!g.filter || new RegExp(g.filter.replace(/^\(\?i\)/, ""), "i").test(name)) && !new RegExp(g["exclude-filter"].replace(/^\(\?i\)/, ""), "i").test(name);
-  for (const name of ["通用 AI", "Google / Gemini"]) {
+  for (const name of ["通用 AI", "Google"]) {
     const g = group(name);
     assert.equal(g.type, name === "通用 AI" ? "url-test" : "select");
     for (const node of ["US01", "USA 02", "美国 03", "🇺🇸 04"]) assert.ok(selected(g, node), node);
     for (const node of ["HK01-US", "MO01-SG01", "美国 剩余流量", "TAILSCALE", "TAILSCALE-DIRECT"]) assert.ok(!selected(g, node), node);
   }
-  const google = group("Google / Gemini");
+  const google = group("Google");
   for (const node of ["JP01", "SG01", "日本 02", "新加坡 02"]) assert.ok(!selected(google, node), node);
   for (const node of ["JP01", "SG01", "日本 02", "新加坡 02"]) assert.ok(selected(group("通用 AI"), node), node);
   assert.equal(google.url, "https://gemini.google.com/app");
   assert.equal(google["empty-fallback"], "REJECT");
   assert.equal(google["include-all"], true);
-  assert.equal(result["rule-providers"].gemini.url, `${source.release_base_url}/rules/gemini.yaml`);
-  assert.ok(result.rules.includes("RULE-SET,gemini,Google / Gemini,no-resolve"));
+  assert.equal(result["rule-providers"].google.url, `${source.release_base_url}/rules/google.yaml`);
+  assert.ok(result.rules.includes("RULE-SET,google,Google,no-resolve"));
   for (const [name, type] of [["OpenAI", "url-test"], ["Anthropic", "select"]]) {
     const g = group(name);
     assert.equal(g.type, type);
@@ -205,9 +205,9 @@ test("AI and automatic selection filters and rule priorities follow routing requ
   for (const node of ["HK01", "香港 02", "Hong Kong 03", "🇭🇰 04", "HKG05", "JP01", "TW01", "MO01", "KR01", "CN01", "US01", "HK01-US", "HK01-JP01", "JP01-SG01", "香港中转-美国01", "US01-HK01", "无地区标签"]) assert.ok(selected(auto, node), node);
   for (const node of ["香港 剩余流量", "到期时间 2027", "TAILSCALE", "TAILSCALE-DIRECT"]) assert.ok(!selected(auto, node), node);
   const ruleIndex = (name) => result.rules.findIndex((rule) => rule.startsWith(`RULE-SET,${name},`));
-  assert.ok(ruleIndex("adult_content") < ruleIndex("gemini"));
-  assert.ok(ruleIndex("gemini") >= 0 && ruleIndex("ai") >= 0);
-  assert.ok(ruleIndex("gemini") < ruleIndex("openai"));
+  assert.ok(ruleIndex("adult_content") < ruleIndex("google"));
+  assert.ok(ruleIndex("google") >= 0 && ruleIndex("ai") >= 0);
+  assert.ok(ruleIndex("google") < ruleIndex("openai"));
   assert.ok(ruleIndex("openai") < ruleIndex("anthropic"));
   assert.ok(ruleIndex("anthropic") < ruleIndex("ai"));
   assert.ok(ruleIndex("ai") < ruleIndex("foreign_services"));

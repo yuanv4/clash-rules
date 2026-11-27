@@ -13,7 +13,7 @@ const GROUP_ICONS = {
   "自动选择": `${QURE_ICON_BASE}/Auto.png`,
   "广告过滤": `${QURE_ICON_BASE}/Advertising.png`,
   "成人内容": `${QURE_ICON_BASE}/Reject.png`,
-  "Google / Gemini": `${DASHBOARD_ICON_BASE}/google.png`,
+  "Google": `${DASHBOARD_ICON_BASE}/google.png`,
   "OpenAI": `${DASHBOARD_ICON_BASE}/chatgpt.png`,
   "Anthropic": `${DASHBOARD_ICON_BASE}/anthropic.png`,
   "通用 AI": `${QURE_ICON_BASE}/AI.png`,
@@ -46,7 +46,7 @@ const REGION_EXCLUDE_PATTERN = `(?i)(?:${REGION_EXCLUDED_ALT}|${NODE_EXCLUDE_ALT
 const DEDICATED_REGION_PATTERN = "(?i)(?:台湾|台灣|台北|日本|东京|東京|大阪|新加坡|狮城|獅城|taiwan|taipei|japan|tokyo|osaka|singapore|🇹🇼|🇯🇵|🇸🇬|(?:^|[^a-z])(?:tw|twn|jp|jpn|sg|sgp)(?:$|[^a-z]))";
 const DEDICATED_EXCLUDE_PATTERN = `(?i)(?:${REGION_EXCLUDED_ALT}|${NODE_EXCLUDE_ALT}|${US_REGION_ALT}|(?:^|[^a-z])america(?:$|[^a-z]))`;
 const AI_POLICIES = {
-  "Google / Gemini": { type: "select", url: "https://gemini.google.com/app", filter: GOOGLE_REGION_PATTERN, "exclude-filter": REGION_EXCLUDE_PATTERN },
+  "Google": { type: "select", url: "https://gemini.google.com/app", filter: GOOGLE_REGION_PATTERN, "exclude-filter": REGION_EXCLUDE_PATTERN },
   "OpenAI": { type: "url-test", url: "https://chatgpt.com/", filter: DEDICATED_REGION_PATTERN, "exclude-filter": DEDICATED_EXCLUDE_PATTERN, "expected-status": 200, interval: 90, timeout: 5000, tolerance: 50, lazy: false },
   "Anthropic": { type: "select", url: "https://claude.ai/", filter: DEDICATED_REGION_PATTERN, "exclude-filter": DEDICATED_EXCLUDE_PATTERN },
   "通用 AI": { type: "url-test", url: "https://chatgpt.com/", filter: AI_REGION_PATTERN, "exclude-filter": REGION_EXCLUDE_PATTERN, "expected-status": 200, interval: 90, timeout: 5000, tolerance: 50, lazy: false },

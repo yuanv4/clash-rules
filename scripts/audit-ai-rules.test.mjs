@@ -14,7 +14,7 @@ test("audit CLI reports dedicated AI routes and rejects missing OpenAI and Anthr
   const source = JSON.parse(await readFile(new URL("../sources.json", import.meta.url), "utf8"));
   const providers = normalizeConfiguration(source).providers;
   const fixtures = {
-    gemini: ["DOMAIN-SUFFIX,google.com", "DOMAIN-SUFFIX,youtube.com", "PROCESS-NAME,Antigravity"],
+    google: ["DOMAIN-SUFFIX,google.com", "DOMAIN-SUFFIX,youtube.com", "PROCESS-NAME,Antigravity"],
     openai: [
       "DOMAIN-SUFFIX,chatgpt.com", "DOMAIN-SUFFIX,openai.com", "DOMAIN-SUFFIX,sora.com",
       ...["ChatGPT", "ChatGPT.exe", "Codex", "Codex.exe", "chatgpt", "codex"].map((name) => `PROCESS-NAME,${name}`),
@@ -34,8 +34,8 @@ test("audit CLI reports dedicated AI routes and rejects missing OpenAI and Anthr
   const result = runAudit("--list");
   assert.equal(result.status, 0, result.stderr);
   const report = JSON.parse(result.stdout);
-  assert.deepEqual(report.providerOrder, ["gemini", "openai", "anthropic", "ai"]);
-  for (const [service, target] of [["OpenAI", "OpenAI"], ["Codex", "OpenAI"], ["Claude", "Anthropic"], ["Anthropic API", "Anthropic"], ["Perplexity", "通用 AI"], ["Gemini", "Google / Gemini"]]) {
+  assert.deepEqual(report.providerOrder, ["google", "openai", "anthropic", "ai"]);
+  for (const [service, target] of [["OpenAI", "OpenAI"], ["Codex", "OpenAI"], ["Claude", "Anthropic"], ["Anthropic API", "Anthropic"], ["Perplexity", "通用 AI"], ["Gemini", "Google"]]) {
     assert.equal(report.domainChecks.find((check) => check.service === service).target, target, service);
   }
   assert.equal(report.processChecks.find(({ process }) => process === "Codex").target, "OpenAI");

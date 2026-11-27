@@ -249,7 +249,7 @@ test("sources.json removes domestic AI routing while preserving provider provena
     "reject_domainset",
     "reject",
     "adult_content",
-    "gemini",
+    "google",
     "openai",
     "anthropic",
     "ai",
@@ -271,7 +271,7 @@ test("sources.json removes domestic AI routing while preserving provider provena
     "https://raw.githubusercontent.com/SukkaLab/ruleset.skk.moe/master/Clash/ip/lan.txt",
   ]);
   assert.deepEqual(directProvider.inputs.map((input) => input.inputFormat), ["raw-list", "raw-list"]);
-  for (const name of ["google", "telegram", "steam", "microsoft", "apple"]) {
+  for (const name of ["gemini", "telegram", "steam", "microsoft", "apple"]) {
     assert.equal(providerNames.includes(name), false);
   }
 
@@ -303,17 +303,17 @@ test("sources.json removes domestic AI routing while preserving provider provena
   ]);
   assert.deepEqual(adultContentProvider.inputs.map((input) => input.inputFormat), ["clash-yaml"]);
 
-  const geminiProvider = normalized.providers.find(({ name }) => name === "gemini");
-  assert.equal(geminiProvider.target, "Google / Gemini");
-  assert.equal(geminiProvider.noResolve, true);
-  assert.deepEqual(geminiProvider.inputs.map((input) => input.sourceUrl), [
+  const googleProvider = normalized.providers.find(({ name }) => name === "google");
+  assert.equal(googleProvider.target, "Google");
+  assert.equal(googleProvider.noResolve, true);
+  assert.deepEqual(googleProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google-gemini.yaml",
     "https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/google-ai.yaml",
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google.yaml",
     "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/google.yaml",
   ]);
-  assert.deepEqual(geminiProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml"]);
-  assert.deepEqual(geminiProvider.inputs.map((input) => input.license.id), ["GPL-3.0", "MIT", "GPL-3.0", "GPL-3.0"]);
+  assert.deepEqual(googleProvider.inputs.map((input) => input.inputFormat), ["clash-yaml", "clash-yaml", "clash-yaml", "clash-yaml"]);
+  assert.deepEqual(googleProvider.inputs.map((input) => input.license.id), ["GPL-3.0", "MIT", "GPL-3.0", "GPL-3.0"]);
 
   const aiProvider = normalized.providers.find(({ name }) => name === "ai");
   assert.equal(aiProvider.target, "通用 AI");
@@ -327,7 +327,7 @@ test("sources.json removes domestic AI routing while preserving provider provena
     ]);
     assert.deepEqual(provider.inputs[1].includeRuleTypes, ["PROCESS-NAME", "IP-CIDR", "IP-CIDR6", "IP-ASN"]);
   }
-  assert.deepEqual(providerNames.filter((name) => ["gemini", "openai", "anthropic", "ai"].includes(name)), ["gemini", "openai", "anthropic", "ai"]);
+  assert.deepEqual(providerNames.filter((name) => ["google", "openai", "anthropic", "ai"].includes(name)), ["google", "openai", "anthropic", "ai"]);
   assert.deepEqual(aiProvider.inputs.map((input) => input.sourceUrl), [
     "https://raw.githubusercontent.com/VPSDance/ai-proxy-rules/main/rules/clash/global.yaml",
     "https://raw.githubusercontent.com/SukkaLab/ruleset.skk.moe/master/Clash/non_ip/apple_intelligence.txt",
